@@ -1,99 +1,116 @@
-from ..utils.types import *
-from dataclasses import dataclass
-from .core.federated_c10d import FederatedWorld
 from collections import OrderedDict
+from typing import Any, Dict, List, overload
+
+import openfed.utils.types as types
+
+from .core.federated_c10d import FederatedWorld, ProcessGroup
+from .monitor.monitor import Monitor
+from .pack.package import Package
 
 
-@dataclass
 class World(object):
-    # 标志openfed系统是否正在运行。
-    # 当ALIVE为False时，程序中相关的一些后台进程会自动退出。
-    # 保证程序平稳运行
-    ALIVE = True
+    # 标志当前openfed world是否还在运行
+    # 当ALIVE=False，程序的相关进程会自从退出
+    # 防止程序运行时错误
+    # 当你想要退出一个openfed world时，你应该设置这个flag
+    ALIVE: bool
 
-    # TODO: 设计一个统一的方式，退出后台线程。
-    # 后台线程包括Thread、Generator
+    def killed(self):
+        # 退出
+        self.ALIVE = False
 
-    def killed():
-        global ALIVE
-        ALIVE = False
+    # 如果DEBUG=True，那相关的程序会输出部分调试信心
+    DEBUG: bool
 
-    # 如果设置为True的话，那相关的程序会输出相应的调试信息。
-    DEBUG = False
+    def debug(self):
+        self.DEBUG = True
 
-    # TODO：设计一个统一的方式，对调试信息格式化输出。
+    # 如果VERBOSE=True, 相关程序会输出一些日志
+    VERBOSE: bool
 
-    def debug():
-        global DEBUG
-        DEBUG = True
+    def verbose(self):
+        self.VERBOSE = True
 
-    # 如果设置为True的话，相关的程序会输出运行状态
-    VERBOSE = False
+    # 给APPROVED指定不同等级的权限信息
+    APPROVED: types.APPROVED
 
-    # TODO：设置一个统一的方式，进行可视化输出
+    def set_approved(self, approved: types.APPROVED):
+        self.APPROVED = approved
 
-    def verbose():
-        global VERBOSE
-        VERBOSE = True
+    # ROLE用来明确当前世界中自己的身份
+    # 默认所有的KING是rank=0，所有的QUEEN是rank=1
+    ROLE: types.ROLE
 
-    # 是否允许openfed传输系统相关信息以方便对方监视自己当前运行状态。
-    _APPROVED = APPROVED.ALL
+    def set_king(self):
+        self.ROLE = types.ROLE.KING
 
-    # 大部分情况下是QUEEN，客户端。毕竟服务器端就只会有一个。
-    _ROLE = ROLE.QUEEN
+    def set_queen(self):
+        self.ROLE = types.ROLE.QUEEN
 
-    def set_king():
-        global _ROLE
-        _ROLE = ROLE.KING
+    def is_king(self):
+        return self.ROLE == types.ROLE.KING
 
-    def set_queen():
-        global _ROLE
-        _ROLE = ROLE.QUEEN
-
-    def who_am_i():
-        print(f"I am the {_ROLE}")
-
-    def is_king():
-        return _ROLE == ROLE.KING
-
-    def is_queen():
-        return _ROLE == ROLE.QUEEN
+    def is_queen(self):
+        return self.ROLE == types.ROLE.QUEEN
 
     @overload
-    def set_openfed_state(state: APPROVED):
-        """这是用来设置权限的。
+    def set_openfed_state(self, state: types.APPROVED):
+        """自动设置一个权限，用来控制上传的系统信息。
         """
 
     @overload
-    def set_openfed_state(state: ROLE):
-        """这是用来设置身份的。
+    def set_openfed_state(self, state: types.ROLE):
+        """设置当前进程的身份。
         """
 
-    def set_openfed_state(state):
-        """这里才是函数的实现。
+    @overload
+    def set_openfed_state(self, state):
+        """根据state的类型，类设置正确的变量。
         """
-        # 根据不同的state类型，设置相对应的状态。
-        if isinstance(state, ROLE):
-            global _ROLE
-            _ROLE = state
-        elif isinstance(state, APPROVED):
-            global _APPROVED
-            _APPROVED = state
+        if isinstance(state, types.ROLE):
+            self.ROLE = state
+        elif isinstance(state, types.APPROVED):
+            self.APPROVED = state
         else:
             raise NotImplementedError
 
+    # 我们遍历的是pg，而不是federated_world。
+    __pg_mapping: Dict[ProcessGroup, List[Package, Monitor, FederatedWorld]]
 
-# At most of case, you are not allowed to modifed this list manually.
-__federated_world__: Dict[FederatedWorld, Any] = OrderedDict()
+    # 记录当前上层正在处理的pg是哪一个
+    __NULL_GP: Any
+    __current_pg: ProcessGroup
+
+    # 我们并不希望这个参数被轻易修改，所以将它定义在这里，而不是CONSTANT里面。
+    _SLEEPTIME: float  # seconds
+
+    def __init__(self, ):
+        self.ALIVE = True
+        self.DEBUG = False
+        self.VERBOSE = False
+        self.APPROVED = types.APPROVED.ALL
+        self.ROLE = types.ROLE.QUEEN
+        self.__pg_mapping = OrderedDict()
+        self.__NULL_GP = object()
+        self.__current_pg = self.__NULL_GP
+        self._SLEEPTIME = 1.0
+
+    def valid_process_group(self, pg: ProcessGroup):
+        return pg is not self.__NULL_GP and pg in self.__pg_mapping
+
+
+# At most case, you are not allowed to modifed this list manually.
+# FederatedWorld是底层的通讯抽象，World是对应的参数配置
+__federated_world__: Dict[FederatedWorld, World] = OrderedDict()
 
 
 class _Register(object):
     @classmethod
-    def register_federated_world(cls, federated_world: FederatedWorld, description: Any = None):
+    def register_federated_world(cls, federated_world: FederatedWorld, world: World):
         if federated_world in __federated_world__:
             raise KeyError("Already registered.")
         else:
-            __federated_world__[federated_world] = description
+            __federated_world__[federated_world] = world
 
     @classmethod
     def deleted_federated_world(cls, federated_world: FederatedWorld):
@@ -109,24 +126,28 @@ class _Register(object):
         return federated_world in __federated_world__
 
     def __iter__(self):
-        return self
-
-    def __next__(self) -> List[Union[FederatedWorld, Any]]:
-        while len(__federated_world__) > 0:
-            for fed_world in __federated_world__.items():
-                return fed_world
-        else:
-            raise StopIteration
+        return zip(__federated_world__.keys(), __federated_world__.values())
 
     @property
     def default_federated_world(cls) -> FederatedWorld:
         """ If not exists, return None
         """
-        if len(__federated_world__) > 0:
-            for fed_world in __federated_world__:
-                return fed_world
+        for fed_world in __federated_world__:
+            return fed_world
         else:
             return None
+
+    @property
+    def default_world(cls) -> World:
+        """If not exists, return None
+        """
+        for fed_world in __federated_world__:
+            return __federated_world__[fed_world]
+        else:
+            return None
+
+    def __len__(self):
+        return len(__federated_world__)
 
 
 register = _Register()

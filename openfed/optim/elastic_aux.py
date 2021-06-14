@@ -50,6 +50,7 @@ class ElasticAux(Optimizer):
             \end{aligned}
 
         The Nesterov version is analogously modified.
+    
     这个特殊的优化器是配合ElasticAggregater使用的，它要求在客户端统计一个参数的重要性参数。
     这个特殊的优化器不会更新参数，只是负责计算参数的重要性，并且保存在state中。
     使用如下：

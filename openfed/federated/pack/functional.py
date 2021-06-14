@@ -1,4 +1,5 @@
 from typing import Any
+from torch import Tensor
 
 
 class Function(object):  # type: ignore
@@ -36,41 +37,27 @@ class Function(object):  # type: ignore
         >>>
         >>> #Use it by calling the apply method:
         >>> output = Exp.apply(input)
+
+    加入限制，保证pack的输出和unpack的输入是一致的。
+    并且，不同的Function可以串联操作。
     """
 
-    @staticmethod
-    def pack(ctx: Any, *args: Any, **kwargs: Any) -> Any:
-        r"""Performs the operation.
-
-        This function is to be overridden by all subclasses.
-
-        It must accept a context ctx as the first argument, followed by any
-        number of arguments (tensors or other types).
-
-        The context can be used to store tensors that can be then retrieved
-        during the backward pass.
+    def pack(self, key: str, k: str, v: Tensor) -> Tensor:
+        r"""
+        Args:
+            key: 在数据流中对应的键值
+            k, v: 需要加入数据流中的键值对。
+        返回处理之后的v。
         """
         raise NotImplementedError("You must implement the forward function for custom"
                                   " autograd.Function.")
 
-    @staticmethod
-    def unpack(ctx: Any, *grad_outputs: Any) -> Any:
-        r"""Defines a formula for differentiating the operation.
-
-        This function is to be overridden by all subclasses.
-
-        It must accept a context :attr:`ctx` as the first argument, followed by
-        as many outputs did :func:`forward` return, and it should return as many
-        tensors, as there were inputs to :func:`forward`. Each argument is the
-        gradient w.r.t the given output, and each returned value should be the
-        gradient w.r.t. the corresponding input.
-
-        The context can be used to retrieve tensors saved during the forward
-        pass. It also has an attribute :attr:`ctx.needs_input_grad` as a tuple
-        of booleans representing whether each input needs gradient. E.g.,
-        :func:`backward` will have ``ctx.needs_input_grad[0] = True`` if the
-        first input to :func:`forward` needs gradient computated w.r.t. the
-        output.
+    def unpack(self, key: str, k: str, v: Tensor) -> Tensor:
+        r"""
+        Args:
+            key: 在数据流中对应的键值
+            k, v: 需要加入数据流中的键值对。
+        返回处理之后的v。
         """
         raise NotImplementedError("You must implement the backward function for custom"
                                   " autograd.Function.")

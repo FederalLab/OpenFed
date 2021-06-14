@@ -19,24 +19,27 @@ class Monitor(Thread):
     _hooks_dict: Dict[str, Callable]
     stopped: Boolean
 
-    def __init__(self, informer: Informer, delay: float = 10, auto_start: bool = True):
-        """
-        Args:
-            informer: openfed.federated.Informer
-            delay: update frequency.(second)
-            auto_start: 是否自动开始执行程序。
-                如果是，则自动调用Monitor.start()开始进入后台执行。
-                如果不是，则不调用，需要后期手动调用。（如果你想注册一些新的方法hook的时候，显得很有用。）
-        """
-        super().__init__()
-        self.stopped = False
+    def __init__(self, store, federated_world, world: World):
+        pass
 
-        self._hooks_dict = dict()
+    # def __init__(self, informer: Informer, delay: float = 10, auto_start: bool = True):
+    #     """
+    #     Args:
+    #         informer: openfed.federated.Informer
+    #         delay: update frequency.(second)
+    #         auto_start: 是否自动开始执行程序。
+    #             如果是，则自动调用Monitor.start()开始进入后台执行。
+    #             如果不是，则不调用，需要后期手动调用。（如果你想注册一些新的方法hook的时候，显得很有用。）
+    #     """
+    #     super().__init__()
+    #     self.stopped = False
 
-        self.delay = delay  # time to collect system information
-        self.informer = informer
-        if auto_start:
-            self.start()
+    #     self._hooks_dict = dict()
+
+    #     self.delay = delay  # time to collect system information
+    #     self.informer = informer
+    #     if auto_start:
+    #         self.start()
 
     def register_hook(self, name: str, hook: Callable):
         """

@@ -77,4 +77,4 @@ class STATUS(Enum):
 
 
 PACKAGES = TypeVar(
-    'PACKAGES', bound=Dict[Any, Union[Tensor, Dict[str, Tensor]]])
+    'PACKAGES', bound=Dict[str, Union[Tensor, Dict[str, Tensor]]])
