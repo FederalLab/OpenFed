@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "/Users/densechen/miniconda3/envs/higgs/bin/python",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none",
+    }
+}
