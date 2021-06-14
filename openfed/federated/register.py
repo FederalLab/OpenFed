@@ -9,6 +9,11 @@ from .pack.package import Package
 
 
 class World(object):
+    """World里面所有的状态，都只是给本地程序使用的。
+    比如ALIVE状态，标志的是本地的这个程序是否还在运行。
+    这个和informer里面的状态的含义是不一样的。
+    informer里面的状态指的是联邦学习过程中的相关状态。因此不要混淆。
+    """
     # 标志当前openfed world是否还在运行
     # 当ALIVE=False，程序的相关进程会自从退出
     # 防止程序运行时错误
@@ -82,7 +87,7 @@ class World(object):
     __current_pg: ProcessGroup
 
     # 我们并不希望这个参数被轻易修改，所以将它定义在这里，而不是CONSTANT里面。
-    _SLEEPTIME: float  # seconds
+    SLEEPTIME: float  # seconds
 
     def __init__(self, ):
         self.ALIVE = True
@@ -93,7 +98,7 @@ class World(object):
         self.__pg_mapping = OrderedDict()
         self.__NULL_GP = object()
         self.__current_pg = self.__NULL_GP
-        self._SLEEPTIME = 1.0
+        self.SLEEPTIME = 1.0
 
     def valid_process_group(self, pg: ProcessGroup):
         return pg is not self.__NULL_GP and pg in self.__pg_mapping

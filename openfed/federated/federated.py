@@ -1,14 +1,15 @@
 import time
 from threading import Thread
-from typing import Dict, List, Union
+from typing import List, Union
 
 import openfed
-from openfed.utils.types import FedAddr
-from openfed.utils.safe_exited import safe_exited
+from openfed.utils.types import STATUS, FedAddr
+
 from .core.federated_c10d import FederatedWorld, ProcessGroup
-from .register import register, World
 from .monitor.monitor import Monitor
 from .pack.package import Package
+from .register import World, register
+from .utils.safe_exited import safe_exited
 
 
 class Joint(Thread):
@@ -83,7 +84,10 @@ class Maintainer(Thread):
     # 用来记录已完成的连接。
     finished_queue: List[FedAddr]
 
-    def __init__(self, world: World, fed_addr: Union[FedAddr, List[FedAddr]] = None, fed_addr_file: str = None):
+    def __init__(self,
+                 world: World,
+                 fed_addr: Union[FedAddr, List[FedAddr]] = None,
+                 fed_addr_file: str = None):
         """
             在客户端，一次只允许指定一个地址，如果多余一个地址，则会报错。
         """
@@ -149,7 +153,7 @@ class Maintainer(Thread):
             self.finished_queue.extend(self.pending_queue)
             self.pending_queue.clear()
 
-            time.sleep(self.world._SLEEPTIME)
+            time.sleep(self.world.SLEEPTIME)
         else:
             safe_exited()
 
@@ -185,7 +189,7 @@ class Destroy(object):
         package, monitor, fed_world = world.__pg_mapping[pg]
 
         # 将informer状态设置成OFFINE
-        monitor.informer.set_state(openfed.STATUS.OFFINE)
+        monitor.informer.set_state(STATUS.OFFINE)
 
         # 将键值对从全局字典中移除
         del world.__pg_mapping[pg]
@@ -230,7 +234,7 @@ class Destroy(object):
 # 这里返回空GP就是为了保证其他模块在获取迭代器输出的时候，
 # 不会发生阻塞。如果遇到了空GP那可以继续处理其他事情。
 
-def process_generator():
+def process_generator() -> List[ProcessGroup, World, Package, Monitor, FederatedWorld]:
     """生成器，不断的遍历整个pg数组，并且返回一个pg。
     注意：返回的pg可能是无效的。
         当不存在pg时，会返回一个None。
@@ -251,12 +255,12 @@ def process_generator():
                 # 因此，在这里，我们应该先等待pg被取走
                 # 然后再去将__current_pg更新成被取走的pg
                 # 如果先更新__current_pg的话，会导致实际的__current_pg指向发生错误
-                yield pg
+                yield pg, world, *world.__pg_mapping[pg]
                 world.__current_pg = pg
             else:
                 # 当列表为空的时候，yield一个空的GP
                 # 否则无法进入for循环的话，将无法形成一个Generator
-                yield world.__NULL_GP
+                yield world.__NULL_GP, world, None, None, None
                 world.__current_pg = world.__NULL_GP
     else:
         safe_exited()

@@ -1,10 +1,32 @@
+import datetime
 import json
+from enum import Enum
 from typing import Any
 
-import openfed
-import openfed.utils as utils
-from openfed import CONSTANTS, STATUS
-from torch._C._distributed_c10d import Store
+from openfed.federated.core.federated_c10d import FederatedWorld, Store
+from openfed.federated.register import World
+from openfed.utils.types import APPROVED, STATUS
+
+from .gpu_info import getGPUInfo
+from .sys_info import getSysInfo
+
+# 以下常量用于设置store里面的键值对。
+OPENFED_IDENTIFY = "OPENFED_IDENTIFY"
+OPENFED_STATUS = "OPENFED_STATUS"
+OPENFED_KING_SYS_INFO = "OPENFED_KING_SYS_INFO"
+OPENFED_KING_GPU_INFO = "OPENFED_KING_GPU_INFO"
+OPENFED_QUEUE_SYS_INFO = "OPENFED_QUEUE_SYS_INFO"
+OPENFED_QUEUE_GPU_INFO = "OPENFED_QUEUE_GPU_INFO"
+
+OPENFED_TASK_INFO = "OPENFED_TASK_INFO"
+
+
+def to_enum(value, enum_type: Enum):
+    for enum in enum_type:
+        if enum.value == value:
+            return enum
+    else:
+        raise ValueError(f"{value} is not a valid enum {enum_type}")
 
 
 class FedDict(dict):
@@ -17,22 +39,31 @@ class FedDict(dict):
 
 
 class Informer(object):
+    """维护world状态，保证world状态和信息流中的状态是一致的。
+    封装kvstore，提供一个更加便捷的接口调用。
+    """
     store: Store
+    federated_world: FederatedWorld
+    world: World
 
-    def __init__(self, store: Store):
+    def __init__(self, store: Store, federated_world: FederatedWorld, world: World):
+        self.federated_world = federated_world
+        self.world = world
         self.store = store
         self._write(FedDict())
 
         # 客户端和服务器端分别写入默认信息
-        # 客户端
-        if openfed.is_queen():
+        if self.world.is_queen():
             # 设置状态
             self.set_state(STATUS.ZOMBINE)  # 表示客户端上线
 
     def _write(self, feddict: FedDict) -> Any:
         """Erase old value, write feddict instead.
         """
-        return self.store.set(CONSTANTS.OPENFED_IDENTIFY.value, feddict.jsonize())
+        # 给每一个数据都加入一个时间戳，以保证信息的正确性
+        feddict["timestemp"] = datetime.datetime.now().strftime(
+            '%Y-%m-%d %H:%M:%S')
+        return self.store.set(OPENFED_IDENTIFY, feddict.jsonize())
 
     def _update(self, feddict: FedDict) -> Any:
         """Update old value with feddict.
@@ -55,50 +86,57 @@ class Informer(object):
         super().__del__()
 
     def alive(self):
-        """判断程序是否是存活的（非OFFLINE）
+        """判断客户端是否在线
         """
-        return self.get_state() == STATUS.OFFLINE
+        return self.get_state() != STATUS.OFFLINE
 
     def get_state(self) -> STATUS:
-        state = self.get(CONSTANTS.OPENFED_STATUS.value)
-        return utils.to_enum(state, STATUS)
+        state = self.get(OPENFED_STATUS)
+        return to_enum(state, STATUS)
 
     def set_state(self, state: STATUS):
-        self.set(CONSTANTS.OPENFED_STATUS.value, state.value)
+        self.set(OPENFED_STATUS, state.value)
 
     def get_task_info(self) -> dict:
-        return self.get(CONSTANTS.OPENFED_TASK_INFO.value)
+        return self.get(OPENFED_TASK_INFO)
 
     def set_task_info(self, task_info: dict):
-        self.set(CONSTANTS.OPENFED_TASK_INFO.value, task_info)
+        self.set(OPENFED_TASK_INFO, task_info)
 
     def get_gpu_state(self) -> dict:
-        if openfed.is_king():
+        if self.world.is_king():
             # 如果是king，则查看queue的数据
-            return self.get(CONSTANTS.OPENFED_QUEUE_GPU_INFO.value)
+            return self.get(OPENFED_QUEUE_GPU_INFO)
         else:
             # 如果是queue，则查看king的数据
-            return self.get(CONSTANTS.OPENFED_KING_GPU_INFO.value)
+            return self.get(OPENFED_KING_GPU_INFO)
 
-    def set_gpu_state(self, gpu_state: dict):
-        # 客户端根据自身的身份设置数据
-        if openfed.is_king():
-            self.set(CONSTANTS.OPENFED_KING_GPU_INFO.value, gpu_state)
+    def set_gpu_state(self):
+        if self.world.APPROVED == APPROVED.ALL or self.world.APPROVED == APPROVED.GPU:
+            gpu_state = getGPUInfo()
         else:
-            self.set(CONSTANTS.OPENFED_QUEUE_GPU_INFO.value, gpu_state)
+            gpu_state = {}
+        # 客户端根据自身的身份设置数据
+        if self.world.is_king():
+            self.set(OPENFED_KING_GPU_INFO, gpu_state)
+        else:
+            self.set(OPENFED_QUEUE_GPU_INFO, gpu_state)
 
     def get_sys_state(self) -> dict:
-        if openfed.is_king():
+        if self.world.is_king():
             # 如果是king，则查看queue的数据
-            return self.get(CONSTANTS.OPENFED_QUEUE_SYS_INFO.value)
+            return self.get(OPENFED_QUEUE_SYS_INFO)
         else:
             # 如果是queue，则查看king的数据
-            return self.get(CONSTANTS.OPENFED_KING_SYS_INFO.value)
+            return self.get(OPENFED_KING_SYS_INFO)
 
-    def set_sys_state(self, gpu_state: dict):
-        # 客户端根据自身的身份设置数据
-        if openfed.is_king():
-            self.set(CONSTANTS.OPENFED_KING_SYS_INFO.value, gpu_state)
+    def set_sys_state(self):
+        if self.world.APPROVED == APPROVED.ALL or self.world.APPROVED == APPROVED.SYS:
+            sys_state = getSysInfo()
         else:
-            self.set(CONSTANTS.OPENFED_QUEUE_SYS_INFO.value, gpu_state)
-
+            sys_state = {}
+        # 客户端根据自身的身份设置数据
+        if self.world.is_king():
+            self.set(OPENFED_KING_SYS_INFO, sys_state)
+        else:
+            self.set(OPENFED_QUEUE_SYS_INFO, sys_state)

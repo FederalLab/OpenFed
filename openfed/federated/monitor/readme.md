@@ -13,3 +13,7 @@ monitor是一个监视器，主要负责监控整个openfed运行的状态。
 2. 为GPU INFO创建合适的数据结构，提供GPU INFO到str以及str解析成GPU INFO的能力
 3. 同2，为SYS INFO创建一样的工作
 4. 负责对接收到的informer数据做进一步的处理，例如解析成task id，results等等，并转换成相应的数据结构。
+
+
+monitor只负责逻辑层面的代码管理
+informor会实现具体的一些功能操作，例如基本信息的收集，等等，并且添加一个时间戳。

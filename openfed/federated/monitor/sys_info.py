@@ -4,6 +4,7 @@ import psutil
 
 
 def getSysInfo() -> dict:
+    # TODO: 适配不同的操作系统
     info = {}
     info['uname'] = platform.uname()._asdict()
 

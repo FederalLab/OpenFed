@@ -1,7 +1,6 @@
 from .aggregator import Aggregator
 import torch
-from typing import Any, List, Dict, Union
-from torch import Tensor
+from typing import Any, List, Dict
 from openfed import PACKAGES
 
 class NaiveAggregator(Aggregator):
