@@ -100,7 +100,7 @@ class World(object):
         self.__current_pg = self.__NULL_GP
         self.SLEEPTIME = 1.0
 
-    def valid_process_group(self, pg: ProcessGroup):
+    def is_valid_process_group(self, pg: ProcessGroup):
         return pg is not self.__NULL_GP and pg in self.__pg_mapping
 
 

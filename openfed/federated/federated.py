@@ -1,6 +1,8 @@
+from collections import namedtuple
+from openfed import federated
 import time
 from threading import Thread
-from typing import List, Union
+from typing import List, Union, Generator
 
 import openfed
 from openfed.utils.types import STATUS, FedAddr
@@ -234,7 +236,11 @@ class Destroy(object):
 # 这里返回空GP就是为了保证其他模块在获取迭代器输出的时候，
 # 不会发生阻塞。如果遇到了空GP那可以继续处理其他事情。
 
-def process_generator() -> List[ProcessGroup, World, Package, Monitor, FederatedWorld]:
+FederatedTuple = namedtuple(
+    "FederatedTuple", ["pg", "world", "package", "monitor", "federated_world"])
+
+
+def process_generator() -> Generator[FederatedTuple]:
     """生成器，不断的遍历整个pg数组，并且返回一个pg。
     注意：返回的pg可能是无效的。
         当不存在pg时，会返回一个None。
@@ -255,12 +261,12 @@ def process_generator() -> List[ProcessGroup, World, Package, Monitor, Federated
                 # 因此，在这里，我们应该先等待pg被取走
                 # 然后再去将__current_pg更新成被取走的pg
                 # 如果先更新__current_pg的话，会导致实际的__current_pg指向发生错误
-                yield pg, world, *world.__pg_mapping[pg]
+                yield FederatedTuple(pg, world, *world.__pg_mapping[pg])
                 world.__current_pg = pg
             else:
                 # 当列表为空的时候，yield一个空的GP
                 # 否则无法进入for循环的话，将无法形成一个Generator
-                yield world.__NULL_GP, world, None, None, None
+                yield FederatedTuple(world.__NULL_GP, world, None, None, None)
                 world.__current_pg = world.__NULL_GP
     else:
         safe_exited()
