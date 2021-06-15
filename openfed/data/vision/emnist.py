@@ -18,6 +18,7 @@ _LABEL = 'label'
 
 class EMNIST(FederatedDataset):
     def __init__(self, root: str, train: bool = True, transform=None, target_transform=None):
+        # TODO: 把自动下载数据机的代码添加到这里
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
 

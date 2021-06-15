@@ -6,7 +6,6 @@ from copy import deepcopy
 from itertools import chain
 import warnings
 import functools
-from abc import abstractmethod
 from typing import Any, List, Dict, Callable
 from openfed.utils.types import PACKAGES
 from torch import Tensor

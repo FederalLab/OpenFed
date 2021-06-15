@@ -10,12 +10,10 @@ from openfed.utils.types import STATUS
 from .informer import Informer
 
 
-class Monitor(Thread):
+class Monitor(Informer, Thread):
     """自动启动一个新的线程进行状态的监督。
     这个线程的作用是把当前的系统状态，定期在服务器和客户端之间进行同步。
     """
-    # informer 用来维持报文通讯
-    informer: Informer
     # 用来记录额外的信息
     # 计算出来的结果将会以key的作为键值，写入信息流。
     __hooks_dict: Dict[str, Callable]
@@ -24,7 +22,7 @@ class Monitor(Thread):
     stopped: Boolean
 
     def __init__(self, store: Store, federated_world: FederatedWorld, world: World, auto_start: bool = True):
-        self.informer = Informer(store, federated_world, world)
+        super().__init__(store, federated_world, world)
         self.stopped = False
 
         self.__hooks_dict = OrderedDict()
@@ -47,14 +45,14 @@ class Monitor(Thread):
         # NOTE：这里使用的是isalive去判断是否杀死monitor
         # 而不是使用world.ALIVE变量
         # world.ALIVE用于确认是否要销毁这个世界
-        while self.informer.isalive() and not self.stopped:
-            self.informer.set_sys_state()
-            self.informer.set_gpu_state()
+        while self.isalive() and not self.stopped:
+            self.set_sys_state()
+            self.set_gpu_state()
 
             for name, hook in self.__hooks_dict.items():
-                self.informer.set(name, hook())
+                self.set(name, hook())
 
-            time.sleep(self.informer.world.SLEEPTIME)
+            time.sleep(self.world.SLEEPTIME)
         else:
             safe_exited()
 

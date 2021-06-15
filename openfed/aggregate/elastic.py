@@ -1,6 +1,6 @@
 from .aggregator import Aggregator
 import torch
-from typing import Any, List, Dict, Union
+from typing import Any, List, Dict
 from torch import Tensor
 from openfed.utils.types import PACKAGES
 

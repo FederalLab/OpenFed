@@ -236,11 +236,94 @@ class Destroy(object):
 # 这里返回空GP就是为了保证其他模块在获取迭代器输出的时候，
 # 不会发生阻塞。如果遇到了空GP那可以继续处理其他事情。
 
-FederatedTuple = namedtuple(
-    "FederatedTuple", ["pg", "world", "package", "monitor", "federated_world"])
+
+# 以下的代码是和联邦学习任务相关的函数
+# 主要更能是把这层的所有模块，进行一个总的封装，并且暴露出有限的API用于调用
 
 
-def process_generator() -> Generator[FederatedTuple]:
+class Reign(object):
+    """将进行‘沟通相关’的对象全部集合起来，并且提供进一步的封装，交付上层使用。
+    """
+    pg: ProcessGroup
+    world: World
+    package: Package
+    monitor: Monitor
+    federated_world: FederatedWorld
+
+    # version 是用来标明当前端数据的版本号的。
+    version: int
+
+    def __init__(self,
+                 pg: ProcessGroup,
+                 world: World,
+                 package: Package,
+                 monitor: Monitor,
+                 federated_world: FederatedWorld):
+        self.pg = pg
+        self.world = world
+        self.package = package
+        self.monitor = monitor
+        self.federated_world = federated_world
+        self.version = 0
+
+        self.monitor.set("version", self.version)
+
+    def upload(self):
+        """将package中的数据传送到另一方并且处理相关逻辑。
+        你在任何情况下，都应该通过这种方式，upload数据，而不是直接使用package.push操作。
+        """
+        if self.world.is_queen():
+            # 1. 写入自身版本号
+            self.monitor.set('version', self.version)
+            # 2. 设置STATUE状态为PUSH，告知另一端自己等待上传数据
+            self.monitor.set_state(STATUS.PUSH)
+            # 3. 进入阻塞，等待数据上传
+            self.package.push()
+            # 完成
+        else:
+            # 1. 写入服务器端的版本号
+            self.monitor.set('version', self.version)
+            # 2. 设置状态为完成ZOMBINE，先设置状态，在推送数据。
+            # 防止通信延迟造成的逻辑错误。
+            # 比如，当客户端上传完模型，现在需要再次下载一个新的模型时，
+            # 客户端可能会立刻将state设置为PULL
+            # 而此时服务器端才接收完模型，其要将ZOMBINE设置到状态里。
+            # 但是由于延时，可能导致其在PULL生效之后，才写入的ZOMBINE
+            # 那么，这时候该客户端将进入无限期的等待中而不会得到服务器的响应。
+            self.monitor.set_state(STATUS.ZOMBINE)
+            # 3. 发送数据
+            self.package.push()
+
+    def download(self):
+        """从另一方接收package数据。
+        你在任何情况下，都应该通过这种方式，download数据，而不是直接使用package.pull操作。
+        """
+        if self.world.is_queen():
+            # 1. 写入自身版本号
+            self.monitor.set('version', self.version)
+            # 2. 设置STATUE状态为PULL，告知另一端自己等待下载数据
+            self.monitor.set_state(STATUS.PULL)
+            # 3. 进入阻塞，等待数据上传
+            self.package.pull()
+            # 完成
+        else:
+            # 1. 写入服务器端的版本号
+            self.monitor.set('version', self.version)
+            # 2. 设置状态为完成ZOMBINE。先设置状态，再推送数据。
+            self.monitor.set_state(STATUS.ZOMBINE)
+            # 3. 发送数据
+            self.package.pull()
+
+    def destroy(self):
+        """退出联邦学习。
+        """
+        # 将状态设置成OFFLINE
+        self.monitor.set_state(STATUS.OFFLINE)
+        # 销毁当前进程
+        Destroy.destroy(self.pg, self.world)
+
+
+def process_generator() -> Generator[Reign]:
     """生成器，不断的遍历整个pg数组，并且返回一个pg。
     注意：返回的pg可能是无效的。
         当不存在pg时，会返回一个None。
@@ -261,12 +344,12 @@ def process_generator() -> Generator[FederatedTuple]:
                 # 因此，在这里，我们应该先等待pg被取走
                 # 然后再去将__current_pg更新成被取走的pg
                 # 如果先更新__current_pg的话，会导致实际的__current_pg指向发生错误
-                yield FederatedTuple(pg, world, *world.__pg_mapping[pg])
+                yield Reign(pg, world, *world.__pg_mapping[pg])
                 world.__current_pg = pg
             else:
                 # 当列表为空的时候，yield一个空的GP
                 # 否则无法进入for循环的话，将无法形成一个Generator
-                yield FederatedTuple(world.__NULL_GP, world, None, None, None)
+                yield None
                 world.__current_pg = world.__NULL_GP
     else:
         safe_exited()
