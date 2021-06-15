@@ -24,18 +24,6 @@ class World(object):
         # 退出
         self.ALIVE = False
 
-    # 如果DEBUG=True，那相关的程序会输出部分调试信心
-    DEBUG: bool
-
-    def debug(self):
-        self.DEBUG = True
-
-    # 如果VERBOSE=True, 相关程序会输出一些日志
-    VERBOSE: bool
-
-    def verbose(self):
-        self.VERBOSE = True
-
     # 给APPROVED指定不同等级的权限信息
     APPROVED: types.APPROVED
 

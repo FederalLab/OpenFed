@@ -1,14 +1,15 @@
+import functools
+import warnings
 from collections import defaultdict
-from torch._six import container_abcs
-
-import torch
 from copy import deepcopy
 from itertools import chain
-import warnings
-import functools
-from typing import Any, List, Dict, Callable, Union
+from typing import Any, Callable, Dict, List, Union
+
+import openfed
+import torch
 from openfed.utils.types import PACKAGES
 from torch import Tensor
+from torch._six import container_abcs
 from torch.optim import Optimizer
 
 
@@ -429,12 +430,15 @@ class Aggregator(object):
             if hasattr(obj, "unpackage_key_list"):
                 keys = obj.unpackage_key_list
             else:
-                raise ValueError("Got empty keys")
+                keys = []
 
         if len(keys) == 0:
-            # Empty keys
-            warnings.warn("Got empty keys")
-            return
+            if openfed.DEBUG:
+                raise ValueError("Got empty keys")
+            else:
+                # Empty keys
+                warnings.warn("Got empty keys")
+                return
 
         for group in obj.param_groups:
             for p in group["params"]:

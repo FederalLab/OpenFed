@@ -1,7 +1,8 @@
+import warnings
 from collections import defaultdict
 from typing import Any, Dict, List, Union
-import warnings
 
+import openfed
 from bidict import bidict
 from openfed.aggregate.aggregator import Aggregator
 from openfed.federated.core.federated_c10d import FederatedWorld, ProcessGroup
@@ -120,12 +121,15 @@ class Package(object):
             if hasattr(obj, "package_key_list"):
                 keys = obj.package_key_list
             else:
-                raise ValueError("Got empty keys")
+                keys = []
 
         if len(keys) == 0:
-            # Empty keys
-            warnings.warn("Got empty keys")
-            return
+            if openfed.DEBUG:
+                raise ValueError("Got empty keys")
+            else:
+                # Empty keys
+                warnings.warn("Got empty keys")
+                return
 
         for group in obj.param_groups:
             for p in group["params"]:
@@ -141,12 +145,15 @@ class Package(object):
             if hasattr(obj, "unpackage_key_list"):
                 keys = obj.unpackage_key_list
             else:
-                raise ValueError("Got empty keys")
+                keys = []
 
         if len(keys) == 0:
-            # Empty keys
-            warnings.warn("Got empty keys")
-            return
+            if openfed.DEBUG:
+                raise ValueError("Got empty keys")
+            else:
+                # Empty keys
+                warnings.warn("Got empty keys")
+                return
 
         for group in obj.param_groups:
             for p in group["params"]:
