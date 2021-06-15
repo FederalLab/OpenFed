@@ -7,9 +7,9 @@ from itertools import chain
 import warnings
 import functools
 from abc import abstractmethod
-from typing import Any, List, Dict, Callable
-from openfed.utils.types import PACKAGES
+from typing import Any, List, Dict, Callable, Union
 from torch import Tensor
+from openfed import PACKAGES
 
 
 class _RequiredParameter(object):
@@ -55,27 +55,21 @@ class Aggregator(object):
         defaults: (dict): a dict containing default values of aggregation
             options (used when a parameter group doesn't specify them).
     """
-    _hook_for_auto_reduce_infos: List[Callable]
-    _received_infos: List[Dict]
+    _hook_for_auto_reduce_infos: List[Callable] = []
+    _received_infos: List[Dict] = []
 
-    def __init__(self,
-                 params,
-                 defaults: Dict,
-                 info_keys: List[str],
-                 aux_keys: List[str],
-                 lagecy: bool = False):
-        """
-            info_keys: 表示在聚合的过程中所需要设计到的其他数据。
-            aux_keys: 进行聚合操作时，需要的额外的数据，这些数据会在调用zero_grad之后被清除。
-            lagecy: True表示在接收到新的数据后，直接缓存下来。False表示尽可能与之前的数据合并，以减少内存占用。
-        """
+    def __init__(self, params, defaults: Dict, necessary_keys: List[str], reset_keys: List[str], enable_merge: bool = False):
+        torch._C._log_api_usage_once("python.aggregator")
+
         # reset keys in state will be deleted once reset() called.
-        self.lagecy = lagecy
+        self.reset_keys = reset_keys
 
-        # add info_keys to defaults
-        defaults['info_keys'] = info_keys
-        defaults['aux_keys'] = aux_keys
-        defaults['lagecy'] = lagecy
+        # 是否以merge的方式追加参数
+        # 默认是以append的方式追加参数
+        self.enable_merge = enable_merge
+
+        # add necessary_keys to defaults
+        defaults['necessary_keys'] = necessary_keys
 
         self.defaults = defaults
 
@@ -97,9 +91,6 @@ class Aggregator(object):
 
         for param_group in param_groups:
             self.add_param_group(param_group)
-
-        self._hook_for_auto_reduce_infos = []
-        self._received_infos = []
 
     def __getstate__(self):
         return {
@@ -238,9 +229,6 @@ class Aggregator(object):
     def zero_grad(self, set_to_none: bool = False):
         r"""Sets the gradients of all optimized :class:`torch.Tensor` s to zero.
 
-        除了清空梯度以外，这个函数还会清空aggregator的内部缓存。
-        如果是在服务器端使用，请务必调用aggregator.zero_grad()来清除梯度信息，而不是optimzier.zero_grad()。
-
         Args:
             set_to_none (bool): instead of setting to zero, set the grads to None.
                 This will in general have lower memory footprint, and can modestly improve performance.
@@ -255,13 +243,8 @@ class Aggregator(object):
         """
         if not hasattr(self, "_zero_grad_profile_name"):
             self._hook_for_profile()
-
-        # Clear buffers
-        self._received_infos = []
-
         with torch.autograd.profiler.record_function(self._zero_grad_profile_name):
             for group in self.param_groups:
-                aux_keys = group["aux_keys"]
                 for p in group['params']:
                     if p.grad is not None:
                         if set_to_none:
@@ -272,11 +255,94 @@ class Aggregator(object):
                             else:
                                 p.grad.requires_grad_(False)
                             p.grad.zero_()
-                    # Clear buffer
-                    state = self.state[p]
-                    for k in aux_keys:
-                        if k in state:
-                            del state[k]
+
+    def step(self) -> Any:
+        r"""Performs a single aggregation step (parameter update).
+
+        Args:
+            closure (callable): A closure that reevaluates the model and
+                returns the loss. Optional for most aggregators.
+
+        .. note::
+            Unless otherwise specified, this function should not modify the
+            ``.grad`` field of the parameters.
+        该函数调用后，所有参数的grad属性被正确设置。
+        该函数会根据使用的是merge还是append的方式，来计算出最终正确的结果。
+        step函数会调用hook_for_auto_recude_info，返回处理结果。
+        """
+        for group in self.param_groups:
+            for p in group["params"]:
+                state = self.state[p]
+
+                if 'step' in state:
+                    self._merge_step(p, state, group)
+                elif 'received_params' in state:
+                    self._append_step(p, state, group)
+                else:
+                    pass
+
+        return self._apply_hook_for_auto_reduce()
+
+    def reset(self):
+        """如果需要进行一次全新的累计过程，请务必调用该函数。
+        该函数将重置一些状态变量。
+        所有的子类都应该实现这个方法，即使它什么也没有做。
+        """
+        self._received_infos = []
+
+        for group in self.param_groups:
+            for p in group["params"]:
+                state = self.state[p]
+                for k in self.reset_keys:
+                    if k in state:
+                        del state[k]
+
+    def __call__(self, received_params: PACKAGES, received_info: Dict):
+        """追加一个新的数据，并进行相关检查。
+        """
+        for group in self.param_groups:
+            self._check_defaults_keys(group['necessary_keys'], received_info)
+            for p in group["params"]:
+                if p in received_params:
+                    if self.enable_merge:
+                        self.merge(p, received_params, received_info, group)
+                    else:
+                        self.append(p, received_params, received_info, group)
+        self._received_infos.append(received_info)
+
+    def merge(self, p: torch.Tensor, received_params: PACKAGES, received_info: Dict, group) -> Any:
+        """采用融合的方式，吸收新的客户端参数。始终只需要保存一个参数副本。
+        这种方式会更加节省内存空间，但是会损失每一个client的具体信息。因此部分算法可能不支持此设置。
+        如果你的算法支持这种方式，请实现它。
+        返回当前aggregator的一些状态字典。
+        """
+        raise NotImplementedError
+
+    def _merge_step(self, p: torch.Tensor, state: Dict, group) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def append(self, p: torch.Tensor, received_params: PACKAGES, received_info: Dict, group) -> Any:
+        """采用追加的方式，吸收新的客户端参数。每次都直接把参数保存到内存中。
+        这种方式会占据大量的内存空间，但是可以保存所有的参数细节。
+        所有的算法，都应该支持这种方式。
+        返回当前aggregator的一些状态字典。
+        """
+        raise NotImplementedError
+
+    def _append_step(self, p: torch.Tensor, state: Dict, group) -> None:
+        raise NotImplementedError
+
+    def register_hook_for_auto_reduce_infos(self, func: Callable):
+        """符合特定格式的键值对会被自动聚合。
+        """
+        self._hook_for_auto_reduce_infos.append(func)
+
+    def _apply_hook_for_auto_reduce(self) -> List[Any]:
+        returns = []
+        for fn in self._hook_for_auto_reduce_infos:
+            returns.append(fn(self._received_infos))
+        return returns
 
     def add_param_group(self, param_group):
         r"""Add a param group to the :class:`Aggregator` s `param_groups`.
@@ -329,84 +395,9 @@ class Aggregator(object):
 
         self.param_groups.append(param_group)
 
-    def _check_defaults_keys(self, info_keys: List[str], received_info: Dict):
+    def _check_defaults_keys(self, necessary_keys: List[str], received_info: Dict):
         """检查返回的信息中是否有缺失了必要信息。
         """
-        for key in info_keys:
+        for key in necessary_keys:
             if key not in received_info:
                 raise KeyError(f"{key} is needed, but not given.")
-
-    def register_hook_for_auto_reduce_infos(self, func: Callable):
-        """符合特定格式的键值对会被自动聚合。
-
-        func会接收聚合的List[Dict]数据，计算出想要的结果，然后返回。
-        """
-        self._hook_for_auto_reduce_infos.append(func)
-
-    def _apply_hook_for_auto_reduce(self) -> List[Any]:
-        returns = []
-        for fn in self._hook_for_auto_reduce_infos:
-            returns.append(fn(self._received_infos))
-        return returns
-
-    def aggregate(self) -> Any:
-        r"""Performs a single aggregation step (parameter update).
-
-        Args:
-            closure (callable): A closure that reevaluates the model and
-                returns the loss. Optional for most aggregators.
-
-        .. note::
-            Unless otherwise specified, this function should not modify the
-            ``.grad`` field of the parameters.
-        该函数调用后，所有参数的grad属性被正确设置。
-        该函数会根据使用的是merge还是append的方式，来计算出最终正确的结果。
-        step函数会调用hook_for_auto_recude_info，返回处理结果。
-        """
-        for group in self.param_groups:
-            lagecy = group['lagecy']
-            for p in group["params"]:
-                if lagecy:
-                    self._stack_aggregate(p, group=group)
-                else:
-                    self._merge_aggregate(p, group=group)
-
-        return self._apply_hook_for_auto_reduce()
-
-    def step(self, received_params: PACKAGES, received_info: Dict):
-        """追加一个新的数据，并进行相关检查。
-        """
-        for group in self.param_groups:
-            self._check_defaults_keys(group['info_keys'], received_info)
-            lagecy = group['lagecy']
-            for p in group["params"]:
-                if p in received_params:
-                    if lagecy:
-                        self.stack(p, received_params,
-                                   received_info=received_info, group=group)
-                    else:
-                        self.merge(p, received_params,
-                                   received_info=received_info, group=group)
-        self._received_infos.append(received_info)
-
-    def merge(self, p: Tensor, received_params: PACKAGES, received_info: Dict, group: Dict) -> Any:
-        """采用融合的方式，吸收新的客户端参数。始终只需要保存一个参数副本。
-        这种方式会更加节省内存空间，但是会损失每一个client的具体信息。因此部分算法可能不支持此设置。
-        如果你的算法支持这种方式，请实现它。
-        返回当前aggregator的一些状态字典。
-        """
-        raise NotImplementedError
-
-    def _merge_aggregate(self, p: torch.Tensor, group: Dict) -> None:
-        raise NotImplementedError
-
-    def stack(self, p: Tensor, received_params: PACKAGES, received_info: Dict, group: Dict) -> Any:
-        """采用追加的方式，吸收新的客户端参数。每次都直接把参数保存到内存中。
-        这种方式会占据大量的内存空间，但是可以保存所有的参数细节。
-        所有的算法，都应该支持这种方式。
-        返回当前aggregator的一些状态字典。
-        """
-        raise NotImplementedError
-
-    def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:
-        raise NotImplementedError
