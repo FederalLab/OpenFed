@@ -55,6 +55,13 @@ class Aggregator(object):
         defaults: (dict): a dict containing default values of aggregation
             options (used when a parameter group doesn't specify them).
     """
+
+    # 列表中的参数会被打包到package中
+    package_key_list: List[str] = []
+
+    # 列表中的参数会从package中解压出来
+    unpackage_key_list: List[str] = []
+
     _hook_for_auto_reduce_infos: List[Callable]
     _received_infos: List[Dict]
 
@@ -348,7 +355,7 @@ class Aggregator(object):
             returns.append(fn(self._received_infos))
         return returns
 
-    def aggregate(self) -> Any:
+    def aggregate(self) -> Dict:
         r"""Performs a single aggregation step (parameter update).
 
         Args:
@@ -410,12 +417,24 @@ class Aggregator(object):
     def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
 
-    def pack_state(self, obj: Optimizer, keys: Union[str, List[str]]):
+    def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
         """将聚合到的keys的值赋予到obj（一般是Optimizer，或者结构类似于optimizer的设计）的状态字典中。
-        提供了类似package中pack_state的功能。但是这里是将聚合过来的state做了一个赋值。
+        提供了类似package中unpack_state的功能。但是这里是将聚合过来的state做了一个赋值。
+
+        如果keys为None，会尝试读取unpackage_keys_list。
         """
         if isinstance(keys, str):
             keys = [keys]
+        if keys is None:
+            if hasattr(obj, "unpackage_key_list"):
+                keys = obj.unpackage_key_list
+            else:
+                raise ValueError("Got empty keys")
+
+        if len(keys) == 0:
+            # Empty keys
+            warnings.warn("Got empty keys")
+            return
 
         for group in obj.param_groups:
             for p in group["params"]:

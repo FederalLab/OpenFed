@@ -1,16 +1,26 @@
 from threading import Thread
-
+import time
 from torch.optim import Optimizer
 
 import openfed.federated as federated
 from openfed.federated.federated import Reign
 from aggregate import Aggregator
 from .utils.types import STATUS
+from typing import Dict
+from torch import Tensor
 
 
 class Backend(Thread):
     aggregator: Aggregator
     optimizer: Optimizer
+
+    # 这里面包含了用于通讯的模型参数
+    # 一般情况下是model.state_dict()
+    # 如果你想要同步保存其他的数据，那请手动加入到这里面。
+    # 一旦传递进来，那么这里的模型参数应该始终保持id不变。
+    # 也就是说，你应该设置net.state_dict(..., keep_vars=True)
+    state_dict: Dict[str, Tensor]
+
     stopped: bool
 
     # 当前正在处理的对象
@@ -20,7 +30,13 @@ class Backend(Thread):
     # 每更新一次全局模型，这个版本号递增
     version: int
 
-    def __init__(self, aggregator: Aggregator, optimizer: Optimizer):
+    # 记录收集到的模型的数量，可以根据这个来判断是否进行aggregate
+    received_numbers: int
+
+    # 记录上一次模型更新的时间，可以根据这个来判断是否超时强制更新
+    last_time: float
+
+    def __init__(self, state_dict: Dict[str, Tensor], aggregator: Aggregator, optimizer: Optimizer):
         self.aggregator = aggregator
         self.optimizer = optimizer
         self.stopped = False
@@ -28,7 +44,14 @@ class Backend(Thread):
         self.version = 0
         self.reign = None
 
+        self.received_numbers = 0
+        self.last_time = time.time()
+
     def run(self):
+        """
+        如果你希望程序进入后台运行，那么请使用start()。
+        如果你希望程序在前台运行，那么请直接调用run()函数。
+        """
         while not self.stopped:
             for reign in federated.process_generator():
                 self.reign = reign
@@ -57,22 +80,51 @@ class Backend(Thread):
                 self.update()
 
     def after_received_a_new_model(self):
-        # 收集到客户端模型后，进行进一步的处理，例如aggregate等等
-        tensor_indexed_packages = package.tensor_indexed_packages
-        task_info = monitor.get_task_info()
+        # 从底层获取接收到的数据
+        packages = self.reign.package.tensor_indexed_packages
+        task_info = self.reign.monitor.get_task_info()
 
-        self.aggregator.step(
-            tensor_indexed_packages, task_info)
+        self.aggregator.step(packages, task_info)
+
+        self.received_numbers += 1
 
     def before_send_a_new_model(self) -> bool:
         """当客户端要求返回一个新的模型时，我们可能会面临不同的情况，这个申请可能无法满足。
         当无法满足的时候，返回False，否则返回True。
         这个函数中，应该包含了对package等需要传送的相关数据的设置。
         """
+        # 指定要打包的数据。
+
+        # 打包数据
+        self.reign.package.pack_state(self.aggregator)
+        self.reign.package.pack_state(self.optimizer)
+
+        # 准备发送
+        return True
 
     def update(self):
         """用于更新内部状态
         """
+
+        if self.received_numbers == 5:
+            # 开始聚合
+            task_info = self.aggregator.aggregate()
+
+            print(task_info)
+
+            # 更新optimizer状态
+            self.aggregator.unpack_state(self.optimizer)
+
+            # 更新梯度
+            self.optimizer.step()
+
+            # 重置状态
+            self.aggregator.zero_grad()
+            self.received_numbers = 0
+            self.last_time = time.time()
+        else:
+            # 暂时啥也不做
+            ...
 
     def manual_stop(self):
         self.stopped = True

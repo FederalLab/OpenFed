@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import Any, Dict, List, Union
+import warnings
 
 from bidict import bidict
 from openfed.aggregate.aggregator import Aggregator
@@ -109,11 +110,22 @@ class Package(object):
 
         return rdict
 
-    def pack_state(self, obj: Union[Optimizer, Aggregator], keys: Union[str, List[str]]):
+    def pack_state(self, obj: Union[Optimizer, Aggregator], keys: Union[str, List[str]] = None):
         """将obj中的state根据指定的key，pack到对应的数据流中。
         """
         if isinstance(keys, str):
             keys = [keys]
+
+        if keys is None:
+            if hasattr(obj, "package_key_list"):
+                keys = obj.package_key_list
+            else:
+                raise ValueError("Got empty keys")
+
+        if len(keys) == 0:
+            # Empty keys
+            warnings.warn("Got empty keys")
+            return
 
         for group in obj.param_groups:
             for p in group["params"]:
@@ -121,9 +133,20 @@ class Package(object):
                 rdict = {k: state[k] for k in keys}
                 self.pack(p, rdict)
 
-    def unpack_state(self, obj: Union[Optimizer, Aggregator], keys: Union[str, List[str]]):
+    def unpack_state(self, obj: Union[Optimizer, Aggregator], keys: Union[str, List[str]] = None):
         if isinstance(keys, str):
             keys = [keys]
+
+        if keys is None:
+            if hasattr(obj, "unpackage_key_list"):
+                keys = obj.unpackage_key_list
+            else:
+                raise ValueError("Got empty keys")
+
+        if len(keys) == 0:
+            # Empty keys
+            warnings.warn("Got empty keys")
+            return
 
         for group in obj.param_groups:
             for p in group["params"]:
