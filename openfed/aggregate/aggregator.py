@@ -6,9 +6,10 @@ from copy import deepcopy
 from itertools import chain
 import warnings
 import functools
-from typing import Any, List, Dict, Callable
+from typing import Any, List, Dict, Callable, Union
 from openfed.utils.types import PACKAGES
 from torch import Tensor
+from torch.optim import Optimizer
 
 
 class _RequiredParameter(object):
@@ -64,7 +65,7 @@ class Aggregator(object):
                  aux_keys: List[str],
                  lagecy: bool = False):
         """
-            info_keys: 表示在聚合的过程中所需要设计到的其他数据。
+            info_keys: 表示在聚合的过程中所需要涉及到的其他数据。
             aux_keys: 进行聚合操作时，需要的额外的数据，这些数据会在调用zero_grad之后被清除。
             lagecy: True表示在接收到新的数据后，直接缓存下来。False表示尽可能与之前的数据合并，以减少内存占用。
         """
@@ -260,7 +261,6 @@ class Aggregator(object):
 
         with torch.autograd.profiler.record_function(self._zero_grad_profile_name):
             for group in self.param_groups:
-                aux_keys = group["aux_keys"]
                 for p in group['params']:
                     if p.grad is not None:
                         if set_to_none:
@@ -273,7 +273,7 @@ class Aggregator(object):
                             p.grad.zero_()
                     # Clear buffer
                     state = self.state[p]
-                    for k in aux_keys:
+                    for k in group["aux_keys"]:
                         if k in state:
                             del state[k]
 
@@ -381,14 +381,14 @@ class Aggregator(object):
             for p in group["params"]:
                 if p in received_params:
                     if lagecy:
-                        self.stack(p, received_params,
+                        self.stack(p, received_params[p],
                                    received_info=received_info, group=group)
                     else:
-                        self.merge(p, received_params,
+                        self.merge(p, received_params[p],
                                    received_info=received_info, group=group)
         self._received_infos.append(received_info)
 
-    def merge(self, p: Tensor, received_params: PACKAGES, received_info: Dict, group: Dict) -> Any:
+    def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         """采用融合的方式，吸收新的客户端参数。始终只需要保存一个参数副本。
         这种方式会更加节省内存空间，但是会损失每一个client的具体信息。因此部分算法可能不支持此设置。
         如果你的算法支持这种方式，请实现它。
@@ -399,7 +399,7 @@ class Aggregator(object):
     def _merge_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
 
-    def stack(self, p: Tensor, received_params: PACKAGES, received_info: Dict, group: Dict) -> Any:
+    def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         """采用追加的方式，吸收新的客户端参数。每次都直接把参数保存到内存中。
         这种方式会占据大量的内存空间，但是可以保存所有的参数细节。
         所有的算法，都应该支持这种方式。
@@ -409,3 +409,17 @@ class Aggregator(object):
 
     def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
+
+    def pack_state(self, obj: Optimizer, keys: Union[str, List[str]]):
+        """将聚合到的keys的值赋予到obj（一般是Optimizer，或者结构类似于optimizer的设计）的状态字典中。
+        提供了类似package中pack_state的功能。但是这里是将聚合过来的state做了一个赋值。
+        """
+        if isinstance(keys, str):
+            keys = [keys]
+
+        for group in obj.param_groups:
+            for p in group["params"]:
+                dst_state = obj.state[p]
+                src_state = self.state[p]
+                for key in keys:
+                    dst_state[key] = src_state[key]
