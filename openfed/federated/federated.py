@@ -1,8 +1,6 @@
-from collections import namedtuple
-from openfed import federated
 import time
 from threading import Thread
-from typing import List, Union, Generator
+from typing import Generator, List, Union
 
 import openfed
 from openfed.utils.types import STATUS, FedAddr
@@ -353,3 +351,19 @@ def process_generator() -> Generator[Reign]:
                 world.__current_pg = world.__NULL_GP
     else:
         safe_exited()
+
+
+def default_reign() -> Reign:
+    """
+    返回唯一的一个reign。
+    当你拥有唯一的一个pg的时候，调用这个函数，会返回由它组成的reign。
+    当你作为客户端的时候，调用这个函数可以方便的得到reign，简化代码。
+    """
+    # 确保整个环境已经初始化
+    if len(register) == 0:
+        raise RuntimeError("Please build a federated world first!")
+    assert len(register) == 1, "More than one federated world."
+    for fed_world, world in register:
+        for pg in world.__pg_mapping:
+            world.__current_pg = pg
+            return Reign(pg, world, *world.__pg_mapping[pg])

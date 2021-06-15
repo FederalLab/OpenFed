@@ -1,13 +1,15 @@
-from threading import Thread
 import time
+from threading import Thread
+from typing import Dict, List, Union
+
+from torch import Tensor
 from torch.optim import Optimizer
 
 import openfed.federated as federated
-from openfed.federated.federated import Reign
 from aggregate import Aggregator
-from .utils.types import STATUS
-from typing import Dict
-from torch import Tensor
+from openfed.federated.federated import Maintainer, Reign, World
+
+from .utils.types import STATUS, FedAddr
 
 
 class Backend(Thread):
@@ -23,6 +25,9 @@ class Backend(Thread):
 
     stopped: bool
 
+    # 一个maintiner用于处理连接
+    maintiner: Maintainer
+
     # 当前正在处理的对象
     reign: Reign
 
@@ -36,7 +41,15 @@ class Backend(Thread):
     # 记录上一次模型更新的时间，可以根据这个来判断是否超时强制更新
     last_time: float
 
-    def __init__(self, state_dict: Dict[str, Tensor], aggregator: Aggregator, optimizer: Optimizer):
+    def __init__(self,
+                 state_dict: Dict[str, Tensor],
+                 aggregator: Aggregator,
+                 optimizer: Optimizer,
+                 world: World = None,
+                 fed_addr: Union[FedAddr, List[FedAddr]] = None,
+                 fed_addr_file: str = None
+                 ):
+        self.state_dict = state_dict
         self.aggregator = aggregator
         self.optimizer = optimizer
         self.stopped = False
@@ -46,6 +59,14 @@ class Backend(Thread):
 
         self.received_numbers = 0
         self.last_time = time.time()
+
+        if world is None:
+            world = World()
+            world.set_king()
+        else:
+            assert world.is_king(), "Backend must be king."
+        self.maintainer = Maintainer(
+            world, fed_addr=fed_addr, fed_addr_file=fed_addr_file)
 
     def run(self):
         """
@@ -94,6 +115,7 @@ class Backend(Thread):
         这个函数中，应该包含了对package等需要传送的相关数据的设置。
         """
         # 指定要打包的数据。
+        self.reign.package.state_dict_map(self.state_dict)
 
         # 打包数据
         self.reign.package.pack_state(self.aggregator)
