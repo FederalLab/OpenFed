@@ -321,7 +321,7 @@ class Reign(object):
         Destroy.destroy(self.pg, self.world)
 
 
-def process_generator() -> Generator[Reign]:
+def process_generator() -> Reign:
     """生成器，不断的遍历整个pg数组，并且返回一个pg。
     注意：返回的pg可能是无效的。
         当不存在pg时，会返回一个None。

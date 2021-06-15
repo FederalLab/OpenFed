@@ -1,7 +1,8 @@
 from openfed.utils.types import PACKAGES
-from openfed.federated.core.federated_c10d import ProcessGroup, FederatedWorld
-from openfed.federated.register import World
-from openfed.federated.core.functional import gather_object
+
+from ..core.federated_c10d import FederatedWorld, ProcessGroup
+from ..core.functional import gather_object
+from ..world import World
 
 
 class Delivery(object):

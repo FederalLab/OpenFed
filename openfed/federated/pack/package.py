@@ -5,12 +5,12 @@ from typing import Any, Dict, List, Union
 import openfed
 from bidict import bidict
 from openfed.aggregate.aggregator import Aggregator
-from openfed.federated.core.federated_c10d import FederatedWorld, ProcessGroup
-from openfed.federated.register import World
 from openfed.utils.types import PACKAGES
 from torch import Tensor
 from torch.optim import Optimizer
 
+from ..core.federated_c10d import FederatedWorld, ProcessGroup
+from ..register import World
 from .deliver import Delivery
 from .functional import Function
 

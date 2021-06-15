@@ -3,10 +3,10 @@ import json
 from enum import Enum
 from typing import Any
 
-from openfed.federated.core.federated_c10d import FederatedWorld, Store
-from openfed.federated.register import World
 from openfed.utils.types import APPROVED, STATUS
 
+from ..core.federated_c10d import FederatedWorld, Store
+from ..world import World
 from .gpu_info import getGPUInfo
 from .sys_info import getSysInfo
 

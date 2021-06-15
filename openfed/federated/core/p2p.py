@@ -3,7 +3,10 @@ import contextlib
 from openfed.federated import register
 
 from .backend import Backend
-from .federated_c10d import ProcessGroupNCCL
+try:
+    from torch.distributed.distributed_c10d import ProcessGroupNCCL
+except ImportError:
+    ProcessGroupNCCL = None
 from .functional import _check_op, _check_single_tensor
 
 

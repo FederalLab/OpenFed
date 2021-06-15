@@ -6,9 +6,9 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import openfed.federated as federated
-from aggregate import Aggregator
-from openfed.federated.federated import Maintainer, Reign, World
 
+from .aggregate import Aggregator
+from .federated.federated import Maintainer, Reign, World
 from .utils.types import STATUS, FedAddr
 
 

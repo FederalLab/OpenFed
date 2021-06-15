@@ -3,8 +3,7 @@ from typing import Any, Dict, List, Union, overload
 from torch import Tensor
 from torch.optim import Optimizer
 
-from openfed.federated.federated import Maintainer, Reign, World, default_reign
-
+from .federated.federated import Maintainer, Reign, World, default_reign
 from .utils.types import FedAddr
 
 
@@ -23,13 +22,8 @@ class Frontend(object):
         """所有的参数都使用默认的设置。
         其中fed_addr由之后通过build_connection()传入。
         """
-        world = World()
-        world.set_queen()
 
-        self.world = world
-        self.maintiner = None
-        self.reign = None
-
+    @overload
     def __init__(self,
                  world: World = None,
                  fed_addr: FedAddr = None,
@@ -38,14 +32,25 @@ class Frontend(object):
         记住！这里的fed_addr或者fed_addr_file只能包含一个地址
         且必须包含一个地址，否则报错。
         """
-        if world is None:
+
+    def __init__(self, **kwargs):
+        if len(kwargs) == 0:
             world = World()
             world.set_queen()
-        else:
-            assert world.is_queen(), "Frontend must be queen."
-        self.maintiner = Maintainer(world, fed_addr, fed_addr_file)
 
-        self.reign = default_reign()
+            self.world = world
+            self.maintiner = None
+            self.reign = None
+        else:
+            world, fed_addr, fed_addr_file = kwargs["world"], kwargs["fed_addr"], kwargs["fed_addr_file"]
+            if world is None:
+                world = World()
+                world.set_queen()
+            else:
+                assert world.is_queen(), "Frontend must be queen."
+            self.maintiner = Maintainer(world, fed_addr, fed_addr_file)
+
+            self.reign = default_reign()
 
     def build_connection(self, fed_addr: FedAddr):
         self.maintiner = Maintainer(self.world, fed_addr)

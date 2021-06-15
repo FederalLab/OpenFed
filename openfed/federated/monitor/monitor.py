@@ -1,12 +1,11 @@
 import time
 from collections import OrderedDict
 from threading import Thread
-from typing import Boolean, Callable, Dict
+from typing import Callable, Dict
 
-from openfed.federated.core.federated_c10d import FederatedWorld, Store
-from openfed.federated.register import World
-from openfed.federated.utils.safe_exited import safe_exited
-from openfed.utils.types import STATUS
+from ..core.federated_c10d import FederatedWorld, Store
+from ..utils.safe_exited import safe_exited
+from ..world import World
 from .informer import Informer
 
 
@@ -19,7 +18,7 @@ class Monitor(Informer, Thread):
     __hooks_dict: Dict[str, Callable]
 
     # 用来停止后台线程
-    stopped: Boolean
+    stopped: bool
 
     def __init__(self, store: Store, federated_world: FederatedWorld, world: World, auto_start: bool = True):
         super().__init__(store, federated_world, world)
