@@ -1,3 +1,4 @@
 pythonlangutil
 bidict
 psutil
+prettytable

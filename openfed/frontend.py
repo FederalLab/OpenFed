@@ -11,8 +11,8 @@ class Frontend(object):
     """为客户端提供一个统一简洁的接口！
     对于常规训练，用户只需要接触这个类，就可以解决所有的通讯问题。
     """
-    # 一个maintiner用于处理所有连接
-    maintiner: Maintainer
+    # 一个maintainer用于处理所有连接
+    maintainer: Maintainer
 
     # 一个用于和服务器通信的模块
     reign: Reign
@@ -46,7 +46,7 @@ class Frontend(object):
         self.build_connection(fed_addr)
 
     def build_connection(self, fed_addr: FedAddr):
-        self.maintiner = Maintainer(self.world, fed_addr)
+        self.maintainer = Maintainer(self.world, fed_addr)
         self.reign = default_reign()
 
     def state_dict_map(self, state_dict: Dict[str, Tensor]):
@@ -80,6 +80,8 @@ class Frontend(object):
         # 已经完成了训练，退出联邦学习。
         if self.reign is not None:
             self.reign.destroy()
+
+        self.maintainer.manual_stop()
 
     def __expr__(self):
         # TODO: 输出一些基本信息

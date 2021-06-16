@@ -1,15 +1,15 @@
 import datetime
 import json
 from enum import Enum
-from typing import Any, Dict, final
+from typing import Any, Dict
 
+import openfed
 from openfed.utils.types import APPROVED, STATUS
 
 from ..core.federated_c10d import FederatedWorld, Store
 from ..world import World
 from .gpu_info import getGPUInfo
 from .sys_info import getSysInfo
-import openfed
 
 # 以下常量用于设置store里面的键值对。
 OPENFED_IDENTIFY = "OPENFED_IDENTIFY"

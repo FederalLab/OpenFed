@@ -10,7 +10,7 @@ def get_head_info() -> str:
         raise Exception
     except:
         f = sys.exc_info()[2].tb_frame.f_back
-    return 'Time: %s, File: %s, Func: %s, Line: %s' % (str(datetime.now()), f.f_code.co_filename, f.f_code.co_name, str(f.f_lineno))
+    return '\nTime: %s, File: %s, Func: %s, Line: %s' % (str(datetime.now()), f.f_code.co_filename, f.f_code.co_name, str(f.f_lineno))
 
 
 def safe_exited(msg: str):

@@ -204,3 +204,4 @@ class Backend(Thread):
                 reign.destroy()
 
         self.stopped = True
+        self.maintainer.manual_stop()

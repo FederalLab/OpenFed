@@ -3,8 +3,10 @@
 import json
 from enum import Enum, unique
 from typing import Dict, List, TypeVar, Union
+import prettytable
 
 from torch import Tensor
+from prettytable import PrettyTable
 
 _A = TypeVar("_A", bound='FedAddr')
 
@@ -119,9 +121,15 @@ class FedAddr(object):
         with open(file, "w") as f:
             json.dump(fed_addr_dict_list, f)
 
-    def __expr__(self):
-        # TODO: 更好的输出相关的信息
-        return f"FedAddr: {self.init_method}"
+    def __repr__(self):
+        table = PrettyTable(
+            ['backend', 'init_method', 'world_size', 'rank', 'store', 'group_name']
+        )
+        table.add_row(
+            [self.backend, self.init_method, self.world_size,
+                self.rank, self.store, self.group_name]
+        )
+        return "\n" + str(table)
 
     def as_dict(self):
         # 这个函数主要是为了让fedaddr支持解包操作，方便将其作为参数传入底层的方法。
