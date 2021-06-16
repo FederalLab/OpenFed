@@ -1,3 +1,4 @@
-from openfed import Backend, FedAddr
+from openfed import Backend
 
-print("Test")
+backend = Backend()
+print(backend)

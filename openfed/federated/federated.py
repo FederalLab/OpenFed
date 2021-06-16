@@ -19,20 +19,24 @@ class Joint(Thread):
     因为客户端必须要保证连接上以后，才可以进行下一步操作，而服务器端还需要管理其他连接。
 
     这是一个temperal的线程，不会常驻后台，故不需要监控openfed.ALIVE的状态。
+    TODO: 加入进程间的同步问题。
     """
 
     def __init__(self, fed_addr: FedAddr, world: World):
         super().__init__()
 
+        if fed_addr.rank == -1:
+            if fed_addr.world_size == 2:
+                # 自动设置rank
+                fed_addr.rank = 1 if world.is_queen() else 0
+            else:
+                raise RuntimeError(
+                    "Please specify the correct rank when world size is not 2")
+
         if openfed.VERBOSE:
             print(f"Connect to {fed_addr}")
 
-        self.backend = fed_addr.backend
-        self.init_method = fed_addr.init_method
-        self.world_size = fed_addr.world_size
-        self.rank = fed_addr.rank if world.is_queen() else 0
-        self.store = fed_addr.store
-        self.group_name = fed_addr.group_name
+        self.fed_addr = fed_addr
 
         self.world = world
 
@@ -57,15 +61,12 @@ class Joint(Thread):
         fed_world = FederatedWorld()
 
         # register the world
+        self.world.joint_lock.acquire()
         register.register_federated_world(fed_world, self.world)
+        self.world.joint_lock.release()
 
         # build the connection between the federated world
-        fed_world.init_process_group(self.backend,
-                                     init_method=self.init_method,
-                                     world_size=self.world_size,
-                                     rank=self.rank,
-                                     store=self.store,
-                                     group_name=self.group_name)
+        fed_world.init_process_group(**self.fed_addr.as_dict())
 
         # 无论在客户端还是服务器端，这里的rank都是指定0，也就是服务器端。
         sub_pg_list = fed_world.build_point2point_group(rank=0)
@@ -75,7 +76,9 @@ class Joint(Thread):
             monitor = Monitor(fed_world.get_store(
                 sub_pg), fed_world, self.world)
             package = Package(sub_pg, fed_world, self.world)
+            self.world.joint_lock.acquire()
             self.world.__pg_mapping[sub_pg] = [package, monitor, fed_world]
+            self.world.joint_lock.release()
 
 
 class Maintainer(Thread):
@@ -117,15 +120,16 @@ class Maintainer(Thread):
             self.start()
         else:
             # 如果是客户端，并且给定连接地址的话，则直接连接
-            fed_addr_cnt = []
+            self.pending_queue.extend(fed_addr)
+            self.pending_queue.extend(self.read_fed_addr_from_file())
 
-            fed_addr_cnt.extend(fed_addr)
-            fed_addr_cnt.extend(self.read_fed_addr_from_file())
-            if len(fed_addr_cnt) > 1:
+            if len(self.pending_queue) > 1:
                 raise RuntimeError(
                     "Too many fed addr are specified. Only allowed 1.")
-            elif len(fed_addr_cnt) == 1:
-                Joint(fed_addr[0], self.world)
+            elif len(self.pending_queue) == 1:
+                fed_addr = self.pending_queue.pop()
+                Joint(fed_addr, self.world)
+                self.finished_queue.append(fed_addr)
             else:
                 if openfed.VERBOSE:
                     print("FedAddr is not specified!")
@@ -154,8 +158,6 @@ class Maintainer(Thread):
 
             for fed_addr in self.pending_queue:
                 Joint(fed_addr, self.world)
-                # 休眠一会儿，减少因为资源争夺而造成的崩溃。
-                time.sleep(0.1)
             # mv pending_queue to finished_queue
             # 小心！这里不允许使用append方法，否则clear之后，数据会被同时清空。
             self.finished_queue.extend(self.pending_queue)

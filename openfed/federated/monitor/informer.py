@@ -33,7 +33,8 @@ class FedDict(dict):
     def jsonize(self) -> str:
         return json.JSONEncoder().encode(self)
 
-    def dictize(self, jsonstr) -> Any:
+    def dictize(self, jsonstr: bytes) -> Any:
+        jsonstr = str(jsonstr, encoding="utf-8")
         self.update(json.JSONDecoder().decode(jsonstr))
         return self
 
@@ -41,6 +42,8 @@ class FedDict(dict):
 class Informer(object):
     """维护world状态，保证world状态和信息流中的状态是一致的。
     封装kvstore，提供一个更加便捷的接口调用。
+
+    TODO:注意处理客户端和服务器端进行写入操作时，对键值的冲突。
     """
     store: Store
     federated_world: FederatedWorld
@@ -60,25 +63,32 @@ class Informer(object):
     def _write(self, feddict: FedDict) -> Any:
         """Erase old value, write feddict instead.
         """
+        if feddict is None:
+            feddict = FedDict()
         # 给每一个数据都加入一个时间戳，以保证信息的正确性
         feddict["timestemp"] = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
         return self.store.set(OPENFED_IDENTIFY, feddict.jsonize())
 
+    def _read(self):
+        fed_dict = FedDict()
+        fed_dict.dictize(self.store.get(OPENFED_IDENTIFY))
+        return fed_dict
+
     def _update(self, feddict: FedDict) -> Any:
         """Update old value with feddict.
         """
-        return self._write(self.read()._update(feddict))
+        return self._write(self._read().update(feddict))
 
     def set(self, key: str, value: Any):
         """像字典一样设置键值对。注意：这个值不是直接写在store里，而是写在OPFEN_IFENTITY下面。
         """
         feddict = FedDict()
-        feddict.set(key, value)
+        feddict[key] = value
         self._update(feddict)
 
     def get(self, key: str) -> Any:
-        return self.read()[key]
+        return self._read()[key]
 
     def __del__(self):
         # 调用析构函数，保证客户端退出时，服务器端察觉相应的状态信息，并且销毁连接。

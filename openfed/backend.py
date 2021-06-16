@@ -1,15 +1,14 @@
 import time
 from threading import Thread
-from typing import Dict, List, Union
+from typing import Dict, List, Union, overload
 
 from torch import Tensor
 from torch.optim import Optimizer
 
-import openfed.federated as federated
 
 from .aggregate import Aggregator
-from .federated.federated import Maintainer, Reign, World
-from .utils.types import STATUS, FedAddr
+from .federated.federated import Maintainer, Reign, World, process_generator
+from .utils.types import STATUS, FedAddr, default_fed_addr
 
 
 class Backend(Thread):
@@ -41,17 +40,54 @@ class Backend(Thread):
     # 记录上一次模型更新的时间，可以根据这个来判断是否超时强制更新
     last_time: float
 
+    @overload
+    def __init__(self):
+        """如果任何参数都不给的话，那就使用默认参数，建立一个连接。
+        """
+
+    @overload
+    def __init__(self,
+                 world: World = None,
+                 fed_addr: Union[FedAddr, List[FedAddr]] = None,
+                 fed_addr_file: str = None):
+        """仅仅只是给定了连接相关的参数，先建立连接，后期在指定其他内容。
+        """
+
+    @overload
     def __init__(self,
                  state_dict: Dict[str, Tensor],
                  aggregator: Aggregator,
                  optimizer: Optimizer,
                  world: World = None,
                  fed_addr: Union[FedAddr, List[FedAddr]] = None,
-                 fed_addr_file: str = None
-                 ):
-        self.state_dict = state_dict
-        self.aggregator = aggregator
-        self.optimizer = optimizer
+                 fed_addr_file: str = None):
+        """
+        同时给定了所需的各种参数。
+        """
+
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        self.state_dict = kwargs.get('state_dict', None)
+        self.aggregator = kwargs.get('aggregator', None)
+        self.optimizer = kwargs.get('optimizer', None)
+
+        world = kwargs.get('world', None)
+        fed_addr = kwargs.get('fed_addr', None)
+        fed_addr_file = kwargs.get('fed_addr_file', None)
+
+        if world is None:
+            world = World()
+            world.set_king()
+        else:
+            assert world.is_king(), "Backend must be king."
+
+        if fed_addr is None and fed_addr_file is None:
+            fed_addr = default_fed_addr
+
+        self.maintainer = Maintainer(
+            world, fed_addr=fed_addr, fed_addr_file=fed_addr_file)
+
         self.stopped = False
 
         self.version = 0
@@ -60,13 +96,14 @@ class Backend(Thread):
         self.received_numbers = 0
         self.last_time = time.time()
 
-        if world is None:
-            world = World()
-            world.set_king()
-        else:
-            assert world.is_king(), "Backend must be king."
-        self.maintainer = Maintainer(
-            world, fed_addr=fed_addr, fed_addr_file=fed_addr_file)
+    def set_state_dict(self, state_dict: Dict[str, Tensor]):
+        self.state_dict = state_dict
+
+    def set_optimizer(self, optimizer: Optimizer):
+        self.optimizer = optimizer
+
+    def set_aggregator(self, aggregator: Aggregator):
+        self.aggregator = aggregator
 
     def run(self):
         """
@@ -74,7 +111,7 @@ class Backend(Thread):
         如果你希望程序在前台运行，那么请直接调用run()函数。
         """
         while not self.stopped:
-            for reign in federated.process_generator():
+            for reign in process_generator():
                 self.reign = reign
 
                 if reign is not None:
@@ -101,6 +138,8 @@ class Backend(Thread):
                 self.update()
 
     def after_received_a_new_model(self):
+        assert self.aggregator is not None, "Set aggregator first"
+
         # 从底层获取接收到的数据
         packages = self.reign.package.tensor_indexed_packages
         task_info = self.reign.monitor.get_task_info()
@@ -114,6 +153,10 @@ class Backend(Thread):
         当无法满足的时候，返回False，否则返回True。
         这个函数中，应该包含了对package等需要传送的相关数据的设置。
         """
+        assert self.optimizer is not None, "optimizer is not specified"
+        assert self.aggregate is not None, "aggregator is not specified"
+        assert self.state_dict is not None, "state dict is not specified"
+
         # 指定要打包的数据。
         self.reign.package.state_dict_map(self.state_dict)
 

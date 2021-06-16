@@ -3,6 +3,7 @@ from typing import Any, Dict, overload
 
 import openfed.utils.types as types
 from torch.distributed.distributed_c10d import ProcessGroup
+import threading
 
 
 class World(object):
@@ -84,7 +85,11 @@ class World(object):
         self.__pg_mapping = OrderedDict()
         self.__NULL_GP = object()
         self.__current_pg = self.__NULL_GP
-        self.SLEEPTIME = 1.0
+        self.SLEEPTIME = .1
 
     def is_valid_process_group(self, pg: ProcessGroup):
         return pg is not self.__NULL_GP and pg in self.__pg_mapping
+
+    # 添加一些锁，用于处理进程之间的同步问题
+    # 提供一个context来做这件事
+    joint_lock = threading.Lock()

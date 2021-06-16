@@ -1,20 +1,19 @@
-# 在这里面定义所有简单的数据类型与全局变量
+# 在这里面定义所有数据类型与全局变量
 
 import json
-from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Any, Dict, List, TypeVar, Union, overload
+from typing import Dict, List, TypeVar, Union
 
 from torch import Tensor
 
-A = TypeVar("A", bound='FedAddr')
+_A = TypeVar("_A", bound='FedAddr')
 
 
 class FedAddr(object):
     backend: str
     init_method: str = None
     world_size: int = 2
-    rank: int = 1
+    rank: int = -1
     store = None
     group_name: str = ''
 
@@ -22,10 +21,13 @@ class FedAddr(object):
                  backend: str,
                  init_method: str = None,
                  world_size: int = 2,
-                 rank: int = 1,
+                 rank: int = -1,
                  store=None,
                  group_name: str = ''):
         """
+        rank设置成-1的时候，会根据当前的身份自动推断。
+        仅仅当你是在建立点对点的连接的时候，才会有效。也就是world size==2的时候。
+
         Initializes the default distributed process group, and this will also
         initialize the distributed package.
 
@@ -90,7 +92,7 @@ class FedAddr(object):
         self.group_name = group_name
 
     @classmethod
-    def load_from_file(cls, file: str) -> List[A]:
+    def load_from_file(cls, file: str) -> List[_A]:
         """从文件加载的方式，创建的fedworld，不支持store的初始化方式！
         """
         with open(file, 'r') as f:
@@ -101,7 +103,7 @@ class FedAddr(object):
         return fed_addr_list
 
     @classmethod
-    def dump_to_file(cls, file: str, fed_addr_list: List[A]):
+    def dump_to_file(cls, file: str, fed_addr_list: List[_A]):
         """
             fed_addr_list中的store不会被保存下来。因为不支持从这种方式初始化。
         """
@@ -120,6 +122,23 @@ class FedAddr(object):
     def __expr__(self):
         # TODO: 更好的输出相关的信息
         return f"FedAddr: {self.init_method}"
+
+    def as_dict(self):
+        # 这个函数主要是为了让fedaddr支持解包操作，方便将其作为参数传入底层的方法。
+        return dict(
+            backend=self.backend,
+            init_method=self.init_method,
+            world_size=self.world_size,
+            rank=self.rank,
+            store=self.store,
+            group_name=self.group_name
+        )
+
+
+# 给定一个默认的fed addr地址，方便做实验验证的时候，不需要每次都指定地址。
+default_fed_addr = FedAddr(
+    backend="gloo", init_method='tcp://127.0.0.1:33298'
+)
 
 
 @unique
@@ -152,3 +171,22 @@ class STATUS(Enum):
 
 PACKAGES = TypeVar(
     'PACKAGES', bound=Dict[str, Union[Tensor, Dict[str, Tensor]]])
+
+
+# 如果DEBUG=True，那相关的程序会输出部分调试信息
+# 会以更严格的方式，执行程序
+DEBUG: bool = False
+
+
+def debug():
+    global DEBUG
+    DEBUG = True
+
+
+# 如果VERBOSE=True, 相关程序会输出一些日志
+VERBOSE: bool = False
+
+
+def verbose():
+    global VERBOSE
+    VERBOSE = True
