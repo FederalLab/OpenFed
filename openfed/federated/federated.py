@@ -3,13 +3,14 @@ from threading import Thread
 from typing import List, Union
 
 import openfed
+import openfed.utils as utils
 from openfed.utils.types import STATUS, FedAddr
 
 from .core.federated_c10d import FederatedWorld, ProcessGroup
 from .monitor.monitor import Monitor
 from .pack.package import Package
 from .register import World, register
-from .utils.safe_exited import safe_exited
+from .utils.safe_exited import get_head_info, safe_exited
 
 
 class Joint(Thread):
@@ -19,7 +20,6 @@ class Joint(Thread):
     因为客户端必须要保证连接上以后，才可以进行下一步操作，而服务器端还需要管理其他连接。
 
     这是一个temperal的线程，不会常驻后台，故不需要监控openfed.ALIVE的状态。
-    TODO: 加入进程间的同步问题。
     """
 
     def __init__(self, fed_addr: FedAddr, world: World):
@@ -34,11 +34,13 @@ class Joint(Thread):
                     "Please specify the correct rank when world size is not 2")
 
         if openfed.VERBOSE:
-            print(f"Connect to {fed_addr}")
+            print(utils.yellow_color("Connect..."), f"{fed_addr}")
 
         self.fed_addr = fed_addr
 
         self.world = world
+
+        self.stopped = False
 
         if self.world.is_king():
             # 如果是服务器，那就使用start函数进入后台运行
@@ -78,6 +80,14 @@ class Joint(Thread):
             package = Package(sub_pg, fed_world, self.world)
             with self.world.joint_lock:
                 self.world._pg_mapping[sub_pg] = [package, monitor, fed_world]
+        if openfed.VERBOSE:
+            print(utils.green_color("Connected"), f"{self.fed_addr}")
+
+        self.stopped = True
+
+    def manual_stop(self):
+        self.stopped = True
+
 
 class Maintainer(Thread):
     """负责在后台自动建立连接。
@@ -130,7 +140,7 @@ class Maintainer(Thread):
                 self.finished_queue.append(fed_addr)
             else:
                 if openfed.VERBOSE:
-                    print("FedAddr is not specified!")
+                    print(utils.red_color("Addr Missed"))
 
     def read_fed_addr_from_file(self) -> List[FedAddr]:
         if self.fed_addr_file is None:
@@ -163,7 +173,7 @@ class Maintainer(Thread):
 
             time.sleep(self.world.SLEEP_SHORT_TIME)
         else:
-            safe_exited()
+            safe_exited(get_head_info())
 
     def manual_stop(self):
         """Provide a function to end it manually.
@@ -234,18 +244,6 @@ class Destroy(object):
             world = register.default_world
         for pg in world._pg_mapping:
             cls.destroy(pg, world)
-
-
-# 需要注意的是：
-# 这个模块本身，只是openfed一个相对独立的模块。
-# 而在openfed中，每一个模块很多时候是同时在独立运行着。
-# 所以，你写的程序，要防止阻塞主程序运行的情况发生。
-# 这里返回空GP就是为了保证其他模块在获取迭代器输出的时候，
-# 不会发生阻塞。如果遇到了空GP那可以继续处理其他事情。
-
-
-# 以下的代码是和联邦学习任务相关的函数
-# 主要更能是把这层的所有模块，进行一个总的封装，并且暴露出有限的API用于调用
 
 
 class Reign(object):
@@ -357,7 +355,7 @@ def process_generator() -> Reign:
                 yield None
                 world._current_pg = world._NULL_GP
     else:
-        safe_exited()
+        safe_exited(get_head_info())
 
 
 def default_reign() -> Reign:

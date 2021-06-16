@@ -176,14 +176,6 @@ def getAvailable(order='first', limit=1, maxLoad=0.5, maxMemory=0.5, memoryFree=
 
     return deviceIds
 
-# def getAvailability(GPUs, maxLoad = 0.5, maxMemory = 0.5, includeNan = False):
-#    # Determine, which GPUs are available
-#    GPUavailability = np.zeros(len(GPUs))
-#    for i in range(len(GPUs)):
-#        if (GPUs[i].load < maxLoad or (includeNan and np.isnan(GPUs[i].load))) and (GPUs[i].memoryUtil < maxMemory  or (includeNan and np.isnan(GPUs[i].memoryUtil))):
-#            GPUavailability[i] = 1
-
-
 def getAvailability(GPUs, maxLoad=0.5, maxMemory=0.5, memoryFree=0, includeNan=False, excludeID=[], excludeUUID=[]):
     # Determine, which GPUs are available
     GPUavailability = [1 if (gpu.memoryFree >= memoryFree) and (gpu.load < maxLoad or (includeNan and math.isnan(gpu.load))) and (gpu.memoryUtil < maxMemory or (

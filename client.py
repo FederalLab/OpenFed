@@ -1,10 +1,7 @@
 from openfed import Frontend
-import time
 
+print("Connect to Server...")
 frontend = Frontend()
-print("*" * 40)
-# time.sleep(1.0)
-
 frontend.finish()
 
-print("Test success of frontend.")
+print("PASS")

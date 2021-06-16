@@ -4,7 +4,7 @@ from threading import Thread
 from typing import Callable, Dict
 
 from ..core.federated_c10d import FederatedWorld, Store
-from ..utils.safe_exited import safe_exited
+from ..utils.safe_exited import get_head_info, safe_exited
 from ..world import World
 from .informer import Informer
 
@@ -61,7 +61,7 @@ class Monitor(Informer, Thread):
 
             time.sleep(self.world.SLEEP_LONG_TIME)
         else:
-            safe_exited()
+            safe_exited(get_head_info())
 
     def manual_stop(self):
         """Provide a function to end it manually.

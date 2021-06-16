@@ -136,8 +136,9 @@ class FedAddr(object):
 
 
 # 给定一个默认的fed addr地址，方便做实验验证的时候，不需要每次都指定地址。
+
 default_fed_addr = FedAddr(
-    backend="gloo", init_method='tcp://127.0.0.1:33298'
+    backend="gloo", init_method='tcp://localhost:1994'
 )
 
 
@@ -184,9 +185,14 @@ def debug():
 
 
 # 如果VERBOSE=True, 相关程序会输出一些日志
-VERBOSE: bool = False
+VERBOSE: bool = True
 
 
 def verbose():
     global VERBOSE
     VERBOSE = True
+
+
+def silence():
+    global VERBOSE
+    VERBOSE = False

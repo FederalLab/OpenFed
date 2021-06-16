@@ -4,12 +4,10 @@ from typing import Dict, List, Union, overload
 
 from torch import Tensor
 from torch.optim import Optimizer
-
-
 from .aggregate import Aggregator
 from .federated.federated import Maintainer, Reign, World, process_generator
-from .utils.types import STATUS, FedAddr, default_fed_addr
 from .federated.register import register
+from .utils.types import STATUS, FedAddr, default_fed_addr
 
 
 class Backend(Thread):
