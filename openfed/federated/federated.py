@@ -1,6 +1,6 @@
 import time
 from threading import Thread
-from typing import Generator, List, Union
+from typing import List, Union
 
 import openfed
 from openfed.utils.types import STATUS, FedAddr
@@ -23,10 +23,14 @@ class Joint(Thread):
 
     def __init__(self, fed_addr: FedAddr, world: World):
         super().__init__()
+
+        if openfed.VERBOSE:
+            print(f"Connect to {fed_addr}")
+
         self.backend = fed_addr.backend
         self.init_method = fed_addr.init_method
         self.world_size = fed_addr.world_size
-        self.rank = fed_addr.rank if openfed.is_queen() else 0
+        self.rank = fed_addr.rank if world.is_queen() else 0
         self.store = fed_addr.store
         self.group_name = fed_addr.group_name
 
@@ -103,10 +107,11 @@ class Maintainer(Thread):
         if fed_addr is not None:
             if not isinstance(fed_addr, (list, tuple)):
                 fed_addr = [fed_addr]
+        else:
+            fed_addr = []
 
         if self.world.is_king():
-            if fed_addr is not None:
-                self.pending_queue.extend(fed_addr)
+            self.pending_queue.extend(fed_addr)
             self.pending_queue.extend(self.read_fed_addr_from_file())
 
             self.start()
@@ -114,13 +119,16 @@ class Maintainer(Thread):
             # 如果是客户端，并且给定连接地址的话，则直接连接
             fed_addr_cnt = []
 
-            if fed_addr is not None:
-                fed_addr_cnt += fed_addr
-            fed_addr_cnt += self.read_fed_addr_from_file()
+            fed_addr_cnt.extend(fed_addr)
+            fed_addr_cnt.extend(self.read_fed_addr_from_file())
             if len(fed_addr_cnt) > 1:
                 raise RuntimeError(
                     "Too many fed addr are specified. Only allowed 1.")
-            Joint(fed_addr)
+            elif len(fed_addr_cnt) == 1:
+                Joint(fed_addr[0], self.world)
+            else:
+                if openfed.VERBOSE:
+                    print("FedAddr is not specified!")
 
     def read_fed_addr_from_file(self) -> List[FedAddr]:
         if self.fed_addr_file is None:

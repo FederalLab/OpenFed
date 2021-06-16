@@ -10,7 +10,6 @@ from torch import Tensor
 A = TypeVar("A", bound='FedAddr')
 
 
-@dataclass
 class FedAddr(object):
     backend: str
     init_method: str = None
@@ -18,6 +17,77 @@ class FedAddr(object):
     rank: int = 1
     store = None
     group_name: str = ''
+
+    def __init__(self,
+                 backend: str,
+                 init_method: str = None,
+                 world_size: int = 2,
+                 rank: int = 1,
+                 store=None,
+                 group_name: str = ''):
+        """
+        Initializes the default distributed process group, and this will also
+        initialize the distributed package.
+
+        There are 2 main ways to initialize a process group:
+            1. Specify ``store``, ``rank``, and ``world_size`` explicitly.
+            2. Specify ``init_method`` (a URL string) which indicates where/how
+            to discover peers. Optionally specify ``rank`` and ``world_size``,
+            or encode all required parameters in the URL and omit them.
+
+        If neither is specified, ``init_method`` is assumed to be "env://".
+
+
+        Args:
+            backend (str or Backend): The backend to use. Depending on
+                build-time configurations, valid values include ``mpi``, ``gloo``,
+                and ``nccl``. This field should be given as a lowercase string
+                (e.g., ``"gloo"``), which can also be accessed via
+                :class:`Backend` attributes (e.g., ``Backend.GLOO``). If using
+                multiple processes per machine with ``nccl`` backend, each process
+                must have exclusive access to every GPU it uses, as sharing GPUs
+                between processes can result in deadlocks.
+            init_method (str, optional): URL specifying how to initialize the
+                                        process group. Default is "env://" if no
+                                        ``init_method`` or ``store`` is specified.
+                                        Mutually exclusive with ``store``.
+            world_size (int, optional): Number of processes participating in
+                                        the job. Required if ``store`` is specified.
+            rank (int, optional): Rank of the current process (it should be a
+                                number between 0 and ``world_size``-1).
+                                Required if ``store`` is specified.
+            store(Store, optional): Key/value store accessible to all workers, used
+                                    to exchange connection/address information.
+                                    Mutually exclusive with ``init_method``.
+            timeout (timedelta, optional): Timeout for operations executed against
+                the process group. Default value equals 30 minutes.
+                This is applicable for the ``gloo`` backend. For ``nccl``, this is
+                applicable only if the environment variable ``NCCL_BLOCKING_WAIT``
+                or ``NCCL_ASYNC_ERROR_HANDLING`` is set to 1. When
+                ``NCCL_BLOCKING_WAIT`` is set, this is the duration for which the
+                process will block and wait for collectives to complete before
+                throwing an exception. When ``NCCL_ASYNC_ERROR_HANDLING`` is set,
+                this is the duration after which collectives will be aborted
+                asynchronously and the process will crash. ``NCCL_BLOCKING_WAIT``
+                will provide errors to the user which can be caught and handled,
+                but due to its blocking nature, it has a performance overhead. On
+                the other hand, ``NCCL_ASYNC_ERROR_HANDLING`` has very little
+                performance overhead, but crashes the process on errors. This is
+                done since CUDA execution is async and it is no longer safe to
+                continue executing user code since failed async NCCL operations
+                might result in subsequent CUDA operations running on corrupted
+                data. Only one of these two environment variables should be set.
+            group_name (str, optional, deprecated): Group name.
+
+        To enable ``backend == Backend.MPI``, PyTorch needs to be built from source
+        on a system that supports MPI.
+        """
+        self.backend = backend
+        self.init_method = init_method
+        self.world_size = world_size
+        self.rank = rank
+        self.store = store
+        self.group_name = group_name
 
     @classmethod
     def load_from_file(cls, file: str) -> List[A]:
@@ -46,6 +116,10 @@ class FedAddr(object):
             )
         with open(file, "w") as f:
             json.dump(fed_addr_dict_list, f)
+
+    def __expr__(self):
+        # TODO: 更好的输出相关的信息
+        return f"FedAddr: {self.init_method}"
 
 
 @unique

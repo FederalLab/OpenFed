@@ -42,7 +42,9 @@ class Frontend(object):
             self.maintiner = None
             self.reign = None
         else:
-            world, fed_addr, fed_addr_file = kwargs["world"], kwargs["fed_addr"], kwargs["fed_addr_file"]
+            world = kwargs.get('world', None)
+            fed_addr = kwargs.get('fed_addr', None)
+            fed_addr_file = kwargs.get('fed_addr_file', None)
             if world is None:
                 world = World()
                 world.set_queen()
