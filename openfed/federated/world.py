@@ -1,9 +1,9 @@
+import threading
 from collections import OrderedDict
 from typing import Any, Dict, overload
 
 import openfed.utils.types as types
 from torch.distributed.distributed_c10d import ProcessGroup
-import threading
 
 
 class World(object):
@@ -67,28 +67,33 @@ class World(object):
 
     # 我们遍历的是pg，而不是federated_world。
     # Dict[ProcessGroup, List[Package, Monitor, FederatedWorld]]
-    __pg_mapping: Dict
+    _pg_mapping: Dict
 
     # 记录当前上层正在处理的pg是哪一个
-    __NULL_GP: Any
-    __current_pg: ProcessGroup
+    _NULL_GP: Any
+    _current_pg: ProcessGroup
 
     # 我们并不希望这个参数被轻易修改，所以将它定义在这里，而不是CONSTANT里面。
-    SLEEPTIME: float  # seconds
+    SLEEP_SHORT_TIME: float  # seconds
+    SLEEP_LONG_TIME: float
 
     def __init__(self, ):
         self.ALIVE = True
         self.DEBUG = False
         self.VERBOSE = False
-        self.APPROVED = types.APPROVED.ALL
+
+        # 不上传任何信息
+        self.APPROVED = types.APPROVED.NONE
         self.ROLE = types.ROLE.QUEEN
-        self.__pg_mapping = OrderedDict()
-        self.__NULL_GP = object()
-        self.__current_pg = self.__NULL_GP
-        self.SLEEPTIME = .1
+        self._pg_mapping = OrderedDict()
+        self._NULL_GP = object()
+        self._current_pg = self._NULL_GP
+
+        self.SLEEP_SHORT_TIME = .1
+        self.SLEEP_LONG_TIME = 1.0
 
     def is_valid_process_group(self, pg: ProcessGroup):
-        return pg is not self.__NULL_GP and pg in self.__pg_mapping
+        return pg is not self._NULL_GP and pg in self._pg_mapping
 
     # 添加一些锁，用于处理进程之间的同步问题
     # 提供一个context来做这件事

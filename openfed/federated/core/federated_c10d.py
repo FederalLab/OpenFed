@@ -530,6 +530,7 @@ class FederatedWorld(object):
 
             if group in self._point2point_groups:
                 del self._point2point_groups[group]
+            self._group_count -= 1
 
     def get_rank(self, group=None):
         """

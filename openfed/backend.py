@@ -9,6 +9,7 @@ from torch.optim import Optimizer
 from .aggregate import Aggregator
 from .federated.federated import Maintainer, Reign, World, process_generator
 from .utils.types import STATUS, FedAddr, default_fed_addr
+from .federated.register import register
 
 
 class Backend(Thread):
@@ -192,4 +193,16 @@ class Backend(Thread):
             ...
 
     def manual_stop(self):
+        self.stopped = True
+
+    def __expr__(self):
+        # TODO: 输出一些基本信息
+        return "Backend"
+
+    def finish(self):
+        # 强制杀死所有的进程，并且退出进程
+        for reign in process_generator():
+            if reign is not None:
+                reign.destroy()
+
         self.stopped = True

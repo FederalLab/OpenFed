@@ -1,7 +1,7 @@
 import datetime
 import json
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, final
 
 from openfed.utils.types import APPROVED, STATUS
 
@@ -9,6 +9,7 @@ from ..core.federated_c10d import FederatedWorld, Store
 from ..world import World
 from .gpu_info import getGPUInfo
 from .sys_info import getSysInfo
+import openfed
 
 # 以下常量用于设置store里面的键值对。
 OPENFED_IDENTIFY = "OPENFED_IDENTIFY"
@@ -31,12 +32,35 @@ def to_enum(value, enum_type: Enum):
 
 class FedDict(dict):
     def jsonize(self) -> str:
-        return json.JSONEncoder().encode(self)
+        return json.dumps(self)
 
     def dictize(self, jsonstr: bytes) -> Any:
         jsonstr = str(jsonstr, encoding="utf-8")
-        self.update(json.JSONDecoder().decode(jsonstr))
+        self.update(json.loads(jsonstr))
         return self
+
+
+def safe_store_set(store: Store, key: str, value: str) -> bool:
+    try:
+        store.set(key, value)
+        return True
+    except Exception as e:
+        if openfed.DEBUG:
+            # 双方在结束连接时，总会有一方先退出，导致另一方数据读取错误。
+            # 这里不是一个bug，所以只是print了异常
+            print(e)
+        return False
+
+
+def safe_store_get(store: Store, key: str) -> str:
+    try:
+        return store.get(key)
+    except Exception as e:
+        if openfed.DEBUG:
+            # 双方在结束连接时，总会有一方先退出，导致另一方数据读取错误。
+            # 这里不是一个bug，所以只是print了异常
+            print(e)
+        return ""
 
 
 class Informer(object):
@@ -49,36 +73,67 @@ class Informer(object):
     federated_world: FederatedWorld
     world: World
 
+    # 这个变量的作用主要是为了防止程序以外结束时，无法读取任何信息。
+    # 这里可以保证读取的是之前的内容
+    _buf_dict: Dict
+
     def __init__(self, store: Store, federated_world: FederatedWorld, world: World):
         self.federated_world = federated_world
         self.world = world
         self.store = store
-        self._write(FedDict())
 
-        # 客户端和服务器端分别写入默认信息
-        if self.world.is_queen():
-            # 设置状态
+        # 开始设置其他东西之前，先写入这个key，防止后面出现无数据可取！
+        if not safe_store_set(self.store, OPENFED_IDENTIFY, "{}"):
+            raise RuntimeError("Initialize store failed")
+
+        if self.world.is_king():
+            safe_store_set(self.store, OPENFED_IDENTIFY+"_KING", "REGISTERED")
+            safe_store_get(self.store, OPENFED_IDENTIFY+"_QUEEN")
+        else:
             self.set_state(STATUS.ZOMBINE)  # 表示客户端上线
+            safe_store_set(self.store, OPENFED_IDENTIFY+"_QUEEN", "REGISTERED")
+            safe_store_get(self.store, OPENFED_IDENTIFY+"_KING")
 
-    def _write(self, feddict: FedDict) -> Any:
+        # 保证读的数据是一致的在最开始的时候
+        self._buf_dict = self._read()
+
+    def _write(self, feddict: FedDict) -> bool:
         """Erase old value, write feddict instead.
         """
-        if feddict is None:
-            feddict = FedDict()
         # 给每一个数据都加入一个时间戳，以保证信息的正确性
         feddict["timestemp"] = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S')
-        return self.store.set(OPENFED_IDENTIFY, feddict.jsonize())
 
-    def _read(self):
+        return safe_store_set(self.store, OPENFED_IDENTIFY, feddict.jsonize())
+
+    def _read(self) -> Dict:
         fed_dict = FedDict()
-        fed_dict.dictize(self.store.get(OPENFED_IDENTIFY))
+        raw_str = safe_store_get(self.store, OPENFED_IDENTIFY)
+
+        try:
+            fed_dict.dictize(raw_str)
+            self._buf_dict = fed_dict
+        except Exception as e:
+            if openfed.DEBUG:
+                # 这里不一定是bug。但是进行字典化出问题了一般是没有读取到正确的数据格式。
+                print(e)
+            # 说明对方已下线（不知原因的下线。）
+            # 把我方读取到的状态也下线
+            self._buf_dict[OPENFED_STATUS] = STATUS.OFFLINE.value
+            fed_dict = self._buf_dict
+        finally:
+            if OPENFED_STATUS not in fed_dict:
+                # 如果没有正确读取到状态的话，那就下线
+                fed_dict[OPENFED_STATUS] = STATUS.OFFLINE.value
+
         return fed_dict
 
     def _update(self, feddict: FedDict) -> Any:
         """Update old value with feddict.
         """
-        return self._write(self._read().update(feddict))
+        old_feddict = self._read()
+        old_feddict.update(feddict)
+        return self._write(old_feddict)
 
     def set(self, key: str, value: Any):
         """像字典一样设置键值对。注意：这个值不是直接写在store里，而是写在OPFEN_IFENTITY下面。
@@ -90,15 +145,11 @@ class Informer(object):
     def get(self, key: str) -> Any:
         return self._read()[key]
 
-    def __del__(self):
-        # 调用析构函数，保证客户端退出时，服务器端察觉相应的状态信息，并且销毁连接。
-        self.set_state(STATUS.OFFLINE)
-        super().__del__()
-
     def alive(self):
         """判断客户端是否在线
         """
-        return self.get_state() != STATUS.OFFLINE
+        # 首先判断这个world是不是存活的
+        return self.world.ALIVE and self.get_state() != STATUS.OFFLINE
 
     def get_state(self) -> STATUS:
         state = self.get(OPENFED_STATUS)

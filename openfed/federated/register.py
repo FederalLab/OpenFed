@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from typing import Dict
-
+import openfed
 from .core.federated_c10d import FederatedWorld
 from .world import World
 
@@ -25,6 +25,13 @@ class _Register(object):
                 federated_world.destroy_process_group(
                     group=federated_world.WORLD)
             del __federated_world__[federated_world]
+
+    @classmethod
+    def deleted_all_federated_world(cls):
+        if openfed.VERBOSE:
+            print("Try to delete all process group in all federated world.")
+            for k in __federated_world__:
+                cls.deleted_federated_world(k)
 
     @classmethod
     def is_registered(cls, federated_world: FederatedWorld) -> bool:

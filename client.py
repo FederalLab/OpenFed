@@ -1,6 +1,10 @@
 from openfed import Frontend
+import time
 
-
-# build a connect
 frontend = Frontend()
-print(frontend)
+print("*" * 40)
+# time.sleep(1.0)
+
+frontend.finish()
+
+print("Test success of frontend.")

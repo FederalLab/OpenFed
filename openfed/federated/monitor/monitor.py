@@ -21,8 +21,8 @@ class Monitor(Informer, Thread):
     stopped: bool
 
     def __init__(self, store: Store, federated_world: FederatedWorld, world: World, auto_start: bool = True):
-        super().__init__(store, federated_world, world)
-        super(Informer, self).__init__()
+        Thread.__init__(self)
+        Informer.__init__(self, store, federated_world, world)
         self.stopped = False
 
         self.__hooks_dict = OrderedDict()
@@ -51,14 +51,15 @@ class Monitor(Informer, Thread):
         # NOTE：这里使用的是isalive去判断是否杀死monitor
         # 而不是使用world.ALIVE变量
         # world.ALIVE用于确认是否要销毁这个世界
-        while self.is_alive() and not self.stopped:
+        # 使用alive函数！！！ is_alive是informer提供的
+        while self.alive() and not self.stopped and self.world.ALIVE:
             self.set_sys_state()
             self.set_gpu_state()
 
             for name, hook in self.__hooks_dict.items():
                 self.set(name, hook())
 
-            time.sleep(self.world.SLEEPTIME)
+            time.sleep(self.world.SLEEP_LONG_TIME)
         else:
             safe_exited()
 

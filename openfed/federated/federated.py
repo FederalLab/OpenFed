@@ -23,7 +23,7 @@ class Joint(Thread):
     """
 
     def __init__(self, fed_addr: FedAddr, world: World):
-        super().__init__()
+        super().__init__(name="OpenFed Joint Thread")
 
         if fed_addr.rank == -1:
             if fed_addr.world_size == 2:
@@ -45,7 +45,8 @@ class Joint(Thread):
             self.start()
         else:
             # 如果是客户端，那直接调用run函数，确保整个连接顺利完成。
-            self.run()
+            self.start()
+            self.join()
 
     def run(self):
         """Build a new federated world.
@@ -61,9 +62,8 @@ class Joint(Thread):
         fed_world = FederatedWorld()
 
         # register the world
-        self.world.joint_lock.acquire()
-        register.register_federated_world(fed_world, self.world)
-        self.world.joint_lock.release()
+        with self.world.joint_lock:
+            register.register_federated_world(fed_world, self.world)
 
         # build the connection between the federated world
         fed_world.init_process_group(**self.fed_addr.as_dict())
@@ -76,10 +76,8 @@ class Joint(Thread):
             monitor = Monitor(fed_world.get_store(
                 sub_pg), fed_world, self.world)
             package = Package(sub_pg, fed_world, self.world)
-            self.world.joint_lock.acquire()
-            self.world.__pg_mapping[sub_pg] = [package, monitor, fed_world]
-            self.world.joint_lock.release()
-
+            with self.world.joint_lock:
+                self.world._pg_mapping[sub_pg] = [package, monitor, fed_world]
 
 class Maintainer(Thread):
     """负责在后台自动建立连接。
@@ -161,9 +159,9 @@ class Maintainer(Thread):
             # mv pending_queue to finished_queue
             # 小心！这里不允许使用append方法，否则clear之后，数据会被同时清空。
             self.finished_queue.extend(self.pending_queue)
-            self.pending_queue.clear()
+            self.pending_queue = []
 
-            time.sleep(self.world.SLEEPTIME)
+            time.sleep(self.world.SLEEP_SHORT_TIME)
         else:
             safe_exited()
 
@@ -192,17 +190,18 @@ class Destroy(object):
             world = register.default_world
 
         # 如果删除的是当前的pg，不要忘了重置
-        if pg == world.__current_pg:
-            world.__current_pg = world.__NULL_GP
+        if pg == world._current_pg:
+            world._current_pg = world._NULL_GP
 
         # 获取对应的federated_world
-        package, monitor, fed_world = world.__pg_mapping[pg]
+        package, monitor, fed_world = world._pg_mapping[pg]
 
         # 将informer状态设置成OFFINE
-        monitor.informer.set_state(STATUS.OFFINE)
+        monitor.set_state(STATUS.OFFLINE)
+        monitor.manual_stop()
 
         # 将键值对从全局字典中移除
-        del world.__pg_mapping[pg]
+        del world._pg_mapping[pg]
 
         # 删除PG
         fed_world.destroy_process_group(pg)
@@ -227,13 +226,13 @@ class Destroy(object):
     def destroy_current(cls, world: World = None):
         if world is None:
             world = register.default_world
-        cls.destroy(world.__current_pg, world)
+        cls.destroy(world._current_pg, world)
 
     @classmethod
     def destroy_all(cls, world: World = None):
         if world is None:
             world = register.default_world
-        for pg in world.__pg_mapping:
+        for pg in world._pg_mapping:
             cls.destroy(pg, world)
 
 
@@ -325,8 +324,6 @@ class Reign(object):
     def destroy(self):
         """退出联邦学习。
         """
-        # 将状态设置成OFFLINE
-        self.monitor.set_state(STATUS.OFFLINE)
         # 销毁当前进程
         Destroy.destroy(self.pg, self.world)
 
@@ -340,7 +337,7 @@ def process_generator() -> Reign:
     """
     while len(register):
         for fed_world, world in register:
-            for pg in world.__pg_mapping:
+            for pg in world._pg_mapping:
                 if not world.ALIVE:
                     # 只有在确保openfed存活的状态下，才维持这个生成器
                     # 否则的话，自动结束这个线程。
@@ -350,15 +347,15 @@ def process_generator() -> Reign:
                 # 当执行到yield语句时，程序将会阻塞，等待数据被取走。
                 # 当数据被取走后，程序才会继续向下执行。
                 # 因此，在这里，我们应该先等待pg被取走
-                # 然后再去将__current_pg更新成被取走的pg
-                # 如果先更新__current_pg的话，会导致实际的__current_pg指向发生错误
-                yield Reign(pg, world, *world.__pg_mapping[pg])
-                world.__current_pg = pg
+                # 然后再去将_current_pg更新成被取走的pg
+                # 如果先更新_current_pg的话，会导致实际的_current_pg指向发生错误
+                yield Reign(pg, world, *world._pg_mapping[pg])
+                world._current_pg = pg
             else:
                 # 当列表为空的时候，yield一个空的GP
                 # 否则无法进入for循环的话，将无法形成一个Generator
                 yield None
-                world.__current_pg = world.__NULL_GP
+                world._current_pg = world._NULL_GP
     else:
         safe_exited()
 
@@ -374,6 +371,6 @@ def default_reign() -> Reign:
         raise RuntimeError("Please build a federated world first!")
     assert len(register) == 1, "More than one federated world."
     for fed_world, world in register:
-        for pg in world.__pg_mapping:
-            world.__current_pg = pg
-            return Reign(pg, world, *world.__pg_mapping[pg])
+        for pg in world._pg_mapping:
+            world._current_pg = pg
+            return Reign(pg, world, *world._pg_mapping[pg])

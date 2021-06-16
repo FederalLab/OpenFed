@@ -79,3 +79,7 @@ class Frontend(object):
     def finish(self):
         # 已经完成了训练，退出联邦学习。
         self.reign.destroy()
+
+    def __expr__(self):
+        # TODO: 输出一些基本信息
+        return "Frontend"
