@@ -41,7 +41,7 @@ class PartitionerDataset(FederatedDataset):
             total_parts, self.data_index_list())
 
     def data_index_list(self) -> List[np.array]:
-        """Rewrite for your dataset. If dataset.classes is not exists, you should rewrite this method for your dataset.
+        """Rewrite for your dataset. If dataset.classes is not existed, you should rewrite this method for your dataset.
         """
         if not hasattr(self.dataset, "classes") and not hasattr(self.dataset, "targets"):
             raise RuntimeError("Dataset does not contain `classes` and `targets`."
