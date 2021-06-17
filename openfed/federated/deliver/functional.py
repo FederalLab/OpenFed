@@ -1,4 +1,6 @@
+from abc import abstractmethod
 from typing import Any, Dict
+
 from torch import Tensor
 
 
@@ -37,8 +39,14 @@ class Cypher(object):
         >>>
         >>> #Use it by calling the apply method:
         >>> output = Exp.apply(input)
+
+        加密和解密过程永远在不同的端进行。
+        如果解密过程中需要涉及加密过程的一些数据，请不要直接设置成属性！而是把它放到Dict中一并返回。
+
+        如果多个保密模块被叠加使用，那么加密过程和解密过程将逆序进行。也就是：先加密，后解密。
     """
 
+    @abstractmethod
     def encrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         r"""
         Args:
@@ -48,6 +56,7 @@ class Cypher(object):
         raise NotImplementedError("You must implement the forward function for custom"
                                   " autograd.Function.")
 
+    @abstractmethod
     def decrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         r"""
             这里接收来自对方pack过的数据，现在进行unpack。

@@ -10,7 +10,7 @@ def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
 
 
 class Package(object):
-    # 提供打包和解包statedict的能力
+    # 提供打包和解包state dict的能力
     state: Dict
 
     def pack_state(self, obj, keys: Union[str, List[str]] = None):

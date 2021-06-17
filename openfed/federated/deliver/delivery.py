@@ -130,8 +130,8 @@ class Delivery(Package, Hook):
 
         r_packages = received[other_rank]
 
-        # unpack data here
-        for hook in self._cypher_hooks:
+        # 解密数据！注意！逆序进行
+        for hook in self._cypher_hooks[::-1]:
             r_packages = {k: hook.decrypt(k, v) for k, v in r_packages.items()}
 
         if self.world.is_queen():
@@ -148,7 +148,7 @@ class Delivery(Package, Hook):
 
         rank = 1 if self.world.is_king() else 0
 
-        # pack data here
+        # 加密数据
         for hook in self._cypher_hooks:
             self.packages = {k: hook.encrypt(k, v)
                              for k, v in self.packages.items()}
