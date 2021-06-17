@@ -6,7 +6,7 @@ from openfed.common import Package
 from torch import Tensor
 
 from ..core import FederatedWorld, ProcessGroup, World, gather_object
-from .functional import Function
+from .functional import Cypher
 
 
 class Delivery(Package):
@@ -25,7 +25,7 @@ class Delivery(Package):
     # 如果需要向外发送数据的话，会调用pack打包数据，然后传递给下层。
     # 如果需要从外接收数据的话，这个packages会被直接替换掉。
     # tensor_indexed_packages会重新使用key_tensor_dict，使其可以被原始的tensor正确索引。
-    packages: Dict[str, Union[Tensor, Dict[str, Tensor]]]
+    packages: Dict[str, Dict[str, Tensor]]
     # 默认情况下，packages是以str索引，这是为了方便处理从底层接收到的数据。
     # 我们提供了一个方法，使得其适合于用Tensor索引。
     # str标志是在所有的端中都是一致的。Tensor的id则并不是一致的。
@@ -33,24 +33,24 @@ class Delivery(Package):
     # 因此我们提供了两种方式.
     # tensor_indexed_packages
 
-    # 字典中的每一个参数，都会传递给function。如果需要过滤某些参数，你可以直接修改function中实现的方法。
-    # 在需要向外发送数据的情况下，function.pack函数会依次被调用
-    # 在接收到外部传来的数据时，function.unpack函数会依次被调用
-    _function_hooks: List[Function]
+    # 字典中的每一个参数，都会传递给cypher。如果需要过滤某些参数，你可以直接修改cypher中实现的方法。
+    # 在需要向外发送数据的情况下，cypher.pack函数会依次被调用
+    # 在接收到外部传来的数据时，cypher.unpack函数会依次被调用
+    _cypher_hooks: List[Cypher]
 
     def __init__(self) -> None:
 
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
-        self._function_hooks = []
+        self._cypher_hooks = []
 
-    def register_hook(self, hook: Union[Function, List[Function]]):
+    def register_cypher(self, hook: Union[Cypher, List[Cypher]]):
         """添加一个hook或者一个hook list
         hook的pack和unpack函数会在发送、接收到数据时，自动调用。
         """
         if isinstance(hook, (list, tuple)):
             hook = (hook,)
-        self._function_hooks.extend(hook)
+        self._cypher_hooks.extend(hook)
 
     def key_tensor_map(self, key: str, tensor: Tensor):
         """将一个键值对加入到同步数据流中。
@@ -84,10 +84,6 @@ class Delivery(Package):
             assert isinstance(key, Tensor)
             key = self.key_name(key)
 
-        # pack data
-        for hook in self._function_hooks:
-            rdict = {k: hook.pack(key, k, v) for k, v in rdict.items()}
-
         package = self.packages.get(key)
 
         package.update(rdict)
@@ -102,10 +98,6 @@ class Delivery(Package):
         package = self.packages.get(key)
         rdict = {k: package[k] for k in rdict}
 
-        # unpack data
-        for hook in self._function_hooks:
-            rdict = {k: hook.unpack(key, k, v) for k, v in rdict.items()}
-
         return rdict
 
     @property
@@ -118,7 +110,7 @@ class Delivery(Package):
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
 
-    def pull(self) -> Dict[str, Union[Tensor, Dict[str, Tensor]]]:
+    def pull(self) -> Dict[str, Dict[str, Tensor]]:
         """
         在调用这个函数之前，请告知另一端当前的状态
         从另一端拉取数据。
@@ -137,6 +129,11 @@ class Delivery(Package):
                       federated_world=self.federated_world)
 
         r_packages = received[other_rank]
+
+        # unpack data here
+        for hook in self._cypher_hooks:
+            r_packages = {k: hook.unpack(k, v) for k, v in r_packages.items()}
+
         if self.world.is_queen():
             for k, v in r_packages.items():
                 if 'param' in v:
@@ -150,5 +147,11 @@ class Delivery(Package):
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         rank = 1 if self.world.is_king() else 0
+
+        # pack data here
+        for hook in self._cypher_hooks:
+            self.packages = {k: hook.pack(k, v)
+                             for k, v in self.packages.items()}
+
         gather_object(self.packages, None, dst=rank,
                       group=self.pg, federated_world=self.federated_world)

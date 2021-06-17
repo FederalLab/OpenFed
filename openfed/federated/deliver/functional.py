@@ -1,8 +1,8 @@
-from typing import Any
+from typing import Any, Dict
 from torch import Tensor
 
 
-class Function(object):  # type: ignore
+class Cypher(object):
     r"""Records operation history and defines formulas for differentiating ops.
 
     See the Note on extending the autograd engine for more details on how to use
@@ -37,27 +37,20 @@ class Function(object):  # type: ignore
         >>>
         >>> #Use it by calling the apply method:
         >>> output = Exp.apply(input)
-
-    加入限制，保证pack的输出和unpack的输入是一致的。
-    并且，不同的Function可以串联操作。
     """
 
-    def pack(self, key: str, k: str, v: Tensor) -> Tensor:
+    def encrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         r"""
         Args:
-            key: 在数据流中对应的键值
-            k, v: 需要加入数据流中的键值对。
-        返回处理之后的v。
+            key 用于标记value，可以根据key来做一些选择性处理。
+            value是一个字典，这个字典的值可能会被改变之后返回。
         """
         raise NotImplementedError("You must implement the forward function for custom"
                                   " autograd.Function.")
 
-    def unpack(self, key: str, k: str, v: Tensor) -> Tensor:
+    def decrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         r"""
-        Args:
-            key: 在数据流中对应的键值
-            k, v: 需要加入数据流中的键值对。
-        返回处理之后的v。
+            这里接收来自对方pack过的数据，现在进行unpack。
         """
         raise NotImplementedError("You must implement the backward function for custom"
                                   " autograd.Function.")

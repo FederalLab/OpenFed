@@ -373,7 +373,7 @@ class Aggregator(Package, Wrapper):
 
         return self._apply_hook_for_auto_reduce()
 
-    def step(self, received_params: Dict[str, Union[Tensor, Dict[str, Tensor]]], received_info: Dict):
+    def step(self, received_params: Dict[str, Dict[str, Tensor]], received_info: Dict):
         """追加一个新的数据，并进行相关检查。
         """
         for group in self.param_groups:

@@ -80,10 +80,10 @@ class Informer(object):
     world: World
     federated_world: FederatedWorld
 
-    _collector_dict: Dict
+    _collector_hooks: Dict
 
     def __init__(self):
-        self._collector_dict = OrderedDict()
+        self._collector_hooks = OrderedDict()
 
         # 写入一个初始状态，必须采用原始的方式写入，否则程序会因为不同的执行速度而导致读取到无效的信息。
         # 例如：当我们建立连接后，对方会去读取你的键值，如果没有被设置，则会等待，但是一旦被设置了，就会直接读取到结果。
@@ -202,10 +202,10 @@ class Informer(object):
         set函数不会对键值的冲突进行检测，容易发生错误。
         如果是人物相关的一些信息，比如训练精度等，请使用taskinfo来赋值。
         """
-        assert key not in self._collector_dict and key not in [
+        assert key not in self._collector_hooks and key not in [
             OPENFED_STATUS, OPENFED_TASK_INFO]
 
-        self._collector_dict[key] = collector
+        self._collector_hooks[key] = collector
 
     def collect(self):
         """运行预设的钩子，去收集相关信息并且上传。
@@ -215,6 +215,6 @@ class Informer(object):
         然后每次训练完直接collect一下，就可以方便的上传到服务器。
         """
         cdict = {}
-        for k, f in self._collector_dict.items():
+        for k, f in self._collector_hooks.items():
             cdict[k] = f()
         self._update(cdict)

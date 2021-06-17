@@ -206,5 +206,3 @@ class Backend(SafeTread):
 
         self.stopped = True
         self.maintainer.manual_stop()
-
-
