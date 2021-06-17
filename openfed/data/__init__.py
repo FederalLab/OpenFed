@@ -1,5 +1,6 @@
 from .dataset import FederatedDataset, PartitionerDataset
-from .partitioner import Partitioner, DirichletPartitioner, PowerLawPartitioner, IIDPartitioner
+from .partitioner import (DirichletPartitioner, IIDPartitioner, Partitioner,
+                          PowerLawPartitioner)
 
 __all__ = ['FederatedDataset',
            'PartitionerDataset',

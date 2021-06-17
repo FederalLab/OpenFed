@@ -1,10 +1,10 @@
-from numpy.lib.arraysetops import isin
-import torch
-from torch.utils.data import Dataset
-import numpy as np
-from typing import List, Any
 from abc import abstractmethod
-from partitioner import Partitioner
+from typing import Any, List
+
+import numpy as np
+from torch.utils.data import Dataset
+
+from .partitioner import Partitioner
 
 
 class FederatedDataset(Dataset):
@@ -18,6 +18,7 @@ class FederatedDataset(Dataset):
     @abstractmethod
     def total_samples(self):
         raise NotImplementedError
+
 
 class PartitionerDataset(FederatedDataset):
     dataset: Dataset

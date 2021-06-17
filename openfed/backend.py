@@ -2,12 +2,14 @@ import time
 from threading import Thread
 from typing import Dict, List, Union, overload
 
-import openfed
 from torch import Tensor
 from torch.optim import Optimizer
+
+import openfed
+
 from .aggregate import Aggregator
 from .federated.federated import Maintainer, Reign, World, reign_generator
-from .types import FedAddr, default_fed_addr
+from .common import Address, default_address
 
 
 class Backend(Thread):
@@ -47,8 +49,8 @@ class Backend(Thread):
     @overload
     def __init__(self,
                  world: World = None,
-                 fed_addr: Union[FedAddr, List[FedAddr]] = None,
-                 fed_addr_file: str = None):
+                 address: Union[Address, List[Address]] = None,
+                 address_file: str = None):
         """仅仅只是给定了连接相关的参数，先建立连接，后期在指定其他内容。
         """
 
@@ -58,8 +60,8 @@ class Backend(Thread):
                  aggregator: Aggregator,
                  optimizer: Optimizer,
                  world: World = None,
-                 fed_addr: Union[FedAddr, List[FedAddr]] = None,
-                 fed_addr_file: str = None):
+                 address: Union[Address, List[Address]] = None,
+                 address_file: str = None):
         """
         同时给定了所需的各种参数。
         """
@@ -72,8 +74,8 @@ class Backend(Thread):
         self.optimizer = kwargs.get('optimizer', None)
 
         world = kwargs.get('world', None)
-        fed_addr = kwargs.get('fed_addr', None)
-        fed_addr_file = kwargs.get('fed_addr_file', None)
+        address = kwargs.get('address', None)
+        address_file = kwargs.get('address_file', None)
 
         if world is None:
             world = World()
@@ -81,11 +83,11 @@ class Backend(Thread):
         else:
             assert world.is_king(), "Backend must be king."
 
-        if fed_addr is None and fed_addr_file is None:
-            fed_addr = default_fed_addr
+        if address is None and address_file is None:
+            address = default_address
 
         self.maintainer = Maintainer(
-            world, fed_addr=fed_addr, fed_addr_file=fed_addr_file)
+            world, address=address, address_file=address_file)
 
         self.stopped = False
 

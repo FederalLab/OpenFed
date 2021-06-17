@@ -1,12 +1,12 @@
 import collections
 import json
 import os
-from typing import List
 
 import h5py
 import numpy as np
 import torch
-from openfed.data.dataset import FederatedDataset
+
+from ..dataset import FederatedDataset
 
 word_count_file_path = None
 word_dict = None

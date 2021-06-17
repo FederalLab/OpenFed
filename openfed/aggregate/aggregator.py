@@ -9,7 +9,7 @@ import torch
 from torch import Tensor
 from torch._six import container_abcs
 
-from ..types import Package
+from ..common import Package
 
 
 class _RequiredParameter(object):

@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Union
 
 from bidict import bidict
-from openfed.types import Package
+from openfed.common import Package
 from torch import Tensor
 
 from ..core import FederatedWorld, ProcessGroup, World, gather_object

@@ -4,7 +4,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from .federated.federated import Maintainer, Reign, World, default_reign
-from .types import FedAddr, default_fed_addr
+from .common import Address, default_address
 
 
 class Frontend(object):
@@ -25,13 +25,13 @@ class Frontend(object):
     @overload
     def __init__(self,
                  world: World,
-                 fed_addr: FedAddr):
+                 address: Address):
         """指定不同的参数，进行初始化的同时，完成连接。
         """
 
     def __init__(self, **kwargs):
         world = kwargs.get('world', None)
-        fed_addr = kwargs.get('fed_addr', None)
+        address = kwargs.get('address', None)
         if world is None:
             world = World()
             world.set_queen()
@@ -39,14 +39,14 @@ class Frontend(object):
             world = kwargs['world']
             assert world.is_queen(), "Frontend must be queen."
 
-        if fed_addr is None:
-            fed_addr = default_fed_addr
+        if address is None:
+            address = default_address
 
         self.world = world
-        self.build_connection(fed_addr)
+        self.build_connection(address)
 
-    def build_connection(self, fed_addr: FedAddr):
-        self.maintainer = Maintainer(self.world, fed_addr)
+    def build_connection(self, address: Address):
+        self.maintainer = Maintainer(self.world, address)
         self.reign = default_reign()
 
     def set_state_dict(self, state_dict: Dict[str, Tensor]):

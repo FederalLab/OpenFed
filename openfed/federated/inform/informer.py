@@ -1,8 +1,9 @@
 import datetime
 import json
+from collections import OrderedDict
 from enum import Enum, unique
 from typing import Any, Dict
-from collections import OrderedDict
+
 import openfed
 
 from ..core import FederatedWorld, Store, World
@@ -197,8 +198,13 @@ class Informer(object):
     def is_offline(self):
         return self.world.ALIVE and self._get_state() == STATUS.OFFLINE
 
-    def _register_collector(self, key: str, collector: Collector):
-        assert key not in self._collector_dict
+    def register_collector(self, key: str, collector: Collector):
+        """请在大多数情况下，使用colector的方式赋值，而不是直接使用set函数。
+        set函数不会对键值的冲突进行检测，容易发生错误。
+        如果是人物相关的一些信息，比如训练精度等，请使用taskinfo来赋值。
+        """
+        assert key not in self._collector_dict and key not in [
+            OPENFED_STATUS, OPENFED_TASK_INFO]
 
         self._collector_dict[key] = collector
 

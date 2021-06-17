@@ -1,14 +1,12 @@
 import json
-import warnings
-from enum import Enum, unique
-from typing import Dict, List, TypeVar, Union
+from typing import List, TypeVar
 
 from prettytable import PrettyTable
 
-_A = TypeVar("_A", bound='FedAddr')
+_A = TypeVar("_A", bound='Address')
 
 
-class FedAddr(object):
+class Address(object):
     backend: str
     init_method: str = None
     world_size: int = 2
@@ -95,28 +93,28 @@ class FedAddr(object):
         """从文件加载的方式，创建的fedworld，不支持store的初始化方式！
         """
         with open(file, 'r') as f:
-            fed_addr_dict_list = json.load(f)
-        fed_addr_list = []
-        for fed_addr_dict in fed_addr_dict_list:
-            fed_addr_list.append(FedAddr(**fed_addr_dict))
-        return fed_addr_list
+            address_dict_list = json.load(f)
+        address_list = []
+        for address_dict in address_dict_list:
+            address_list.append(Address(**address_dict))
+        return address_list
 
     @classmethod
-    def dump_to_file(cls, file: str, fed_addr_list: List[_A]):
+    def dump_to_file(cls, file: str, address_list: List[_A]):
         """
-            fed_addr_list中的store不会被保存下来。因为不支持从这种方式初始化。
+            address_list中的store不会被保存下来。因为不支持从这种方式初始化。
         """
-        fed_addr_dict_list = []
-        for fed_addr in fed_addr_list:
-            fed_addr_dict_list.append(
-                dict(backend=fed_addr.backend,
-                     init_method=fed_addr.init_method,
-                     world_size=fed_addr.world_size,
-                     rank=fed_addr.rank,
-                     group_name=fed_addr.group_name)
+        address_dict_list = []
+        for address in address_list:
+            address_dict_list.append(
+                dict(backend=address.backend,
+                     init_method=address.init_method,
+                     world_size=address.world_size,
+                     rank=address.rank,
+                     group_name=address.group_name)
             )
         with open(file, "w") as f:
-            json.dump(fed_addr_dict_list, f)
+            json.dump(address_dict_list, f)
 
     def __repr__(self):
         table = PrettyTable(
@@ -142,80 +140,7 @@ class FedAddr(object):
 
 # 给定一个默认的fed addr地址，方便做实验验证的时候，不需要每次都指定地址。
 
-default_fed_addr = FedAddr(
+default_address = Address(
     backend="gloo", init_method='tcp://localhost:1994', group_name="OpenFed"
 )
 
-
-@unique
-class APPROVED(Enum):
-    GPU = "CPU"
-    SYS = "GPU"
-    ALL = "ALL"
-    NONE = "None"
-
-
-@unique
-class ROLE(Enum):
-    KING = True
-    QUEEN = False
-
-
-# 如果DEBUG=True，那相关的程序会输出部分调试信息
-# 会以更严格的方式，执行程序
-DEBUG: bool = False
-
-
-def debug():
-    global DEBUG
-    DEBUG = True
-
-
-# 如果VERBOSE=True, 相关程序会输出一些日志
-VERBOSE: bool = True
-
-
-def verbose():
-    global VERBOSE
-    VERBOSE = True
-
-
-def silence():
-    global VERBOSE
-    VERBOSE = False
-
-
-def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
-    keys = [keys] if isinstance(keys, str) else keys
-
-    keys = keys if keys else getattr(obj, mode, None)
-
-    if not keys and DEBUG:
-        warnings.warn("Got empty keys")
-    return keys
-
-
-class Package(object):
-    # 提供打包和解包statedict的能力
-    state: Dict
-
-    def pack_state(self, obj, keys: Union[str, List[str]] = None):
-        """将obj中的state根据指定的key，pack到对应的数据流中。
-        """
-        keys = _check_state_keys(obj, keys, mode='package_key_list')
-        if keys:
-            for group in obj.param_groups:
-                for p in group["params"]:
-                    state = obj.state[p]
-                    rdict = {k: state[k] for k in keys}
-                    self.pack(p, rdict)
-
-    def unpack_state(self, obj, keys: Union[str, List[str]] = None):
-        keys = _check_state_keys(obj, keys, mode="unpackage_key_list")
-        if keys:
-            for group in obj.param_groups:
-                for p in group["params"]:
-                    state = obj.state[p]
-                    rdict = {k: None for k in keys}
-                    rdict = self.unpack(p, rdict)
-                    state.update(rdict)

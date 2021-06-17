@@ -4,9 +4,9 @@ from typing import List, Union
 
 import openfed
 import openfed.utils as utils
-from openfed.types import FedAddr
+from openfed.common import Address
 
-from .core import FederatedWorld, ProcessGroup, register, World, Store
+from .core import FederatedWorld, ProcessGroup, Store, World, register
 from .deliver import Delivery
 from .inform import Informer
 from .utils.safe_exited import get_head_info, safe_exited
@@ -21,21 +21,21 @@ class Joint(Thread):
     这是一个temperal的线程，不会常驻后台，故不需要监控openfed.ALIVE的状态。
     """
 
-    def __init__(self, fed_addr: FedAddr, world: World):
+    def __init__(self, address: Address, world: World):
         super().__init__(name="OpenFed Joint Thread")
 
-        if fed_addr.rank == -1:
-            if fed_addr.world_size == 2:
+        if address.rank == -1:
+            if address.world_size == 2:
                 # 自动设置rank
-                fed_addr.rank = 1 if world.is_queen() else 0
+                address.rank = 1 if world.is_queen() else 0
             else:
                 raise RuntimeError(
                     "Please specify the correct rank when world size is not 2")
 
         if openfed.VERBOSE:
-            print(utils.yellow_color("Connect..."), f"{fed_addr}")
+            print(utils.yellow_color("Connect..."), f"{address}")
 
-        self.fed_addr = fed_addr
+        self.address = address
 
         self.world = world
 
@@ -65,7 +65,7 @@ class Joint(Thread):
             register.register_federated_world(fed_world, self.world)
 
         # build the connection between the federated world
-        fed_world.init_process_group(**self.fed_addr.as_dict())
+        fed_world.init_process_group(**self.address.as_dict())
 
         # 无论在客户端还是服务器端，这里的rank都是指定0，也就是服务器端。
         sub_pg_list = fed_world.build_point2point_group(rank=0)
@@ -77,7 +77,7 @@ class Joint(Thread):
             with self.world.joint_lock:
                 self.world._pg_mapping[sub_pg] = reign
         if openfed.VERBOSE:
-            print(utils.green_color("Connected"), f"{self.fed_addr}")
+            print(utils.green_color("Connected"), f"{self.address}")
 
 
 class Maintainer(Thread):
@@ -86,14 +86,14 @@ class Maintainer(Thread):
     在客户端，该程序需要由手动调用建立连接：因为客户端的程序，往往只需要建立一次连接就够，并不需要不断地监听信号。
     """
     # 用来记录正在等待的连接，如果需要添加新的连接，请加入到这个列表中。
-    pending_queue: List[FedAddr]
+    pending_queue: List[Address]
     # 用来记录已完成的连接。
-    finished_queue: List[FedAddr]
+    finished_queue: List[Address]
 
     def __init__(self,
                  world: World,
-                 fed_addr: Union[FedAddr, List[FedAddr]] = None,
-                 fed_addr_file: str = None):
+                 address: Union[Address, List[Address]] = None,
+                 address_file: str = None):
         """
             在客户端，一次只允许指定一个地址，如果多余一个地址，则会报错。
         """
@@ -104,59 +104,59 @@ class Maintainer(Thread):
         self.pending_queue = list()
         self.finished_queue = list()
 
-        self.fed_addr_file = fed_addr_file
+        self.address_file = address_file
 
-        if fed_addr is not None:
-            if not isinstance(fed_addr, (list, tuple)):
-                fed_addr = [fed_addr]
+        if address is not None:
+            if not isinstance(address, (list, tuple)):
+                address = [address]
         else:
-            fed_addr = []
+            address = []
 
         if self.world.is_king():
-            self.pending_queue.extend(fed_addr)
-            self.pending_queue.extend(self.read_fed_addr_from_file())
+            self.pending_queue.extend(address)
+            self.pending_queue.extend(self.read_address_from_file())
 
             self.start()
         else:
             # 如果是客户端，并且给定连接地址的话，则直接连接
-            self.pending_queue.extend(fed_addr)
-            self.pending_queue.extend(self.read_fed_addr_from_file())
+            self.pending_queue.extend(address)
+            self.pending_queue.extend(self.read_address_from_file())
 
             if len(self.pending_queue) > 1:
                 raise RuntimeError(
                     "Too many fed addr are specified. Only allowed 1.")
             elif len(self.pending_queue) == 1:
-                fed_addr = self.pending_queue.pop()
-                Joint(fed_addr, self.world)
-                self.finished_queue.append(fed_addr)
+                address = self.pending_queue.pop()
+                Joint(address, self.world)
+                self.finished_queue.append(address)
             else:
                 if openfed.VERBOSE:
                     print(utils.red_color("Addr Missed"))
 
-    def read_fed_addr_from_file(self) -> List[FedAddr]:
-        if self.fed_addr_file is None:
+    def read_address_from_file(self) -> List[Address]:
+        if self.address_file is None:
             return []
-        fed_addr_list = FedAddr.read_fed_addr_from_file(self.fed_addr_file)
-        valid_fed_addr_list = []
-        # 判断fed_addr_list中的值，是否已经存在，如果已经存在，则不再重复创建
-        for fed_addr in self.pending_queue + self.finished_queue:
-            for fed_addr_ in fed_addr_list:
-                if fed_addr.init_method == fed_addr_.init_method:
+        address_list = Address.read_address_from_file(self.address_file)
+        valid_address_list = []
+        # 判断address_list中的值，是否已经存在，如果已经存在，则不再重复创建
+        for address in self.pending_queue + self.finished_queue:
+            for address_ in address_list:
+                if address.init_method == address_.init_method:
                     # 已经存在
                     ...
                 else:
-                    valid_fed_addr_list.append(fed_addr_)
+                    valid_address_list.append(address_)
 
-        return valid_fed_addr_list
+        return valid_address_list
 
     def run(self):
         while not self.stopped and self.world.ALIVE:
             # 读取文件，自动添加
-            new_addr = self.read_fed_addr_from_file()
+            new_addr = self.read_address_from_file()
             self.pending_queue.extend(new_addr)
 
-            for fed_addr in self.pending_queue:
-                Joint(fed_addr, self.world)
+            for address in self.pending_queue:
+                Joint(address, self.world)
             # mv pending_queue to finished_queue
             # 小心！这里不允许使用append方法，否则clear之后，数据会被同时清空。
             self.finished_queue.extend(self.pending_queue)
@@ -171,13 +171,13 @@ class Maintainer(Thread):
         """
         self.stopped = True
 
-    def manual_joint(self, fed_addr: FedAddr):
+    def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
         """
         if self.world.is_king():
-            self.pending_queue.append(fed_addr)
+            self.pending_queue.append(address)
         else:
-            Joint(fed_addr, self.world)
+            Joint(address, self.world)
 
 
 class Destroy(object):

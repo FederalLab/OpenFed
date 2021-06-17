@@ -6,10 +6,10 @@ import time
 import warnings
 from collections import OrderedDict
 from datetime import timedelta
+from enum import Enum, unique
 from typing import Any, Dict, List, Optional, Tuple, Union, overload
 
 import openfed
-import openfed.types as types
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
@@ -43,6 +43,12 @@ except ImportError:
     _GLOO_AVAILABLE = False
 
 
+@unique
+class _ROLE(Enum):
+    KING = True
+    QUEEN = False
+
+
 class World(object):
     """World里面所有的状态，都只是给本地程序使用的。
     比如ALIVE状态，标志的是本地的这个程序是否还在运行。
@@ -59,35 +65,24 @@ class World(object):
         # 退出
         self.ALIVE = False
 
-    # 给APPROVED指定不同等级的权限信息
-    APPROVED: types.APPROVED
-
-    def set_approved(self, approved: types.APPROVED):
-        self.APPROVED = approved
-
     # ROLE用来明确当前世界中自己的身份
     # 默认所有的KING是rank=0，所有的QUEEN是rank=1
-    ROLE: types.ROLE
+    ROLE: _ROLE
 
     def set_king(self):
-        self.ROLE = types.ROLE.KING
+        self.ROLE = _ROLE.KING
 
     def set_queen(self):
-        self.ROLE = types.ROLE.QUEEN
+        self.ROLE = _ROLE.QUEEN
 
     def is_king(self):
-        return self.ROLE == types.ROLE.KING
+        return self.ROLE == _ROLE.KING
 
     def is_queen(self):
-        return self.ROLE == types.ROLE.QUEEN
+        return self.ROLE == _ROLE.QUEEN
 
     @overload
-    def set_openfed_state(self, state: types.APPROVED):
-        """自动设置一个权限，用来控制上传的系统信息。
-        """
-
-    @overload
-    def set_openfed_state(self, state: types.ROLE):
+    def set_openfed_state(self, state: _ROLE):
         """设置当前进程的身份。
         """
 
@@ -95,10 +90,8 @@ class World(object):
     def set_openfed_state(self, state):
         """根据state的类型，类设置正确的变量。
         """
-        if isinstance(state, types.ROLE):
+        if isinstance(state, _ROLE):
             self.ROLE = state
-        elif isinstance(state, types.APPROVED):
-            self.APPROVED = state
         else:
             raise NotImplementedError
 
@@ -113,9 +106,7 @@ class World(object):
     def __init__(self, ):
         self.ALIVE = True
 
-        # 不上传任何信息
-        self.APPROVED = types.APPROVED.NONE
-        self.ROLE = types.ROLE.QUEEN
+        self.ROLE = _ROLE.QUEEN
         self._pg_mapping = OrderedDict()
         self._current_pg = self._NULL_GP
 

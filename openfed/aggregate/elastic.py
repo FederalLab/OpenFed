@@ -1,7 +1,8 @@
-from .aggregator import Aggregator
-import torch
-from typing import Any, List, Dict, Union
+from typing import Any, Dict, List, Union
+
 from torch import Tensor
+
+from .aggregator import Aggregator
 
 
 class ElasticAggregator(Aggregator):

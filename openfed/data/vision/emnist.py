@@ -3,7 +3,8 @@ import os
 import h5py
 import numpy as np
 import torch
-from openfed.data.dataset import FederatedDataset
+
+from ..dataset import FederatedDataset
 
 DEFAULT_CLIENTS_NUM = 3400
 DEFAULT_BATCH_SIZE = 20
