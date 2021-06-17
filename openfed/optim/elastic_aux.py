@@ -1,9 +1,10 @@
 import torch
 from torch.optim import Optimizer
 from typing import List
+from ..common import Wrapper
 
 
-class ElasticAux(Optimizer):
+class ElasticAux(Optimizer, Wrapper):
     r"""Implements stochastic gradient descent (optionally with momentum).
 
     Nesterov momentum is based on the formula from
@@ -67,12 +68,11 @@ class ElasticAux(Optimizer):
 
     """
 
-    # 表示importance参数会被打包到package中，但是不会被解压出来。
-    package_key_list: List[str] = ['importance']
-
     def __init__(self, params, momentum=0.9):
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
+
+        self.package_key_list = ['importance']
 
         defaults = dict(momentum=momentum)
         super().__init__(params, defaults)

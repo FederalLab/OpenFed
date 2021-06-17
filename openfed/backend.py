@@ -196,7 +196,7 @@ class Backend(SafeTread):
             ...
 
     def __repr__(self):
-        return "<OpenFed> Backend"
+        return "Backend"
 
     def finish(self):
         # 强制杀死所有的进程，并且退出进程

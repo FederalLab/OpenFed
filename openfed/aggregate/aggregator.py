@@ -9,7 +9,7 @@ import torch
 from torch import Tensor
 from torch._six import container_abcs
 
-from ..common import Package
+from ..common import Package, Wrapper
 
 
 class _RequiredParameter(object):
@@ -22,7 +22,7 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Aggregator(Package):
+class Aggregator(Package, Wrapper):
     r"""Base class for all aggregators.
 
     Aggregator初始化阶段会接受一个参数列表。这个参数列表包含所有可能从客户端收集来的参数。
@@ -55,12 +55,6 @@ class Aggregator(Package):
         defaults: (dict): a dict containing default values of aggregation
             options (used when a parameter group doesn't specify them).
     """
-
-    # 列表中的参数会被打包到package中
-    package_key_list: List[str] = None
-
-    # 列表中的参数会从package中解压出来
-    unpackage_key_list: List[str] = None
 
     _hook_for_auto_reduce_infos: List[Callable]
     _received_infos: List[Dict]

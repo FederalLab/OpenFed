@@ -78,7 +78,7 @@ class Joint(SafeTread):
             print(utils.green_color("Connected"), f"{self.address}")
 
     def __repr__(self):
-        return "<OpenFed> Joint"
+        return "Joint"
 
 
 class Maintainer(SafeTread):
@@ -173,7 +173,7 @@ class Maintainer(SafeTread):
             Joint(address, self.world)
 
     def __repr__(self):
-        return "<OpenFed> Maintainer"
+        return "Maintainer"
 
 
 class Destroy(object):

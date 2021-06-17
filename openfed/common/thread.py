@@ -42,7 +42,7 @@ class SafeTread(Thread):
         del _thread_pool[self]
 
     def __repr__(self) -> str:
-        return "<OpenFed> SafeTread"
+        return "SafeTread"
 
     @abstractmethod
     def safe_run(self):

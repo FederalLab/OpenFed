@@ -124,7 +124,7 @@ class Address(object):
             [self.backend, self.init_method, self.world_size,
                 self.rank, self.store, self.group_name]
         )
-        return "\n" + str(table)
+        return "Address \n" + str(table)
 
     def as_dict(self):
         # 这个函数主要是为了让fedaddr支持解包操作，方便将其作为参数传入底层的方法。
