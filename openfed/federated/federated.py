@@ -284,7 +284,8 @@ class Reign(object):
             self.monitor.set_state(STATUS.PUSH)
             # 3. 进入阻塞，等待数据上传
             self.package.push()
-            # 完成
+            # 4. 设置自己的状态为ZOMBINE
+            self.monitor.set_state(STATUS.ZOMBINE)
         else:
             # 1. 写入服务器端的版本号
             self.monitor.set('version', self.version)
@@ -295,9 +296,11 @@ class Reign(object):
             # 而此时服务器端才接收完模型，其要将ZOMBINE设置到状态里。
             # 但是由于延时，可能导致其在PULL生效之后，才写入的ZOMBINE
             # 那么，这时候该客户端将进入无限期的等待中而不会得到服务器的响应。
-            self.monitor.set_state(STATUS.ZOMBINE)
+            self.monitor.set_state(STATUS.PULL)
             # 3. 发送数据
             self.package.push()
+            # 4. 设置自己的状态为ZOMBINE
+            self.monitor.set_state(STATUS.ZOMBINE)
 
     def download(self):
         """从另一方接收package数据。
@@ -310,14 +313,17 @@ class Reign(object):
             self.monitor.set_state(STATUS.PULL)
             # 3. 进入阻塞，等待数据上传
             self.package.pull()
-            # 完成
+            # 4. 设置自己的状态为ZOMBINE
+            self.monitor.set_state(STATUS.ZOMBINE)
         else:
             # 1. 写入服务器端的版本号
             self.monitor.set('version', self.version)
             # 2. 设置状态为完成ZOMBINE。先设置状态，再推送数据。
-            self.monitor.set_state(STATUS.ZOMBINE)
+            self.monitor.set_state(STATUS.PUSH)
             # 3. 发送数据
             self.package.pull()
+            # 4. 设置自己的状态为ZOMBINE
+            self.monitor.set_state(STATUS.ZOMBINE)
 
     def destroy(self):
         """退出联邦学习。
@@ -349,13 +355,10 @@ def process_generator() -> Reign:
                 # 如果先更新_current_pg的话，会导致实际的_current_pg指向发生错误
                 yield Reign(pg, world, *world._pg_mapping[pg])
                 world._current_pg = pg
-            else:
-                # 当列表为空的时候，yield一个空的GP
-                # 否则无法进入for循环的话，将无法形成一个Generator
-                yield None
-                world._current_pg = world._NULL_GP
     else:
-        safe_exited(get_head_info())
+        # 当列表为空的时候，yield一个空的GP
+        # 否则无法进入for循环的话，将无法形成一个Generator
+        yield None
 
 
 def default_reign() -> Reign:

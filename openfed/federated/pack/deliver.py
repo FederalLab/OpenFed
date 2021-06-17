@@ -25,11 +25,12 @@ class Delivery(object):
 
         received = [None, None]
         rank = 0 if self.world.is_king() else 1
+        other_rank = 1 if self.world.is_king() else 0
 
         gather_object(None, received, dst=rank, group=self.pg,
                       federated_world=self.federated_world)
 
-        return received[rank]
+        return received[other_rank]
 
     def push(self, packages: PACKAGES) -> None:
         """向另一段发送数据。
@@ -38,5 +39,5 @@ class Delivery(object):
             self.pg) == 2, "Delivery is designed for group with size 2"
 
         rank = 1 if self.world.is_king() else 0
-        gather_object(packages, [None, None], dst=rank,
-                      group=self.pg, federated_world=self.federated)
+        gather_object(packages, None, dst=rank,
+                      group=self.pg, federated_world=self.federated_world)

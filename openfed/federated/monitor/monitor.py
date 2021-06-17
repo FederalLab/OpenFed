@@ -9,7 +9,7 @@ from ..world import World
 from .informer import Informer
 
 
-class Monitor(Informer, Thread):
+class Monitor(Informer):
     """自动启动一个新的线程进行状态的监督。
     这个线程的作用是把当前的系统状态，定期在服务器和客户端之间进行同步。
     """
@@ -20,15 +20,11 @@ class Monitor(Informer, Thread):
     # 用来停止后台线程
     stopped: bool
 
-    def __init__(self, store: Store, federated_world: FederatedWorld, world: World, auto_start: bool = True):
-        Thread.__init__(self)
+    def __init__(self, store: Store, federated_world: FederatedWorld, world: World):
         Informer.__init__(self, store, federated_world, world)
         self.stopped = False
 
         self.__hooks_dict = OrderedDict()
-
-        if auto_start:
-            self.start()
 
     def register_hook(self, name: str, hook: Callable, auto_prefix: bool = True):
         """
@@ -47,21 +43,16 @@ class Monitor(Informer, Thread):
             name = f'{name}_{"KING" if self.world.is_king() else "QUEEN"}'
         self.__hooks_dict[name] = hook
 
-    def run(self):
-        # NOTE：这里使用的是isalive去判断是否杀死monitor
-        # 而不是使用world.ALIVE变量
-        # world.ALIVE用于确认是否要销毁这个世界
-        # 使用alive函数！！！ is_alive是informer提供的
-        while self.alive() and not self.stopped and self.world.ALIVE:
-            self.set_sys_state()
-            self.set_gpu_state()
+    def sync_spider(self):
+        """
+            执行一些定期的任务
+        """
+        self.set_sys_state()
+        self.set_gpu_state()
 
-            for name, hook in self.__hooks_dict.items():
-                self.set(name, hook())
+        for name, hook in self.__hooks_dict.items():
+            self.set(name, hook())
 
-            time.sleep(self.world.SLEEP_LONG_TIME)
-        else:
-            safe_exited(get_head_info())
 
     def manual_stop(self):
         """Provide a function to end it manually.

@@ -77,10 +77,15 @@ class Informer(object):
         self.world = world
         self.store = store
 
-        # 写入一个初始信息(为空)
-        safe_store_set(self.store, self._i_key, dict())
+        # 写入一个初始状态，必须采用原始的方式写入，否则程序会因为不同的执行速度而导致读取到无效的信息。
+        # 例如：当我们建立连接后，对方会去读取你的键值，如果没有被设置，则会等待，但是一旦被设置了，就会直接读取到结果。
+        # 这时候，你要保证你的状态是正确的，否则的话，对方会强制下线
+        # 不能通过set_state()来设置！因为set_state会先读取i_key。但是这个时候键值还没有生成
+        safe_store_set(self.store, self._i_key, {
+                       OPENFED_STATUS: STATUS.ZOMBINE.value})
 
-        self.set_state(STATUS.ZOMBINE)
+        # 预先写入task info来防止出错
+        self.set_task_info({})
 
         # 尝试着读取以下对方的键值，可以用来判断对方是否正常上线。
         # 如果对方没有设置这个值，则会阻塞。
@@ -108,21 +113,26 @@ class Informer(object):
 
         return safe_store_set(self.store, self._i_key, info)
 
-    def _read(self) -> Dict:
+    def _read(self, key: str = None) -> Dict:
         """永远都是读对方的数据，即_suf_u_key
         """
         info = safe_store_get(self.store, self._u_key)
 
         if OPENFED_STATUS not in info:
             # 如果没有正确读取到状态的话，那就下线
-            info[OPENFED_STATUS] = STATUS.OFFLINE.value
-
-        return info
+            info[OPENFED_STATUS] = STATUS.ZOMBINE.value
+        if key is not None:
+            return info[key]
+        else:
+            return info
 
     def _update(self, info: Dict) -> bool:
         """Update old value with info.
         """
-        old_info = self._read()
+        # 先把自己的信息读出来，更新一下，在写回去
+        # 不要直接调用_read读。read函数默认读取的是对方的信息！
+        # 当我们进行更新的时候，是更新自己的信息
+        old_info = safe_store_get(self.store, self._i_key)
         old_info.update(info)
 
         return self._write(old_info)
@@ -134,7 +144,7 @@ class Informer(object):
 
     def get(self, key: str) -> Any:
         # 读取key，如果没有则返回None
-        return self._read()[key]
+        return self._read(key)
 
     def alive(self):
         """判断客户端是否在线

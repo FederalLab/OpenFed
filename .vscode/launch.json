@@ -9,14 +9,14 @@
             "type": "python",
             "request": "launch",
             "program": "server.py",
-            "console": "integratedTerminal"
+            "console": "externalTerminal"
         },
         {
             "name": "Python: client",
             "type": "python",
             "request": "launch",
             "program": "client.py",
-            "console": "integratedTerminal"
+            "console": "externalTerminal"
         }
     ]
 }

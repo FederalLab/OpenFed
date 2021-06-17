@@ -83,13 +83,13 @@ class AverageAggregator(Aggregator):
 
         def aggregate(dl, k):
             l = []
-            for d in dl:
-                l.append(d[k])
+            for data in dl:
+                l.append(data[k])
             return torch.stack(l, dim=0).mean(dim=0, keepdims=False)
 
         aux_keys = group['aux_keys']
         for key in aux_keys:
-            if key in state['received_params']:
+            if key in state['received_params'][0]:
                 new_p = aggregate(state["received_params"], key)
                 if key == "param":
                     if p.requires_grad:

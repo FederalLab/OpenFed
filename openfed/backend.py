@@ -6,7 +6,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from .aggregate import Aggregator
 from .federated.federated import Maintainer, Reign, World, process_generator
-from .federated.register import register
 from .utils.types import STATUS, FedAddr, default_fed_addr
 
 
@@ -135,6 +134,7 @@ class Backend(Thread):
                         raise Exception("Invalid state")
                 # 常规的状态检查和更新
                 self.update()
+                time.sleep(1.0)
 
     def after_received_a_new_model(self):
         assert self.aggregator is not None, "Set aggregator first"
@@ -147,17 +147,22 @@ class Backend(Thread):
 
         self.received_numbers += 1
 
+        print(f"Received model @{self.received_numbers}")
+
     def before_send_a_new_model(self) -> bool:
         """当客户端要求返回一个新的模型时，我们可能会面临不同的情况，这个申请可能无法满足。
         当无法满足的时候，返回False，否则返回True。
         这个函数中，应该包含了对package等需要传送的相关数据的设置。
         """
         assert self.optimizer is not None, "optimizer is not specified"
-        assert self.aggregate is not None, "aggregator is not specified"
+        assert self.aggregator is not None, "aggregator is not specified"
         assert self.state_dict is not None, "state dict is not specified"
 
-        # 指定要打包的数据。
-        self.reign.package.state_dict_map(self.state_dict)
+        # 先删除之前的数据
+        self.reign.package.reset()
+
+        # 指定要打包的数据
+        self.reign.package.set_state_dict(self.state_dict)
 
         # 打包数据
         self.reign.package.pack_state(self.aggregator)
@@ -174,8 +179,6 @@ class Backend(Thread):
             # 开始聚合
             task_info = self.aggregator.aggregate()
 
-            print(task_info)
-
             # 更新optimizer状态
             self.aggregator.unpack_state(self.optimizer)
 
@@ -186,6 +189,8 @@ class Backend(Thread):
             self.aggregator.zero_grad()
             self.received_numbers = 0
             self.last_time = time.time()
+
+            self.manual_stop()
         else:
             # 暂时啥也不做
             ...

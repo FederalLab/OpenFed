@@ -38,7 +38,7 @@ class Package(object):
     # 字典中的每一个参数，都会传递给function。如果需要过滤某些参数，你可以直接修改function中实现的方法。
     # 在需要向外发送数据的情况下，function.pack函数会依次被调用
     # 在接收到外部传来的数据时，function.unpack函数会依次被调用
-    __function_hooks: List[Function]
+    _function_hooks: List[Function]
 
     # 负责数据传送
     deliver: Delivery
@@ -47,6 +47,7 @@ class Package(object):
         self.deliver = Delivery(pg, federated_world, world)
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
+        self._function_hooks = []
 
     def register_hook(self, hook: Union[Function, List[Function]]):
         """添加一个hook或者一个hook list
@@ -54,7 +55,7 @@ class Package(object):
         """
         if isinstance(hook, (list, tuple)):
             hook = (hook,)
-        self.__function_hooks.extend(hook)
+        self._function_hooks.extend(hook)
 
     def key_tensor_map(self, key: str, tensor: Tensor):
         """将一个键值对加入到同步数据流中。
@@ -63,8 +64,9 @@ class Package(object):
         if key in self.key_tensor_bidict or key == "param":
             raise KeyError(f"{key} already existed.")
         self.key_tensor_bidict[key] = tensor
+        self.packages[key]["param"] = tensor
 
-    def state_dict_map(self, state_dict: dict):
+    def set_state_dict(self, state_dict: dict):
         """将state dict中的键值对加入到同步数据流中。
         """
         for k, v in state_dict.items():
@@ -73,7 +75,7 @@ class Package(object):
     def key_name(self, t: Tensor) -> str:
         """返回一个tensor对应的字符串
         """
-        return self.key_tensor_bidict.inverse(t)
+        return self.key_tensor_bidict.inverse[t]
 
     def key_tensor(self, key: str) -> Tensor:
         """返回一个字符串对应的tensor。
@@ -88,7 +90,7 @@ class Package(object):
             key = self.key_name(key)
 
         # pack data
-        for hook in self.__function_hooks:
+        for hook in self._function_hooks:
             rdict = {k: hook.pack(key, k, v) for k, v in rdict.items()}
 
         package = self.packages.get(key)
@@ -106,7 +108,7 @@ class Package(object):
         rdict = {k: package[k] for k in rdict}
 
         # unpack data
-        for hook in self.__function_hooks:
+        for hook in self._function_hooks:
             rdict = {k: hook.unpack(key, k, v) for k, v in rdict.items()}
 
         return rdict
@@ -163,7 +165,7 @@ class Package(object):
                 state.update(rdict)
 
     @property
-    def tensor_index_packages(self):
+    def tensor_indexed_packages(self):
         """返回一个由tensor索引的字典。当需要将接受的数据返回给aggretator处理的时候，调用此方法。
         """
         return {self.key_tensor(k): v for k, v in self.packages.items()}
@@ -191,9 +193,6 @@ class Package(object):
         将数据推送到另一端。
         该函数会将key中的tensor以param的键值，存储在数据流中。
         """
-        for k, v in self.packages.items():
-            v['param'] = self.key_tensor_bidict[k]
-
         self.deliver.push(self.packages)
 
     def reset(self):

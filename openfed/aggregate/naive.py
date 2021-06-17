@@ -80,18 +80,20 @@ class NaiveAggregator(Aggregator):
 
         def aggregate(dl, k, t):
             l = 0
-            for a, b in zip(dl[k], dl['train_instance']):
+            for data in dl:
+                a, b = data[k], data['train_instance']
                 w = b / t
                 p = a * w
                 l += p
             return l
 
         total_instances = 0
-        for _, instances in state["received_params"]:
+        for data in state["received_params"]:
+            instances = data['instances']
             total_instances += instances
 
         for key in group['aux_keys']:
-            if key in state['received_params']:
+            if key in state['received_params'][0]:
                 new_p = aggregate(
                     state['received_params'], key, total_instances)
                 if key == "param":

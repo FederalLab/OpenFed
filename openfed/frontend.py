@@ -49,8 +49,8 @@ class Frontend(object):
         self.maintainer = Maintainer(self.world, fed_addr)
         self.reign = default_reign()
 
-    def state_dict_map(self, state_dict: Dict[str, Tensor]):
-        self.reign.package.state_dict_map(state_dict)
+    def set_state_dict(self, state_dict: Dict[str, Tensor]):
+        self.reign.package.set_state_dict(state_dict)
 
     def pack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
         self.reign.package.pack_state(obj, keys)

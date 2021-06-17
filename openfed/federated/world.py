@@ -70,7 +70,7 @@ class World(object):
     _pg_mapping: Dict
 
     # 记录当前上层正在处理的pg是哪一个
-    _NULL_GP: Any
+    _NULL_GP: Any = None
     _current_pg: ProcessGroup
 
     # 我们并不希望这个参数被轻易修改，所以将它定义在这里，而不是CONSTANT里面。
@@ -86,11 +86,11 @@ class World(object):
         self.APPROVED = types.APPROVED.NONE
         self.ROLE = types.ROLE.QUEEN
         self._pg_mapping = OrderedDict()
-        self._NULL_GP = object()
         self._current_pg = self._NULL_GP
 
         self.SLEEP_SHORT_TIME = .1
-        self.SLEEP_LONG_TIME = 1.0
+        #  这个时间尽可能的长一些！ 否则容易造成网络拥塞与高延时
+        self.SLEEP_LONG_TIME = 60.0
 
     def is_valid_process_group(self, pg: ProcessGroup):
         return pg is not self._NULL_GP and pg in self._pg_mapping

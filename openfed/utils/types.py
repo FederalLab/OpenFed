@@ -171,9 +171,9 @@ class ROLE(Enum):
 
 @unique
 class STATUS(Enum):
-    PUSH = "True"  # 把数据推送到服务器
-    PULL = "False"  # 从服务器拉取数据
-    ZOMBINE = "None"  # 当客户端处于其他任何状态时，对于服务器来说，都是ZOMBINE的状态。
+    PUSH = "PUSH"  # 把数据推送到服务器
+    PULL = "PULL"  # 从服务器拉取数据
+    ZOMBINE = "ZOMBINE"  # 当客户端处于其他任何状态时，对于服务器来说，都是ZOMBINE的状态。
     OFFLINE = "OFFLINE"  # 当客户端不在线时，设置成OFFLINE。其余所有状态都表示客户端在线。
     # 因此，客户端程序退出时，应该记得调用相关函数，对状态进行设置。
 

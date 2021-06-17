@@ -1,7 +1,7 @@
 import pickle
 
 import torch
-from openfed.federated import register
+from openfed.federated.register import register
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
                                         BroadcastOptions, GatherOptions,
