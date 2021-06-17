@@ -14,6 +14,12 @@ class SafeTread(Thread):
         super().__init__(name="OpenFed SafeTread")
         self.stopped = False
 
+        # 为了不影响主程序退出，设置为True
+        # 因此，任何关键的动作，都不允许在Thread里面实现
+        # 比如保存模型等。
+        # Thread只是拿来做一些轻量级的辅助任务！
+        self.setDaemon(True)
+
         # 自动注册到全局的pool中
         _thread_pool[self] = utils.time_string()
 
