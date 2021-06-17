@@ -38,10 +38,7 @@ class Delivery(Package):
     # 在接收到外部传来的数据时，function.unpack函数会依次被调用
     _function_hooks: List[Function]
 
-    def __init__(self, pg: ProcessGroup, federated_world: FederatedWorld, world: World) -> None:
-        self.pg = pg
-        self.federated_world = federated_world
-        self.world = world
+    def __init__(self) -> None:
 
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)

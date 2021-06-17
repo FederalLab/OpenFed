@@ -161,20 +161,6 @@ class ROLE(Enum):
     QUEEN = False
 
 
-# 所有的操作都是由客户端向服务器端发送请求，服务器端只能应答请求。
-# 当服务器完成应答后，会将客户端状态设置成ZOMBINE。
-# 如果客户端下线，则程序状态改为OFFINE
-
-
-@unique
-class STATUS(Enum):
-    PUSH = "PUSH"  # 把数据推送到服务器
-    PULL = "PULL"  # 从服务器拉取数据
-    ZOMBINE = "ZOMBINE"  # 当客户端处于其他任何状态时，对于服务器来说，都是ZOMBINE的状态。
-    OFFLINE = "OFFLINE"  # 当客户端不在线时，设置成OFFLINE。其余所有状态都表示客户端在线。
-    # 因此，客户端程序退出时，应该记得调用相关函数，对状态进行设置。
-
-
 # 如果DEBUG=True，那相关的程序会输出部分调试信息
 # 会以更严格的方式，执行程序
 DEBUG: bool = False

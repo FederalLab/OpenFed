@@ -4,9 +4,9 @@ from typing import List, Union
 
 import openfed
 import openfed.utils as utils
-from openfed.types import STATUS, FedAddr
+from openfed.types import FedAddr
 
-from .core import FederatedWorld, ProcessGroup, register, World
+from .core import FederatedWorld, ProcessGroup, register, World, Store
 from .deliver import Delivery
 from .inform import Informer
 from .utils.safe_exited import get_head_info, safe_exited
@@ -74,12 +74,10 @@ class Joint(Thread):
 
         # bound pg with the federated world
         for sub_pg in sub_pg_list:
-            informer = Informer(fed_world.get_store(
-                sub_pg), fed_world, self.world)
-            delivery = Delivery(sub_pg, fed_world, self.world)
+            reign = Reign(fed_world.get_store(
+                sub_pg), sub_pg, fed_world, self.world)
             with self.world.joint_lock:
-                self.world._pg_mapping[sub_pg] = [
-                    delivery, informer, fed_world]
+                self.world._pg_mapping[sub_pg] = reign
         if openfed.VERBOSE:
             print(utils.green_color("Connected"), f"{self.fed_addr}")
 
@@ -171,7 +169,7 @@ class Maintainer(Thread):
             self.finished_queue.extend(self.pending_queue)
             self.pending_queue = []
 
-            time.sleep(self.world.SLEEP_SHORT_TIME)
+            time.sleep(openfed.SLEEP_SHORT_TIME)
         else:
             safe_exited(get_head_info())
 
@@ -204,29 +202,29 @@ class Destroy(object):
             world._current_pg = world._NULL_GP
 
         # 获取对应的federated_world
-        delivery, informer, fed_world = world._pg_mapping[pg]
+        reign = world._pg_mapping[pg]
 
-        # 将informer状态设置成OFFINE
-        informer.set_state(STATUS.OFFLINE)
+        # 将reign状态设置成OFFINE
+        reign.offline()
 
         # 将键值对从全局字典中移除
         del world._pg_mapping[pg]
-
+        federated_world = reign.federated_world
         # 删除PG
-        fed_world.destroy_process_group(pg)
+        federated_world.destroy_process_group(pg)
 
         # 判断是否需要直接删除fed world
-        if not fed_world.is_initialized():
+        if not federated_world.is_initialized():
             # 说明删除pg后，这个fed world没有任何pg存在
             # 因此可以直接删除
             world.killed()
-            register.deleted_federated_world(fed_world)
-        elif fed_world._group_count == 1:
+            register.deleted_federated_world(federated_world)
+        elif federated_world._group_count == 1:
             # 说明删除之后，还剩下一个全局gp
             # 就说明这是一个共享的fed world。
             # 剩下全局pg的时候，就说明其他的客户端都退出，所以这里可以直接删除
             world.killed()
-            register.deleted_federated_world(fed_world)
+            register.deleted_federated_world(federated_world)
         else:
             # 说明这个世界中还有其他客户端，因此，暂时不能断开全局gp。
             ...
@@ -245,32 +243,33 @@ class Destroy(object):
             cls.destroy(pg, world)
 
 
-class Reign(object):
+class Reign(Informer, Delivery):
     """将进行‘沟通相关’的对象全部集合起来，并且提供进一步的封装，交付上层使用。
     """
+    store: Store
     pg: ProcessGroup
     world: World
-    delivery: Delivery
-    informer: Informer
     federated_world: FederatedWorld
 
     # version 是用来标明当前端数据的版本号的。
     version: int
 
     def __init__(self,
+                 store: Store,
                  pg: ProcessGroup,
+                 federated_world: FederatedWorld,
                  world: World,
-                 delivery: Delivery,
-                 informer: Informer,
-                 federated_world: FederatedWorld):
+                 ):
         self.pg = pg
-        self.world = world
-        self.delivery = delivery
-        self.informer = informer
+        self.store = store
         self.federated_world = federated_world
-        self.version = 0
+        self.world = world
 
-        self.informer.set("version", self.version)
+        Informer.__init__(self)
+        Delivery.__init__(self)
+
+        self.version = 0
+        self.set("version", self.version)
 
     def upload(self):
         """将package中的数据传送到另一方并且处理相关逻辑。
@@ -278,16 +277,16 @@ class Reign(object):
         """
         if self.world.is_queen():
             # 1. 写入自身版本号
-            self.informer.set('version', self.version)
+            self.set('version', self.version)
             # 2. 设置STATUE状态为PUSH，告知另一端自己等待上传数据
-            self.informer.set_state(STATUS.PUSH)
+            self.pushing()
             # 3. 进入阻塞，等待数据上传
-            self.delivery.push()
+            self.push()
             # 4. 设置自己的状态为ZOMBINE
-            self.informer.set_state(STATUS.ZOMBINE)
+            self.zombine()
         else:
             # 1. 写入服务器端的版本号
-            self.informer.set('version', self.version)
+            self.set('version', self.version)
             # 2. 设置状态为完成ZOMBINE，先设置状态，在推送数据。
             # 防止通信延迟造成的逻辑错误。
             # 比如，当客户端上传完模型，现在需要再次下载一个新的模型时，
@@ -295,11 +294,11 @@ class Reign(object):
             # 而此时服务器端才接收完模型，其要将ZOMBINE设置到状态里。
             # 但是由于延时，可能导致其在PULL生效之后，才写入的ZOMBINE
             # 那么，这时候该客户端将进入无限期的等待中而不会得到服务器的响应。
-            self.informer.set_state(STATUS.PULL)
+            self.pulling()
             # 3. 发送数据
-            self.delivery.push()
+            self.push()
             # 4. 设置自己的状态为ZOMBINE
-            self.informer.set_state(STATUS.ZOMBINE)
+            self.zombine()
 
     def download(self):
         """从另一方接收package数据。
@@ -307,22 +306,22 @@ class Reign(object):
         """
         if self.world.is_queen():
             # 1. 写入自身版本号
-            self.informer.set('version', self.version)
+            self.set('version', self.version)
             # 2. 设置STATUE状态为PULL，告知另一端自己等待下载数据
-            self.informer.set_state(STATUS.PULL)
+            self.pulling()
             # 3. 进入阻塞，等待数据上传
-            self.delivery.pull()
+            self.pull()
             # 4. 设置自己的状态为ZOMBINE
-            self.informer.set_state(STATUS.ZOMBINE)
+            self.zombine()
         else:
             # 1. 写入服务器端的版本号
-            self.informer.set('version', self.version)
+            self.set('version', self.version)
             # 2. 设置状态为完成ZOMBINE。先设置状态，再推送数据。
-            self.informer.set_state(STATUS.PUSH)
+            self.pushing()
             # 3. 发送数据
-            self.delivery.pull()
+            self.pull()
             # 4. 设置自己的状态为ZOMBINE
-            self.informer.set_state(STATUS.ZOMBINE)
+            self.zombine()
 
     def destroy(self):
         """退出联邦学习。
@@ -339,8 +338,8 @@ def process_generator() -> Reign:
     故，需要判断！
     """
     while len(register):
-        for fed_world, world in register:
-            for pg in world._pg_mapping:
+        for _, world in register:
+            for pg, reign in world._pg_mapping.items():
                 if not world.ALIVE:
                     # 只有在确保openfed存活的状态下，才维持这个生成器
                     # 否则的话，自动结束这个线程。
@@ -352,8 +351,8 @@ def process_generator() -> Reign:
                 # 因此，在这里，我们应该先等待pg被取走
                 # 然后再去将_current_pg更新成被取走的pg
                 # 如果先更新_current_pg的话，会导致实际的_current_pg指向发生错误
-                yield Reign(pg, world, *world._pg_mapping[pg])
-                world._current_pg = pg
+                yield reign
+                reign.world._current_pg = pg
     else:
         # 当列表为空的时候，yield一个空的GP
         # 否则无法进入for循环的话，将无法形成一个Generator
@@ -370,7 +369,7 @@ def default_reign() -> Reign:
     if len(register) == 0:
         raise RuntimeError("Please build a federated world first!")
     assert len(register) == 1, "More than one federated world."
-    for fed_world, world in register:
-        for pg in world._pg_mapping:
+    for _, world in register:
+        for pg, reign in world._pg_mapping.items():
             world._current_pg = pg
-            return Reign(pg, world, *world._pg_mapping[pg])
+            return reign

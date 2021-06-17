@@ -1,11 +1,11 @@
 import datetime
 import json
 from collections import OrderedDict
-from enum import Enum
+from enum import Enum, unique
 from typing import Any, Callable, Dict
 
 import openfed
-from openfed.types import APPROVED, STATUS
+from openfed.types import APPROVED
 
 from ..core import FederatedWorld, Store, World
 from .gpu_info import getGPUInfo
@@ -19,6 +19,19 @@ OPENFED_SYS_INFO = "OPENFED_SYS_INFO"
 OPENFED_GPU_INFO = "OPENFED_GPU_INFO"
 
 OPENFED_TASK_INFO = "OPENFED_TASK_INFO"
+
+# 所有的操作都是由客户端向服务器端发送请求，服务器端只能应答请求。
+# 当服务器完成应答后，会将客户端状态设置成ZOMBINE。
+# 如果客户端下线，则程序状态改为OFFINE
+
+
+@unique
+class STATUS(Enum):
+    PUSH = "PUSH"  # 把数据推送到服务器
+    PULL = "PULL"  # 从服务器拉取数据
+    ZOMBINE = "ZOMBINE"  # 当客户端处于其他任何状态时，对于服务器来说，都是ZOMBINE的状态。
+    OFFLINE = "OFFLINE"  # 当客户端不在线时，设置成OFFLINE。其余所有状态都表示客户端在线。
+    # 因此，客户端程序退出时，应该记得调用相关函数，对状态进行设置。
 
 
 def to_enum(value, enum_type: Enum):
@@ -69,20 +82,10 @@ class Informer(object):
     自己的状态不需要读，别人的状态没办法写！
     """
     store: Store
-    federated_world: FederatedWorld
     world: World
+    federated_world: FederatedWorld
 
-    # 用来记录额外的信息
-    # 计算出来的结果将会以key的作为键值，写入信息流。
-    _hooks_dict: Dict[str, Callable]
-
-    def __init__(self, store: Store, federated_world: FederatedWorld, world: World):
-        self._hooks_dict = OrderedDict()
-
-        self.federated_world = federated_world
-        self.world = world
-        self.store = store
-
+    def __init__(self):
         # 写入一个初始状态，必须采用原始的方式写入，否则程序会因为不同的执行速度而导致读取到无效的信息。
         # 例如：当我们建立连接后，对方会去读取你的键值，如果没有被设置，则会等待，但是一旦被设置了，就会直接读取到结果。
         # 这时候，你要保证你的状态是正确的，否则的话，对方会强制下线
@@ -152,19 +155,6 @@ class Informer(object):
         # 读取key，如果没有则返回None
         return self._read(key)
 
-    def alive(self):
-        """判断客户端是否在线
-        """
-        # 首先判断这个world是不是存活的
-        return self.world.ALIVE and self.get_state() != STATUS.OFFLINE
-
-    def get_state(self) -> STATUS:
-        state = self.get(OPENFED_STATUS)
-        return to_enum(state, STATUS)
-
-    def set_state(self, state: STATUS):
-        self.set(OPENFED_STATUS, state.value)
-
     def get_task_info(self) -> dict:
         return self.get(OPENFED_TASK_INFO)
 
@@ -191,29 +181,40 @@ class Informer(object):
             sys_state = {}
         self.set(OPENFED_SYS_INFO, sys_state)
 
-    def register_hook(self, name: str, hook: Callable, auto_prefix: bool = True):
+    # 关于状态的一些函数
+    def alive(self):
+        """判断客户端是否在线
         """
+        # 首先判断这个world是不是存活的
+        return self.world.ALIVE and self._get_state() != STATUS.OFFLINE
 
-        Args: 
-            auto_prefix：如果为True，会根据身份自动添加一个后缀到name里面。
+    def _get_state(self) -> STATUS:
+        state = self.get(OPENFED_STATUS)
+        return to_enum(state, STATUS)
 
-        hook计算出来的数据，将会以name为键值，向外传输。
-        hook应该是闭包函数，调用过程不会传入任何参数。
+    def _set_state(self, state: STATUS):
+        self.set(OPENFED_STATUS, state.value)
 
-        .. node::
-            这里的name，不能和任何现有的系统预置的键值重复！
-            这里注册的hook，必须返回一个字典，后者可以被josnize的对象！
-        """
-        if auto_prefix:
-            name = f'{name}_{"KING" if self.world.is_king() else "QUEEN"}'
-        self._hooks_dict[name] = hook
+    def pulling(self):
+        self._set_state(STATUS.PULL)
 
-    def sync_msg(self):
-        """
-            执行一些预设的任务
-        """
-        self.set_sys_state()
-        self.set_gpu_state()
+    def is_pulling(self) -> bool:
+        return self._get_state() == STATUS.PULL
 
-        for name, hook in self._hooks_dict.items():
-            self.set(name, hook())
+    def pushing(self):
+        self._set_state(STATUS.PUSH)
+
+    def is_pushing(self) -> bool:
+        return self._get_state() == STATUS.PUSH
+
+    def zombine(self):
+        self._set_state(STATUS.ZOMBINE)
+
+    def is_zombine(self) -> bool:
+        return self._get_state() == STATUS.ZOMBINE
+
+    def offline(self):
+        self._set_state(STATUS.OFFLINE)
+
+    def is_offline(self):
+        return self.world.ALIVE and self._get_state() == STATUS.OFFLINE

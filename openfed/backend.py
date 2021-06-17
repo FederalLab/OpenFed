@@ -2,11 +2,12 @@ import time
 from threading import Thread
 from typing import Dict, List, Union, overload
 
+import openfed
 from torch import Tensor
 from torch.optim import Optimizer
 from .aggregate import Aggregator
 from .federated.federated import Maintainer, Reign, World, process_generator
-from .types import STATUS, FedAddr, default_fed_addr
+from .types import FedAddr, default_fed_addr
 
 
 class Backend(Thread):
@@ -113,19 +114,17 @@ class Backend(Thread):
                 self.reign = reign
 
                 if reign is not None:
-                    state = reign.informer.get_state()
-
-                    if state == STATUS.ZOMBINE:
+                    if reign.is_zombine():
                         # Do nothing, skip
                         ...
-                    elif state == STATUS.OFFLINE:
+                    elif reign.is_offline():
                         # Destory process
                         reign.destroy()
-                    elif state == STATUS.PUSH:
+                    elif reign.is_pushing():
                         # 表示客户端要上传数据PUSH，那么我们要download数据
                         reign.download()
                         self.after_received_a_new_model()
-                    elif state == STATUS.PULL:
+                    elif reign.is_pulling():
                         # 首先进行一些判断，来确定是否响应这个请求
                         if self.before_send_a_new_model():
                             # 表示客户端请求下载一组数据PULL，那我们要upload数据来满足他
@@ -134,14 +133,14 @@ class Backend(Thread):
                         raise Exception("Invalid state")
                 # 常规的状态检查和更新
                 self.update()
-                time.sleep(1.0)
+                time.sleep(openfed.SLEEP_LONG_TIME)
 
     def after_received_a_new_model(self):
         assert self.aggregator is not None, "Set aggregator first"
 
         # 从底层获取接收到的数据
-        packages = self.reign.delivery.tensor_indexed_packages
-        task_info = self.reign.informer.get_task_info()
+        packages = self.reign.tensor_indexed_packages
+        task_info = self.reign.get_task_info()
 
         self.aggregator.step(packages, task_info)
 
@@ -159,14 +158,14 @@ class Backend(Thread):
         assert self.state_dict is not None, "state dict is not specified"
 
         # 先删除之前的数据
-        self.reign.delivery.reset()
+        self.reign.reset()
 
         # 指定要打包的数据
-        self.reign.delivery.set_state_dict(self.state_dict)
+        self.reign.set_state_dict(self.state_dict)
 
         # 打包数据
-        self.reign.delivery.pack_state(self.aggregator)
-        self.reign.delivery.pack_state(self.optimizer)
+        self.reign.pack_state(self.aggregator)
+        self.reign.pack_state(self.optimizer)
 
         # 准备发送
         return True
