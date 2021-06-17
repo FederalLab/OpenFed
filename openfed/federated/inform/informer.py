@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 import openfed
 import openfed.utils as utils
+from openfed.common import Hook
 
 from ..core import FederatedWorld, Store, World
 from .functional import Collector
@@ -68,7 +69,7 @@ def safe_store_get(store: Store, key: str) -> Dict:
         return {}
 
 
-class Informer(object):
+class Informer(Hook):
     """维护world状态，保证world状态和信息流中的状态是一致的。
     封装kvstore，提供一个更加便捷的接口调用。
 

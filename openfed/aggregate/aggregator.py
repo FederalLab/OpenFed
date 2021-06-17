@@ -3,13 +3,13 @@ import warnings
 from collections import defaultdict
 from copy import deepcopy
 from itertools import chain
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List
 
 import torch
 from torch import Tensor
 from torch._six import container_abcs
 
-from ..common import Package, Wrapper
+from ..common import Hook, Package, Wrapper
 
 
 class _RequiredParameter(object):
@@ -22,7 +22,7 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Aggregator(Package, Wrapper):
+class Aggregator(Package, Wrapper, Hook):
     r"""Base class for all aggregators.
 
     Aggregator初始化阶段会接受一个参数列表。这个参数列表包含所有可能从客户端收集来的参数。

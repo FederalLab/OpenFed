@@ -7,11 +7,11 @@ from torch.optim import Optimizer
 import openfed
 
 from .aggregate import Aggregator
-from .common import Address, SafeTread, default_address
+from .common import Address, Hook, SafeTread, default_address
 from .federated.federated import Maintainer, Reign, World, reign_generator
 
 
-class Backend(SafeTread):
+class Backend(SafeTread, Hook):
     aggregator: Aggregator
     optimizer: Optimizer
 

@@ -2,14 +2,14 @@ from collections import defaultdict
 from typing import Any, Dict, List, Union
 
 from bidict import bidict
-from openfed.common import Package
+from openfed.common import Package, Hook
 from torch import Tensor
 
 from ..core import FederatedWorld, ProcessGroup, World, gather_object
 from .functional import Cypher
 
 
-class Delivery(Package):
+class Delivery(Package, Hook):
 
     pg: ProcessGroup
     federated_world: FederatedWorld
@@ -132,7 +132,7 @@ class Delivery(Package):
 
         # unpack data here
         for hook in self._cypher_hooks:
-            r_packages = {k: hook.unpack(k, v) for k, v in r_packages.items()}
+            r_packages = {k: hook.decrypt(k, v) for k, v in r_packages.items()}
 
         if self.world.is_queen():
             for k, v in r_packages.items():
@@ -150,7 +150,7 @@ class Delivery(Package):
 
         # pack data here
         for hook in self._cypher_hooks:
-            self.packages = {k: hook.pack(k, v)
+            self.packages = {k: hook.encrypt(k, v)
                              for k, v in self.packages.items()}
 
         gather_object(self.packages, None, dst=rank,
