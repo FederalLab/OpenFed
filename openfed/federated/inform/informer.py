@@ -1,10 +1,10 @@
-import datetime
 import json
 from collections import OrderedDict
 from enum import Enum, unique
 from typing import Any, Dict
 
 import openfed
+import openfed.utils as utils
 
 from ..core import FederatedWorld, Store, World
 from .functional import Collector
@@ -116,8 +116,7 @@ class Informer(object):
         永远都是写到suf_i_key中！
         """
         # 给每一个数据都加入一个时间戳，以保证信息的正确性
-        info["timestemp"] = datetime.datetime.now().strftime(
-            '%Y-%m-%d %H:%M:%S')
+        info["timestemp"] = utils.time_string()
 
         return safe_store_set(self.store, self._i_key, info)
 

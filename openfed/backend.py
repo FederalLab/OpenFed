@@ -1,5 +1,4 @@
 import time
-from threading import Thread
 from typing import Dict, List, Union, overload
 
 from torch import Tensor
@@ -8,11 +7,11 @@ from torch.optim import Optimizer
 import openfed
 
 from .aggregate import Aggregator
+from .common import Address, SafeTread, default_address
 from .federated.federated import Maintainer, Reign, World, reign_generator
-from .common import Address, default_address
 
 
-class Backend(Thread):
+class Backend(SafeTread):
     aggregator: Aggregator
     optimizer: Optimizer
 
@@ -106,7 +105,7 @@ class Backend(Thread):
     def set_aggregator(self, aggregator: Aggregator):
         self.aggregator = aggregator
 
-    def run(self):
+    def safe_run(self):
         """
         如果你希望程序进入后台运行，那么请使用start()。
         如果你希望程序在前台运行，那么请直接调用run()函数。
@@ -196,12 +195,8 @@ class Backend(Thread):
             # 暂时啥也不做
             ...
 
-    def manual_stop(self):
-        self.stopped = True
-
-    def __expr__(self):
-        # TODO: 输出一些基本信息
-        return "Backend"
+    def __repr__(self):
+        return "<OpenFed> Backend"
 
     def finish(self):
         # 强制杀死所有的进程，并且退出进程
@@ -211,3 +206,5 @@ class Backend(Thread):
 
         self.stopped = True
         self.maintainer.manual_stop()
+
+

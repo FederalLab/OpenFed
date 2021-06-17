@@ -1,18 +1,16 @@
 import time
-from threading import Thread
 from typing import List, Union
 
 import openfed
 import openfed.utils as utils
-from openfed.common import Address
 
+from ..common import Address, SafeTread
 from .core import FederatedWorld, ProcessGroup, Store, World, register
 from .deliver import Delivery
 from .inform import Informer
-from .utils.safe_exited import get_head_info, safe_exited
 
 
-class Joint(Thread):
+class Joint(SafeTread):
     """封装成一个线程，自动执行，完成建立后自动销毁。确保不会阻塞主程序的运行。
     当调用这个函数时，如果是客户端，那会阻塞，直到完成连接。
     如果是服务器端，则会进入后台运行。
@@ -22,7 +20,7 @@ class Joint(Thread):
     """
 
     def __init__(self, address: Address, world: World):
-        super().__init__(name="OpenFed Joint Thread")
+        super().__init__()
 
         if address.rank == -1:
             if address.world_size == 2:
@@ -47,7 +45,7 @@ class Joint(Thread):
             self.start()
             self.join()
 
-    def run(self):
+    def safe_run(self):
         """Build a new federated world.
         一般情况下，只有两个成员（服务器和客户端）。
         特殊情况下，会有N个成员（N>2）共享这个通讯世界，以减少创建连接带来的过多开销，
@@ -79,8 +77,11 @@ class Joint(Thread):
         if openfed.VERBOSE:
             print(utils.green_color("Connected"), f"{self.address}")
 
+    def __repr__(self):
+        return "<OpenFed> Joint"
 
-class Maintainer(Thread):
+
+class Maintainer(SafeTread):
     """负责在后台自动建立连接。
     在服务器端，该片段代码会自动启动一个新的进程，进行连接控制。
     在客户端，该程序需要由手动调用建立连接：因为客户端的程序，往往只需要建立一次连接就够，并不需要不断地监听信号。
@@ -100,7 +101,6 @@ class Maintainer(Thread):
         super().__init__()
         self.world = world
 
-        self.stopped = False
         self.pending_queue = list()
         self.finished_queue = list()
 
@@ -149,7 +149,7 @@ class Maintainer(Thread):
 
         return valid_address_list
 
-    def run(self):
+    def safe_run(self):
         while not self.stopped and self.world.ALIVE:
             # 读取文件，自动添加
             new_addr = self.read_address_from_file()
@@ -163,13 +163,6 @@ class Maintainer(Thread):
             self.pending_queue = []
 
             time.sleep(openfed.SLEEP_SHORT_TIME)
-        else:
-            safe_exited(get_head_info())
-
-    def manual_stop(self):
-        """Provide a function to end it manually.
-        """
-        self.stopped = True
 
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
@@ -178,6 +171,9 @@ class Maintainer(Thread):
             self.pending_queue.append(address)
         else:
             Joint(address, self.world)
+
+    def __repr__(self):
+        return "<OpenFed> Maintainer"
 
 
 class Destroy(object):
