@@ -1,11 +1,8 @@
-# 在这里面定义所有数据类型与全局变量
-
 import json
+import warnings
 from enum import Enum, unique
 from typing import Dict, List, TypeVar, Union
-import prettytable
 
-from torch import Tensor
 from prettytable import PrettyTable
 
 _A = TypeVar("_A", bound='FedAddr')
@@ -146,7 +143,7 @@ class FedAddr(object):
 # 给定一个默认的fed addr地址，方便做实验验证的时候，不需要每次都指定地址。
 
 default_fed_addr = FedAddr(
-    backend="gloo", init_method='tcp://localhost:1994'
+    backend="gloo", init_method='tcp://localhost:1994', group_name="OpenFed"
 )
 
 
@@ -178,10 +175,6 @@ class STATUS(Enum):
     # 因此，客户端程序退出时，应该记得调用相关函数，对状态进行设置。
 
 
-PACKAGES = TypeVar(
-    'PACKAGES', bound=Dict[str, Union[Tensor, Dict[str, Tensor]]])
-
-
 # 如果DEBUG=True，那相关的程序会输出部分调试信息
 # 会以更严格的方式，执行程序
 DEBUG: bool = False
@@ -204,3 +197,39 @@ def verbose():
 def silence():
     global VERBOSE
     VERBOSE = False
+
+
+def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
+    keys = [keys] if isinstance(keys, str) else keys
+
+    keys = keys if keys else getattr(obj, mode, None)
+
+    if not keys and DEBUG:
+        warnings.warn("Got empty keys")
+    return keys
+
+
+class Package(object):
+    # 提供打包和解包statedict的能力
+    state: Dict
+
+    def pack_state(self, obj, keys: Union[str, List[str]] = None):
+        """将obj中的state根据指定的key，pack到对应的数据流中。
+        """
+        keys = _check_state_keys(obj, keys, mode='package_key_list')
+        if keys:
+            for group in obj.param_groups:
+                for p in group["params"]:
+                    state = obj.state[p]
+                    rdict = {k: state[k] for k in keys}
+                    self.pack(p, rdict)
+
+    def unpack_state(self, obj, keys: Union[str, List[str]] = None):
+        keys = _check_state_keys(obj, keys, mode="unpackage_key_list")
+        if keys:
+            for group in obj.param_groups:
+                for p in group["params"]:
+                    state = obj.state[p]
+                    rdict = {k: None for k in keys}
+                    rdict = self.unpack(p, rdict)
+                    state.update(rdict)

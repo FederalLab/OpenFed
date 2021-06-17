@@ -4,5 +4,4 @@ __version__ = "0.0.0"
 
 from .backend import Backend
 from .frontend import Frontend
-from .utils.types import *
-from .vars import *
+from .types import *

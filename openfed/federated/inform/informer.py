@@ -1,13 +1,13 @@
 import datetime
 import json
+from collections import OrderedDict
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 import openfed
-from openfed.utils.types import APPROVED, STATUS
+from openfed.types import APPROVED, STATUS
 
-from ..core.federated_c10d import FederatedWorld, Store
-from ..world import World
+from ..core import FederatedWorld, Store, World
 from .gpu_info import getGPUInfo
 from .sys_info import getSysInfo
 
@@ -72,7 +72,13 @@ class Informer(object):
     federated_world: FederatedWorld
     world: World
 
+    # 用来记录额外的信息
+    # 计算出来的结果将会以key的作为键值，写入信息流。
+    _hooks_dict: Dict[str, Callable]
+
     def __init__(self, store: Store, federated_world: FederatedWorld, world: World):
+        self._hooks_dict = OrderedDict()
+
         self.federated_world = federated_world
         self.world = world
         self.store = store
@@ -184,3 +190,30 @@ class Informer(object):
         else:
             sys_state = {}
         self.set(OPENFED_SYS_INFO, sys_state)
+
+    def register_hook(self, name: str, hook: Callable, auto_prefix: bool = True):
+        """
+
+        Args: 
+            auto_prefix：如果为True，会根据身份自动添加一个后缀到name里面。
+
+        hook计算出来的数据，将会以name为键值，向外传输。
+        hook应该是闭包函数，调用过程不会传入任何参数。
+
+        .. node::
+            这里的name，不能和任何现有的系统预置的键值重复！
+            这里注册的hook，必须返回一个字典，后者可以被josnize的对象！
+        """
+        if auto_prefix:
+            name = f'{name}_{"KING" if self.world.is_king() else "QUEEN"}'
+        self._hooks_dict[name] = hook
+
+    def sync_msg(self):
+        """
+            执行一些预设的任务
+        """
+        self.set_sys_state()
+        self.set_gpu_state()
+
+        for name, hook in self._hooks_dict.items():
+            self.set(name, hook())

@@ -1,21 +1,19 @@
-import warnings
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
-import openfed
 from bidict import bidict
-from openfed.aggregate.aggregator import Aggregator
-from openfed.utils.types import PACKAGES
+from openfed.types import Package
 from torch import Tensor
-from torch.optim import Optimizer
 
-from ..core.federated_c10d import FederatedWorld, ProcessGroup
-from ..register import World
-from .deliver import Delivery
+from ..core import FederatedWorld, ProcessGroup, World, gather_object
 from .functional import Function
 
 
-class Package(object):
+class Delivery(Package):
+
+    pg: ProcessGroup
+    federated_world: FederatedWorld
+    world: World
 
     #! 注意！param对外始终保持id不变性，无论出现在哪里！只要是来自Package内部的数据，
     #! 那就始终都指向同一个内存区域！
@@ -27,7 +25,7 @@ class Package(object):
     # 如果需要向外发送数据的话，会调用pack打包数据，然后传递给下层。
     # 如果需要从外接收数据的话，这个packages会被直接替换掉。
     # tensor_indexed_packages会重新使用key_tensor_dict，使其可以被原始的tensor正确索引。
-    packages: PACKAGES
+    packages: Dict[str, Union[Tensor, Dict[str, Tensor]]]
     # 默认情况下，packages是以str索引，这是为了方便处理从底层接收到的数据。
     # 我们提供了一个方法，使得其适合于用Tensor索引。
     # str标志是在所有的端中都是一致的。Tensor的id则并不是一致的。
@@ -40,11 +38,11 @@ class Package(object):
     # 在接收到外部传来的数据时，function.unpack函数会依次被调用
     _function_hooks: List[Function]
 
-    # 负责数据传送
-    deliver: Delivery
-
     def __init__(self, pg: ProcessGroup, federated_world: FederatedWorld, world: World) -> None:
-        self.deliver = Delivery(pg, federated_world, world)
+        self.pg = pg
+        self.federated_world = federated_world
+        self.world = world
+
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
         self._function_hooks = []
@@ -113,91 +111,47 @@ class Package(object):
 
         return rdict
 
-    def pack_state(self, obj: Union[Optimizer, Aggregator], keys: Union[str, List[str]] = None):
-        """将obj中的state根据指定的key，pack到对应的数据流中。
-        """
-        if isinstance(keys, str):
-            keys = [keys]
-
-        if keys is None:
-            if hasattr(obj, "package_key_list"):
-                keys = obj.package_key_list
-            else:
-                keys = []
-
-        if len(keys) == 0:
-            if openfed.DEBUG:
-                raise ValueError("Got empty keys")
-            else:
-                # Empty keys
-                warnings.warn("Got empty keys")
-                return
-
-        for group in obj.param_groups:
-            for p in group["params"]:
-                state = obj.state[p]
-                rdict = {k: state[k] for k in keys}
-                self.pack(p, rdict)
-
-    def unpack_state(self, obj: Union[Optimizer, Aggregator], keys: Union[str, List[str]] = None):
-        if isinstance(keys, str):
-            keys = [keys]
-
-        if keys is None:
-            if hasattr(obj, "unpackage_key_list"):
-                keys = obj.unpackage_key_list
-            else:
-                keys = []
-
-        if len(keys) == 0:
-            if openfed.DEBUG:
-                raise ValueError("Got empty keys")
-            else:
-                # Empty keys
-                warnings.warn("Got empty keys")
-                return
-
-        for group in obj.param_groups:
-            for p in group["params"]:
-                state = obj.state[p]
-                rdict = {k: None for k in keys}
-                rdict = self.unpack(p, rdict)
-                state.update(rdict)
-
     @property
     def tensor_indexed_packages(self):
         """返回一个由tensor索引的字典。当需要将接受的数据返回给aggretator处理的时候，调用此方法。
         """
         return {self.key_tensor(k): v for k, v in self.packages.items()}
 
-    def pull(self):
+    def reset(self):
+        self.key_tensor_bidict = bidict()
+        self.packages = defaultdict(dict)
+
+    def pull(self) -> Dict[str, Union[Tensor, Dict[str, Tensor]]]:
         """
-        在调用这个函数之前，请通过monitor，告知另一端当前的状态
+        在调用这个函数之前，请告知另一端当前的状态
         从另一端拉取数据。
         如果此时是客户端，则会自动将拉取的数据中params参数以原址操作的方式，覆盖到key_tensor中。这是为了减少调用参数同步的额外操作。
         换言之，如果是客户端调用这个函数，则模型参数会被直接更新到模型中，而不是保留在数据流中。
         如果是服务器端，则不会有这个操作。
         """
-        # 拉取数据
-        r_packages = self.deliver.pull()
+        assert self.federated_world._get_group_size(
+            self.pg) == 2, "Delivery is only designed for group with size 2"
 
-        if self.deliver.world.is_queen():
+        received = [None, None]
+        rank = 0 if self.world.is_king() else 1
+        other_rank = 1 if self.world.is_king() else 0
+
+        gather_object(None, received, dst=rank, group=self.pg,
+                      federated_world=self.federated_world)
+
+        r_packages = received[other_rank]
+        if self.world.is_queen():
             for k, v in r_packages.items():
                 if 'param' in v:
                     self.key_tensor_bidict[k].data.copy_(v['param'])
         self.packages = r_packages
 
-    def push(self):
+    def push(self) -> None:
+        """向另一段发送数据。
         """
-        在调用这个函数之前，请通过monitor，告知另一端当前的状态。
-        将数据推送到另一端。
-        该函数会将key中的tensor以param的键值，存储在数据流中。
-        """
-        self.deliver.push(self.packages)
+        assert self.federated_world._get_group_size(
+            self.pg) == 2, "Delivery is only designed for group with size 2"
 
-    def reset(self):
-        """重置这个类中的状态，但是保留deliver。
-        一般情况下不需要调用这个函数。
-        """
-        self.key_tensor_bidict = bidict()
-        self.packages = defaultdict(dict)
+        rank = 1 if self.world.is_king() else 0
+        gather_object(self.packages, None, dst=rank,
+                      group=self.pg, federated_world=self.federated_world)

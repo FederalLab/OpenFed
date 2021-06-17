@@ -1,14 +1,1006 @@
+import contextlib
+import logging
 import pickle
+import threading
+import time
+import warnings
+from collections import OrderedDict
+from datetime import timedelta
+from typing import Any, Dict, List, Optional, Tuple, Union, overload
 
+import openfed
+import openfed.types as types
 import torch
-from openfed.federated.register import register
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
-                                        BroadcastOptions, GatherOptions,
-                                        ReduceOp, ReduceOptions,
-                                        ReduceScatterOptions, ScatterOptions)
+                                        BarrierOptions, BroadcastOptions,
+                                        GatherOptions, PrefixStore,
+                                        ProcessGroup, ReduceOp, ReduceOptions,
+                                        ReduceScatterOptions, ScatterOptions,
+                                        Store)
+from torch._six import string_classes
+from torch.distributed.constants import default_pg_timeout
+from torch.distributed.rendezvous import rendezvous
 
-from .backend import Backend
+_MPI_AVAILABLE = True
+_NCCL_AVAILABLE = True
+_GLOO_AVAILABLE = True
+
+
+try:
+    from torch._C._distributed_c10d import ProcessGroupMPI
+except ImportError:
+    _MPI_AVAILABLE = False
+
+try:
+    from torch._C._distributed_c10d import ProcessGroupNCCL
+except ImportError:
+    _NCCL_AVAILABLE = False
+
+try:
+    from torch._C._distributed_c10d import ProcessGroupGloo
+except ImportError:
+    _GLOO_AVAILABLE = False
+
+
+class World(object):
+    """World里面所有的状态，都只是给本地程序使用的。
+    比如ALIVE状态，标志的是本地的这个程序是否还在运行。
+    这个和informer里面的状态的含义是不一样的。
+    informer里面的状态指的是联邦学习过程中的相关状态。因此不要混淆。
+    """
+    # 标志当前openfed world是否还在运行
+    # 当ALIVE=False，程序的相关进程会自从退出
+    # 防止程序运行时错误
+    # 当你想要退出一个openfed world时，你应该设置这个flag
+    ALIVE: bool
+
+    def killed(self):
+        # 退出
+        self.ALIVE = False
+
+    # 给APPROVED指定不同等级的权限信息
+    APPROVED: types.APPROVED
+
+    def set_approved(self, approved: types.APPROVED):
+        self.APPROVED = approved
+
+    # ROLE用来明确当前世界中自己的身份
+    # 默认所有的KING是rank=0，所有的QUEEN是rank=1
+    ROLE: types.ROLE
+
+    def set_king(self):
+        self.ROLE = types.ROLE.KING
+
+    def set_queen(self):
+        self.ROLE = types.ROLE.QUEEN
+
+    def is_king(self):
+        return self.ROLE == types.ROLE.KING
+
+    def is_queen(self):
+        return self.ROLE == types.ROLE.QUEEN
+
+    @overload
+    def set_openfed_state(self, state: types.APPROVED):
+        """自动设置一个权限，用来控制上传的系统信息。
+        """
+
+    @overload
+    def set_openfed_state(self, state: types.ROLE):
+        """设置当前进程的身份。
+        """
+
+    @overload
+    def set_openfed_state(self, state):
+        """根据state的类型，类设置正确的变量。
+        """
+        if isinstance(state, types.ROLE):
+            self.ROLE = state
+        elif isinstance(state, types.APPROVED):
+            self.APPROVED = state
+        else:
+            raise NotImplementedError
+
+    # 我们遍历的是pg，而不是federated_world。
+    # Dict[ProcessGroup, List[Delivery, Informer, FederatedWorld]]
+    _pg_mapping: Dict
+
+    # 记录当前上层正在处理的pg是哪一个
+    _NULL_GP: Any = None
+    _current_pg: ProcessGroup
+
+    # 我们并不希望这个参数被轻易修改，所以将它定义在这里，而不是CONSTANT里面。
+    SLEEP_SHORT_TIME: float  # seconds
+    SLEEP_LONG_TIME: float
+
+    def __init__(self, ):
+        self.ALIVE = True
+        self.DEBUG = False
+        self.VERBOSE = False
+
+        # 不上传任何信息
+        self.APPROVED = types.APPROVED.NONE
+        self.ROLE = types.ROLE.QUEEN
+        self._pg_mapping = OrderedDict()
+        self._current_pg = self._NULL_GP
+
+        self.SLEEP_SHORT_TIME = .1
+        #  这个时间尽可能的长一些！ 否则容易造成网络拥塞与高延时
+        self.SLEEP_LONG_TIME = 60.0
+
+    def is_valid_process_group(self, pg: ProcessGroup):
+        return pg is not self._NULL_GP and pg in self._pg_mapping
+
+    # 添加一些锁，用于处理进程之间的同步问题
+    # 提供一个context来做这件事
+    joint_lock = threading.Lock()
+
+
+class Backend(object):
+    """
+    An enum-like class of available backends: GLOO, NCCL, MPI, and other registered
+    backends.
+
+    The values of this class are lowercase strings, e.g., ``"gloo"``. They can
+    be accessed as attributes, e.g., ``Backend.NCCL``.
+
+    This class can be directly called to parse the string, e.g.,
+    ``Backend(backend_str)`` will check if ``backend_str`` is valid, and
+    return the parsed lowercase string if so. It also accepts uppercase strings,
+    e.g., ``Backend("GLOO")`` returns ``"gloo"``.
+
+    .. note:: The entry ``Backend.UNDEFINED`` is present but only used as
+            initial value of some fields. Users should neither use it directly
+            nor assume its existence.
+    """
+    UNDEFINED = "undefined"
+    GLOO = "gloo"
+    NCCL = "nccl"
+    MPI = "mpi"
+    TCP = "tcp"
+
+    def __new__(cls, name: str):
+        if not isinstance(name, string_classes):
+            raise ValueError(
+                "Backend name must be a string, but got: {}".format(name))
+        value = getattr(Backend, name.upper(), Backend.UNDEFINED)
+
+        if value == Backend.TCP:
+            raise ValueError("TCP backend has been deprecated. Please use "
+                             "Gloo or MPI backend for collective operations "
+                             "on CPU tensors.")
+        elif value == Backend.UNDEFINED:
+            raise ValueError("Invalid backend: '{}'".format(name))
+        elif value != Backend.GLOO and value != Backend.NCCL and value != Backend.MPI:
+            value = name
+        return value
+
+    @classmethod
+    def register_backend(cls, name, func):
+        """
+        Registers a new backend.
+
+        This class method is used by 3rd party cpp extension to register new backend.
+
+        Args:
+            name (str): Backend name matching with the one in `init_process_group()`.
+            func (function): Function handler that instantiates the backend.
+                            The function should be implemented in the backend cpp extension
+                            and takes four arguments, including prefix_store, rank,
+                            world_size, and timeout.
+
+        .. note:: This support of 3rd party backend is experimental and subject to change.
+
+        """
+        setattr(Backend, name.upper(), func)
+
+
+def is_mpi_available():
+    """
+    Checks if the MPI backend is available.
+    """
+    return _MPI_AVAILABLE
+
+
+def is_nccl_available():
+    """
+    Checks if the NCCL backend is available.
+    """
+    return _NCCL_AVAILABLE
+
+
+def is_gloo_available():
+    """
+    Checks if the Gloo backend is available.
+    """
+    return _GLOO_AVAILABLE
+
+
+class FederatedWorld(object):
+    """Wraper all variables as a privacy namespace.
+    """
+
+    def __init__(self):
+        """初始化一个新的联邦世界，并且将它注册到字典中。
+        """
+        # Alias to self.WORLD for backward compatibility
+        self.WORLD: Optional[ProcessGroup] = None
+        self.NON_GROUP_MEMBER = object()
+
+        # Cached process groups
+        # For NCCL and GLOO pg, it is a map from ProcessGroup to (Backend, Store)
+        # For MPI pg, it is a map from ProcessGroup to (Backend, None)
+        self._pg_map: Dict[ProcessGroup, Tuple[str, Optional[Store]]] = {}
+        # Keep trace of the point2point groups.
+        self._point2point_groups: Dict[ProcessGroup,
+                                       Tuple[str, Optional[Store]]] = {}
+        # Process group's names, map from ProcessGroup to str
+        self._pg_names: Dict[ProcessGroup, str] = {}
+        # Process group's global rank to local rank mapping
+        self._pg_group_ranks: Dict[ProcessGroup, Dict[int, int]] = {}
+
+        # Default process group state
+        self._default_pg_init_method = None
+
+        # Process group count for default naming
+        self._group_count = 0
+
+        self.STORE_BASED_BARRIER_PREFIX = "store_based_barrier_key"
+
+    def _store_based_barrier(self, rank, store, timeout):
+        """
+        Barrier based on store which is used for synchronizing processes after
+        ``init_process_group`` or ``new_group``. Intended to be used only with
+        those two methods and is not a generic alternative to ``barrier()``.
+        """
+        store_key = "{}:{}".format(
+            self.STORE_BASED_BARRIER_PREFIX, self._group_count)
+        store.add(store_key, 1)
+        logging.info(
+            'Added key: {} to store for rank: {}'.format(store_key, rank))
+
+        # Now wait for all workers to check in with the store.
+        world_size = self.get_world_size()
+        # Use 'add' instead of 'get' since for some store implementations 'add'
+        # doesn't work well with 'get'. Ideally the store implementations should
+        # be fixed, but for backward compatiblity reasons it is risky to change
+        # the store implementations. Once, we completely migrate away from these
+        # legacy stores, we can use 'get' here instead.
+        worker_count = store.add(store_key, 0)
+        start = time.time()
+        log_time = time.time()
+        while worker_count != world_size:
+            time.sleep(0.01)
+            worker_count = store.add(store_key, 0)
+
+            # Print status periodically to keep track.
+            if timedelta(seconds=(time.time() - log_time)) > timedelta(seconds=10):
+                logging.info(
+                    "Waiting in store based barrier to initialize process group for "
+                    "rank: {}, key: {} (world_size={}, worker_count={}, timeout={})".format(
+                        rank, store_key, world_size, worker_count, timeout))
+                log_time = time.time()
+
+            if timedelta(seconds=(time.time() - start)) > timeout:
+                raise RuntimeError(
+                    "Timed out initializing process group in store based barrier on "
+                    "rank: {}, for key: {} (world_size={}, worker_count={}, timeout={})".format(
+                        rank, store_key, world_size, worker_count, timeout))
+
+    def _rank_not_in_group(self, group: ProcessGroup):
+        """
+        Helper that checks if the current process's rank is not in a given group.
+        """
+        if group is None:
+            return False
+        return group == self.NON_GROUP_MEMBER
+
+    def _get_group_rank(self, group: ProcessGroup, rank):
+        """
+        Helper that gets a given group's local rank in the group from a given global
+        rank.
+        """
+        if group is self.WORLD:
+            raise RuntimeError("WORLD does not have local rank to global "
+                               "rank mapping")
+        if group not in self._pg_group_ranks:
+            raise RuntimeError("The given group does not exist")
+        try:
+            group_rank = self._pg_group_ranks[group][rank]
+        except KeyError:
+            raise RuntimeError(
+                f"The global rank {rank} is not part of the group {group}") from None
+        return group_rank
+
+    def _get_global_rank(self, group, group_rank):
+        """
+        Helper that gets a given group's global rank from a given local rank in the
+        group.
+        """
+        if group is self.WORLD:
+            raise RuntimeError("self.WORLD does not have local rank to global "
+                               "rank mapping")
+        group_rank_map = self._pg_group_ranks[group]
+        for rank, grp_rank in group_rank_map.items():
+            if grp_rank == group_rank:
+                return rank
+        raise RuntimeError("The group rank is not part of the group")
+
+    def _get_group_size(self, group):
+        """
+        Helper that gets a given group's world size.
+        """
+        if group is self.WORLD or group is None:
+            default_pg = self._get_default_group()
+            return default_pg.size()
+        if group not in self._pg_group_ranks:
+            raise RuntimeError("The given group does not exist")
+        return len(self._pg_group_ranks[group])
+
+    def _check_p2p_op_list(self, p2p_op_list):
+        """
+        Helper to check that the ``p2p_op_list`` is a list of P2POp instances and
+        all ops use the same backend.
+        """
+        if not isinstance(p2p_op_list, list) or \
+                not all(isinstance(p2p_op, P2POp) for p2p_op in p2p_op_list):
+            raise RuntimeError("Invalid ``p2p_op_list``. Each op is expected to "
+                               "to be of type ``torch.distributed.P2POp``.")
+
+        backend = self.get_backend(p2p_op_list[0].group)
+        if not all(backend == self.get_backend(p2p_op.group) for p2p_op in p2p_op_list):
+            raise RuntimeError("All groups need to use the same backend.")
+
+    def is_initialized(self):
+        """
+        Checking if the default process group has been initialized
+        """
+        return self.WORLD is not None
+
+    def _get_default_group(self):
+        """
+        Getting the default process group created by init_process_group
+        """
+        if not self.is_initialized():
+            raise RuntimeError("Default process group has not been initialized, "
+                               "please make sure to call init_process_group.")
+        return self.WORLD
+
+    def _get_default_store(self):
+        """
+        Getting the default store created by init_process_group
+        """
+        if not self.is_initialized():
+            raise RuntimeError("Default process group has not been initialized, "
+                               "please make sure to call init_process_group.")
+        default_pg = self._get_default_group()
+        _, default_store = self._pg_map[default_pg]
+        return default_store
+
+    def _update_default_pg(self, pg):
+        self.WORLD = pg
+
+    def get_backend(self, group=None):
+        """
+        Returns the backend of the given process group.
+
+        Args:
+            group (ProcessGroup, optional): The process group to work on. The
+                default is the general main process group. If another specific group
+                is specified, the calling process must be part of :attr:`group`.
+
+        Returns:
+            The backend of the given process group as a lower case string.
+
+        """
+        if group is None:
+            pg = self._get_default_group()
+        else:
+            pg = group
+        if self._rank_not_in_group(pg):
+            raise RuntimeError("Invalid process group specified")
+        pg_store = self._pg_map.get(pg, None)
+        assert pg_store is not None
+        return pg_store[0]
+
+    def get_store(self, group=None) -> Store:
+        """
+        Returns the store/prefix_store of the given group.
+
+        Args:
+            group (ProcessGroup, optional): The process group to work on. The
+                default is the general main process group. If another specific group
+                is specified, the calling process must be part of :attr:`group`.
+
+        Returns:
+            The store/prefix_store of the given process group.
+        """
+        if group is None:
+            pg = self._get_default_group()
+        else:
+            pg = group
+        if self._rank_not_in_group(pg):
+            raise RuntimeError("Invalid process group specified")
+        pg_store = self._pg_map.get(pg, None)
+        assert pg_store is not None
+        return pg_store[1]
+
+    def init_process_group(self,
+                           backend,
+                           init_method=None,
+                           timeout=default_pg_timeout,
+                           world_size=-1,
+                           rank=-1,
+                           store=None,
+                           group_name=''):
+        """
+        Initializes the default distributed process group, and this will also
+        initialize the distributed package.
+
+        There are 2 main ways to initialize a process group:
+            1. Specify ``store``, ``rank``, and ``world_size`` explicitly.
+            2. Specify ``init_method`` (a URL string) which indicates where/how
+            to discover peers. Optionally specify ``rank`` and ``world_size``,
+            or encode all required parameters in the URL and omit them.
+
+        If neither is specified, ``init_method`` is assumed to be "env://".
+
+
+        Args:
+            backend (str or Backend): The backend to use. Depending on
+                build-time configurations, valid values include ``mpi``, ``gloo``,
+                and ``nccl``. This field should be given as a lowercase string
+                (e.g., ``"gloo"``), which can also be accessed via
+                :class:`Backend` attributes (e.g., ``Backend.GLOO``). If using
+                multiple processes per machine with ``nccl`` backend, each process
+                must have exclusive access to every GPU it uses, as sharing GPUs
+                between processes can result in deadlocks.
+            init_method (str, optional): URL specifying how to initialize the
+                                        process group. Default is "env://" if no
+                                        ``init_method`` or ``store`` is specified.
+                                        Mutually exclusive with ``store``.
+            world_size (int, optional): Number of processes participating in
+                                        the job. Required if ``store`` is specified.
+            rank (int, optional): Rank of the current process (it should be a
+                                number between 0 and ``world_size``-1).
+                                Required if ``store`` is specified.
+            store(Store, optional): Key/value store accessible to all workers, used
+                                    to exchange connection/address information.
+                                    Mutually exclusive with ``init_method``.
+            timeout (timedelta, optional): Timeout for operations executed against
+                the process group. Default value equals 30 minutes.
+                This is applicable for the ``gloo`` backend. For ``nccl``, this is
+                applicable only if the environment variable ``NCCL_BLOCKING_WAIT``
+                or ``NCCL_ASYNC_ERROR_HANDLING`` is set to 1. When
+                ``NCCL_BLOCKING_WAIT`` is set, this is the duration for which the
+                process will block and wait for collectives to complete before
+                throwing an exception. When ``NCCL_ASYNC_ERROR_HANDLING`` is set,
+                this is the duration after which collectives will be aborted
+                asynchronously and the process will crash. ``NCCL_BLOCKING_WAIT``
+                will provide errors to the user which can be caught and handled,
+                but due to its blocking nature, it has a performance overhead. On
+                the other hand, ``NCCL_ASYNC_ERROR_HANDLING`` has very little
+                performance overhead, but crashes the process on errors. This is
+                done since CUDA execution is async and it is no longer safe to
+                continue executing user code since failed async NCCL operations
+                might result in subsequent CUDA operations running on corrupted
+                data. Only one of these two environment variables should be set.
+            group_name (str, optional, deprecated): Group name.
+
+        To enable ``backend == Backend.MPI``, PyTorch needs to be built from source
+        on a system that supports MPI.
+
+        """
+        if not isinstance(timeout, timedelta):
+            raise RuntimeError("Expected timeout argument to be of type"
+                               "datetime.timedelta")
+
+        if self.WORLD is not None:
+            raise RuntimeError("trying to initialize the default process group "
+                               "twice!")
+
+        assert (store is None) or (init_method is None), \
+            "Cannot specify both init_method and store."
+
+        if store is not None:
+            assert world_size > 0, 'world_size must be positive if using store'
+            assert rank >= 0, 'rank must be non-negative if using store'
+        elif init_method is None:
+            init_method = "env://"
+
+        # whatever the backend is, we need a store to exchange information.
+        if store is None:
+            rendezvous_iterator = rendezvous(
+                init_method, rank, world_size, timeout=timeout
+            )
+            store, rank, world_size = next(rendezvous_iterator)
+            store.set_timeout(timeout)
+
+        backend = Backend(backend)
+
+        if backend == Backend.MPI:
+            if world_size != -1 or rank != -1:
+                warnings.warn(
+                    "For MPI backend, world_size ({}) and rank ({}) "
+                    "are ignored since they are assigned by the "
+                    "MPI runtime.".format(world_size, rank))
+
+            self._update_default_pg(self._new_process_group_helper(
+                -1,
+                -1,
+                [],
+                Backend.MPI,
+                None,
+                group_name=group_name,
+                timeout=timeout))
+        else:
+            self._update_default_pg(self._new_process_group_helper(
+                world_size,
+                rank,
+                [],
+                backend,
+                store,
+                group_name=group_name,
+                timeout=timeout))
+
+        self._pg_group_ranks[self.WORLD] = {
+            i: i for i in range(self.WORLD.size())}  # type: ignore
+        self._default_pg_init_method = init_method
+
+        # barrier at the end to ensure that once we return from this method, all
+        # process groups including global variables are updated correctly on all
+        # ranks.
+        if backend == Backend.MPI:
+            # MPI backend doesn't use store.
+            self.barrier()
+        else:
+            # Use store based barrier here since barrier() used a bunch of
+            # default devices and messes up NCCL internal state.
+            self._store_based_barrier(rank, store, timeout)
+
+    def _new_process_group_helper(self,
+                                  world_size,
+                                  rank,
+                                  group_ranks,
+                                  backend,
+                                  store,
+                                  group_name=None,
+                                  timeout=default_pg_timeout):
+        """
+        Create a new distributed process group.
+
+        This function must be called by ALL processes in the global group, even if
+        the calling process is not part of the newly created group. In that case,
+        this function returns self.NON_GROUP_MEMBER.
+
+        This function is called with ``group_ranks == []`` for the default group.
+        """
+        if not group_name:
+            group_name = str(self._group_count)
+        self._group_count += 1
+
+        if group_name in self._pg_names.values():
+            raise RuntimeError("The specified group name has already been "
+                               "created, please use a different group name")
+
+        if not isinstance(timeout, timedelta):
+            raise RuntimeError("Expected timeout argument to be of type"
+                               "datetime.timedelta")
+
+        # The list of group ranks is empty if we're creating the default group.
+        is_default_group = (len(group_ranks) == 0)
+
+        backend = Backend(backend)
+        pg: Union[ProcessGroupGloo, ProcessGroupMPI, ProcessGroupNCCL]
+        if backend == Backend.MPI:
+            if not is_mpi_available():
+                raise RuntimeError(
+                    "Distributed package doesn't have MPI built in."
+                    " MPI is only included if you build PyTorch from"
+                    " source on a host that has MPI installed.")
+            pg = ProcessGroupMPI.create(group_ranks)
+            if not pg:
+                return self.NON_GROUP_MEMBER
+            self._pg_map[pg] = (Backend.MPI, store)
+            self._pg_names[pg] = group_name
+        else:
+            # If this is a subgroup (which means group_ranks is specified),
+            # we check if the current process is a member of the new group.
+            if not is_default_group:
+                global_rank = self._get_default_group().rank()
+                if global_rank not in group_ranks:
+                    return self.NON_GROUP_MEMBER
+
+            # Use the group name as prefix in the default store, such that
+            # a single store can be reused by multiple groups.
+            prefix_store = PrefixStore(group_name, store)
+
+            if backend == Backend.GLOO:
+                pg = ProcessGroupGloo(
+                    prefix_store,
+                    rank,
+                    world_size,
+                    timeout=timeout)
+                self._pg_map[pg] = (Backend.GLOO, store)
+                self._pg_names[pg] = group_name
+            elif backend == Backend.NCCL:
+                if not is_nccl_available():
+                    raise RuntimeError("Distributed package doesn't have NCCL "
+                                       "built in")
+                pg = ProcessGroupNCCL(
+                    prefix_store,
+                    rank,
+                    world_size,
+                    timeout)
+                self._pg_map[pg] = (Backend.NCCL, store)
+                self._pg_names[pg] = group_name
+            else:
+                pg = getattr(Backend, backend.upper())(
+                    prefix_store,
+                    rank,
+                    world_size,
+                    timeout)
+                self._pg_map[pg] = (backend, store)
+                self._pg_names[pg] = group_name
+
+        return pg
+
+    def destroy_process_group(self, group=None):
+        """
+        Destroy a given process group, and deinitialize the distributed package
+
+        Args:
+            group (ProcessGroup, optional): The process group to be destroyed, if
+                                            self.WORLD is given, all process
+                                            groups including the default one will
+                                            be destroyed.
+        """
+
+        if group == self.NON_GROUP_MEMBER:
+            return
+
+        if group is None:
+            pg = self.WORLD
+        else:
+            pg = group
+
+        assert pg is not None
+        if self._pg_map.get(pg, None) is None:
+            raise RuntimeError("Invalid process group specified")
+
+        if group is None or group == self.WORLD:
+            self._update_default_pg(None)
+            self._default_pg_init_method = None
+            self._pg_map.clear()
+            self._point2point_groups.clear()
+            self._pg_names.clear()
+            self._pg_group_ranks.clear()
+
+            # when process group doesn't have an explicit name (only WORLD (default)
+            # process group can have an explicit name), we use global _group_counter
+            # to generate the name. We need to reset the counter on destruction to
+            # allow consistent value to be generated when we re-create process
+            # groups after some trainers recover from failure
+            #
+            # We only reset this when WORLD is being destroyed because if this
+            # process group is in good state, we aren't dealing with failures.
+            self._group_count = 0
+        else:
+            del self._pg_map[pg]
+            del self._pg_names[pg]
+            del self._pg_group_ranks[pg]
+
+            if group in self._point2point_groups:
+                del self._point2point_groups[group]
+            self._group_count -= 1
+
+    def get_rank(self, group=None):
+        """
+        Returns the rank of current process group
+
+        Rank is a unique identifier assigned to each process within a distributed
+        process group. They are always consecutive integers ranging from 0 to
+        ``world_size``.
+
+        Args:
+            group (ProcessGroup, optional): The process group to work on. If None,
+                the default process group will be used.
+
+        Returns:
+            The rank of the process group
+            -1, if not part of the group
+
+        """
+        if self._rank_not_in_group(group):
+            return -1
+
+        default_pg = self._get_default_group()
+        if group is None or group is self.WORLD:
+            return default_pg.rank()
+
+        return self._get_group_rank(group, default_pg.rank())
+
+    def get_world_size(self, group=None):
+        """
+        Returns the number of processes in the current process group
+
+        Args:
+            group (ProcessGroup, optional): The process group to work on. If None,
+                the default process group will be used.
+
+        Returns:
+            The world size of the process group
+            -1, if not part of the group
+
+        """
+        if self._rank_not_in_group(group):
+            return -1
+
+        return self._get_group_size(group)
+
+    def _validate_output_list_for_rank(self, my_rank, dst, gather_list):
+        if dst == my_rank:
+            if not gather_list:
+                raise ValueError(
+                    "Argument ``gather_list`` must be specified on destination rank."
+                )
+        elif gather_list:
+            raise ValueError(
+                "Argument ``gather_list`` must NOT be specified "
+                "on non-destination ranks."
+            )
+
+    def barrier(self,
+                group=None,
+                async_op=False,
+                device_ids=None):
+        """
+        Synchronizes all processes.
+
+        This collective blocks processes until the whole group enters this function,
+        if async_op is False, or if async work handle is called on wait().
+
+        Args:
+            group (ProcessGroup, optional): The process group to work on. If None,
+                the default process group will be used.
+            async_op (bool, optional): Whether this op should be an async op
+            device_ids ([int], optional): List of device/GPU ids.
+                                        Valid only for NCCL backend.
+
+        Returns:
+            Async work handle, if async_op is set to True.
+            None, if not async_op or if not part of the group
+        """
+        if group is None:
+            group = self.WORLD
+        if self._rank_not_in_group(group):
+            return
+
+        opts = BarrierOptions()
+        if device_ids is not None:
+            if self.get_backend(group) != Backend.NCCL:
+                raise RuntimeError("Function argument device_ids not supported "
+                                   "for the selected backend {}".format(self.get_backend(group)))
+            if isinstance(device_ids, list):
+                opts.device_ids = device_ids
+            else:
+                raise RuntimeError("Invalid function argument: "
+                                   "device_ids type should be List[int]")
+
+        if group is None:
+            default_pg = self._get_default_group()
+            work = default_pg.barrier(opts=opts)
+        else:
+            work = group.barrier(opts=opts)
+
+        if async_op:
+            return work
+        else:
+            work.wait()
+
+    def new_group(self, ranks=None, timeout=default_pg_timeout, backend=None):
+        """
+        Creates a new distributed group.
+
+        This function requires that all processes in the main group (i.e. all
+        processes that are part of the distributed job) enter this function, even
+        if they are not going to be members of the group. Additionally, groups
+        should be created in the same order in all processes.
+
+        .. warning::
+            Using multiple process groups with the ``NCCL`` backend concurrently
+            is not safe and the user should perform explicit synchronization in
+            their application to ensure only one process group is used at a time.
+            This means collectives from one process group should have completed
+            execution on the device (not just enqueued since CUDA execution is
+            async) before collectives from another process group are enqueued.
+            See `Using multiple NCCL communicators concurrently <https://docs.nvid
+            ia.com/deeplearning/nccl/user-guide/docs/usage/communicators.html#using
+            -multiple-nccl-communicators-concurrently>`_ for more details.
+
+        Args:
+            ranks (list[int]): List of ranks of group members. If ``None``, will be
+                set to all ranks. Default is ``None``.
+            timeout (timedelta, optional): Timeout for operations executed against
+                the process group. Default value equals 30 minutes.
+                This is only applicable for the ``gloo`` backend.
+            backend (str or Backend, optional): The backend to use. Depending on
+                build-time configurations, valid values are ``gloo`` and ``nccl``.
+                By default uses the same backend as the global group. This field
+                should be given as a lowercase string (e.g., ``"gloo"``), which can
+                also be accessed via :class:`Backend` attributes (e.g.,
+                ``Backend.GLOO``).
+
+        Returns:
+            A handle of distributed group that can be given to collective calls.
+        """
+
+        default_pg = self._get_default_group()
+        default_backend, default_store = self._pg_map[default_pg]
+        global_rank = default_pg.rank()
+        global_world_size = default_pg.size()
+
+        # Default to the same backend as the global process group
+        # if the backend is not specified.
+        if not backend:
+            backend = default_backend
+
+        # checks the input ranks
+        if ranks is not None:
+            ranks = sorted(ranks)
+            group_world_size = len(ranks)
+            if group_world_size > global_world_size:
+                raise RuntimeError("the new group's world size should be less or "
+                                   "equal to the world size set by "
+                                   "init_process_group")
+            # check ranks' sanity
+            for rank in ranks:
+                if rank < 0 or rank >= global_world_size:
+                    raise RuntimeError("The new group's rank should be within the "
+                                       "the world_size set by init_process_group")
+            if global_rank in ranks:
+                group_rank = ranks.index(global_rank)
+            else:
+                group_rank = None
+        else:
+            ranks = list(range(global_world_size))
+            group_world_size = global_world_size
+            group_rank = global_rank
+
+        backend = Backend(backend)
+        pg = self._new_process_group_helper(group_world_size,
+                                            group_rank,
+                                            ranks,
+                                            backend,
+                                            default_store,
+                                            timeout=timeout)
+
+        # Create the global rank to group rank mapping
+        self._pg_group_ranks[pg] = {
+            global_rank: group_rank
+            for group_rank, global_rank in enumerate(ranks)
+        }
+
+        # barrier at the end to ensure that once we return from this method, all
+        # process groups including global variables are updated correctly on all
+        # ranks.
+        if backend == Backend.MPI:
+            # MPI doesn't have store.
+            self.barrier()
+        else:
+            # Use store based barrier here since barrier() used a bunch of
+            # default devices and messes up NCCL internal state.
+            self._store_based_barrier(global_rank, default_store, timeout)
+
+        return pg
+
+    def build_point2point_group(self, rank: int = 0, timeout=default_pg_timeout, backend=None) -> List[ProcessGroup]:
+        """Build point2point group, :param:rank will be regarded as new rank=0 and connect to other rank in this world.
+
+        .. note:: 
+            Only build this if you really need it. Otherwise, please use new_group() to build single one.
+        """
+        assert 0 <= rank < self.get_world_size()
+        pg_list = []
+        for other in range(self.get_world_size()):
+            if other == rank:
+                # skip self to self connection
+                continue
+            else:
+                pg = self.new_group(
+                    ranks=[rank, other], timeout=timeout, backend=backend)
+                # backup
+                # 当rank不在sub pg里面的时候，会返回NON_GROUP_MEMBER。注意判断。
+                if pg is not self.NON_GROUP_MEMBER:
+                    self._point2point_groups[pg] = self._pg_map[pg]
+                    pg_list.append(pg)
+        return pg_list
+
+
+class TemporaryConnection(object):
+    """Useful while wraper any operation as point2point, point2servel operation.
+    """
+    temporary_group: ProcessGroup
+    federated_world: FederatedWorld
+
+    def __init__(self, federated_world: FederatedWorld, ranks=List[int], timeout=default_pg_timeout, backend=None):
+        self.federated_world = federated_world
+        self.ranks = ranks
+        self.timeout = timeout
+        self.backend = backend
+
+    def __enter__(self):
+        # build sub process group
+        self.temporary_group = self.federated_world.new_group(
+            self.ranks, self.timeout, self.backend)
+        return self
+
+    def __exit__(self, *unused):
+        self.federated_world.destroy_process_group(self.temporary_group)
+
+
+# At most case, you are not allowed to modifed this list manually.
+# FederatedWorld是底层的通讯抽象，World是对应的参数配置
+__federated_world__: Dict[FederatedWorld, World] = OrderedDict()
+
+
+class _Register(object):
+    @classmethod
+    def register_federated_world(cls, federated_world: FederatedWorld, world: World):
+        if federated_world in __federated_world__:
+            raise KeyError("Already registered.")
+        else:
+            __federated_world__[federated_world] = world
+
+    @classmethod
+    def deleted_federated_world(cls, federated_world: FederatedWorld):
+        if federated_world in __federated_world__:
+            if federated_world.is_initialized():
+                if openfed.VERBOSE:
+                    print("Try to destroy all process group in federated world.")
+                federated_world.destroy_process_group(
+                    group=federated_world.WORLD)
+            del __federated_world__[federated_world]
+
+    @classmethod
+    def deleted_all_federated_world(cls):
+        if openfed.VERBOSE:
+            print("Try to delete all process group in all federated world.")
+        for k in __federated_world__:
+            cls.deleted_federated_world(k)
+
+    @classmethod
+    def is_registered(cls, federated_world: FederatedWorld) -> bool:
+        return federated_world in __federated_world__
+
+    def __iter__(self):
+        return zip(__federated_world__.keys(), __federated_world__.values())
+
+    @property
+    def default_federated_world(cls) -> FederatedWorld:
+        """ If not exists, return None
+        """
+        for fed_world in __federated_world__:
+            return fed_world
+        else:
+            return None
+
+    @property
+    def default_world(cls) -> World:
+        """If not exists, return None
+        """
+        for fed_world in __federated_world__:
+            return __federated_world__[fed_world]
+        else:
+            return None
+
+    def __len__(self):
+        return len(__federated_world__)
+
+
+register = _Register()
+
 
 # Some reduce ops are not supported by complex numbers and will result in an error.
 # We currently provide complex support to the distributed API by viewing
@@ -1711,3 +2703,106 @@ def all_to_all(output_tensor_list,
         return work
     else:
         work.wait()
+
+
+try:
+    from torch.distributed.distributed_c10d import ProcessGroupNCCL
+except ImportError:
+    ProcessGroupNCCL = None
+
+
+@contextlib.contextmanager
+def _batch_p2p_manager(backend):
+    if backend == Backend.NCCL:
+        ProcessGroupNCCL._group_start()
+    try:
+        yield
+    finally:
+        if backend == Backend.NCCL:
+            ProcessGroupNCCL._group_end()
+
+
+class P2POp(object):
+    """
+    A class to build point-to-point operations for ``batch_isend_irecv``.
+
+    This class builds the type of P2P operation, communication buffer, peer rank,
+    Process Group group, and tag. Instances of this class will be passed to
+    ``batch_isend_irecv`` for point-to-point communications.
+
+    Args:
+        op (callable): A function to send data to or receive data from a peer process.
+            The type of ``op`` is either ``torch.distributed.isend`` or
+            ``torch.distributed.irecv``.
+        tensor (Tensor): Tensor to send or receive.
+        peer (int): Destination or source rank.
+        group (ProcessGroup, optional): The process group to work on. If None,
+            the default process group will be used.
+        tag (int, optional): Tag to match send with recv.
+    """
+
+    def __init__(self, op, tensor, peer, group=None, tag=0):
+        self.op = op
+        self.tensor = tensor
+        self.peer = peer
+        self.group = group
+        self.tag = tag
+
+    def __new__(cls, op, tensor, peer, group=None, tag=0):
+        _check_op(op)
+        _check_single_tensor(tensor, "tensor")
+        return object.__new__(cls)
+
+
+def batch_isend_irecv(p2p_op_list,
+                      federated_world=None):
+    """
+    Send or Receive a batch of tensors asynchronously and return a list of requests.
+
+    Process each of the operations in p2p_op_list and return the corresponding
+    requests. NCCL and Gloo backend are currently supported.
+
+    Args:
+        p2p_op_list: A list of point-to-point operations(type of each operator is
+            ``torch.distributed.P2POp``). The order of the isend/irecv in the list
+            matters and it needs to match with corresponding isend/irecv on the
+            remote end.
+
+    Returns:
+        A list of distributed request objects returned by calling the corresponding
+        op in the op_list.
+
+    Examples:
+        >>> send_tensor = torch.arange(2) + 2 * rank
+        >>> recv_tensor = torch.randn(2)
+        >>> send_op = dist.P2POp(dist.isend, send_tensor, (rank + 1)%world_size)
+        >>> recv_op = dist.P2POp(dist.irecv, recv_tensor, (rank + 1)%world_size)
+        >>> reqs = batch_isend_irecv([send_op, recv_op])
+        >>> for req in reqs:
+        >>>     req.wait()
+        >>> recv_tensor
+        tensor([2, 3])     # Rank 0
+        tensor([0, 1])     # Rank 1
+
+    .. note:: Note that when this API is used with the NCCL PG backend, users must set
+        the current GPU device with `torch.cuda.set_device`, otherwise it will
+        lead to unexpected hang issues.
+    """
+    if federated_world is None:
+        federated_world = register.default_federated_world
+    federated_world._check_p2p_op_list(p2p_op_list)
+    backend = federated_world.get_backend(p2p_op_list[0].group)
+    reqs = []
+    with _batch_p2p_manager(backend):
+        for p2p_op in p2p_op_list:
+            op = p2p_op.op
+            tensor = p2p_op.tensor
+            peer = p2p_op.peer
+            curr_group = p2p_op.group
+            tag = p2p_op.tag
+
+            ret = op(tensor, peer, curr_group, tag)
+
+            if ret is not None:
+                reqs.append(ret)
+    return reqs

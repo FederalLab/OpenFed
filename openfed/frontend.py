@@ -4,7 +4,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from .federated.federated import Maintainer, Reign, World, default_reign
-from .utils.types import FedAddr, default_fed_addr
+from .types import FedAddr, default_fed_addr
 
 
 class Frontend(object):
@@ -50,13 +50,13 @@ class Frontend(object):
         self.reign = default_reign()
 
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
-        self.reign.package.set_state_dict(state_dict)
+        self.reign.delivery.set_state_dict(state_dict)
 
     def pack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
-        self.reign.package.pack_state(obj, keys)
+        self.reign.delivery.pack_state(obj, keys)
 
     def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
-        self.reign.package.unpack_state(obj, keys)
+        self.reign.delivery.unpack_state(obj, keys)
 
     def upload(self):
         self.reign.upload()
@@ -65,16 +65,16 @@ class Frontend(object):
         self.reign.download()
 
     def set_task_info(self, task_info: Dict) -> None:
-        self.reign.monitor.set_task_info(task_info)
+        self.reign.informer.set_task_info(task_info)
 
     def get_task_info(self) -> Dict:
-        self.reign.monitor.get_task_info()
+        self.reign.informer.get_task_info()
 
     def set(self, key: str, value: Any) -> None:
-        self.reign.monitor.set(key, value)
+        self.reign.informer.set(key, value)
 
     def get(self, key: str) -> Any:
-        return self.reign.monitor.get(key)
+        return self.reign.informer.get(key)
 
     def finish(self):
         # 已经完成了训练，退出联邦学习。

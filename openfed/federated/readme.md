@@ -30,7 +30,7 @@
 每一次的操作，都需要指定的world。
 TODO：合并core.federated_c10d.py中的Register到world中进行统一管理。
 
-当我们遍历每一个PG的时候，我们会为每一个PG返回一个元祖[Monitor, Package]。
+当我们遍历每一个PG的时候，我们会为每一个PG返回一个元祖[Informer, Delivery]。
 这两个模块中，换言之，对于每一个queen而言，我们仍然不需要将任何底层的通信细节返回给上层。
 而是直接返回封装好的方法。
-其中，Monitor提供了及时的通讯支持。而Package则是提供了数据交换的功能。
+其中，Informer提供了及时的通讯支持。而Package则是提供了数据交换的功能。

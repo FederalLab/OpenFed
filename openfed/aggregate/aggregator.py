@@ -5,12 +5,11 @@ from copy import deepcopy
 from itertools import chain
 from typing import Any, Callable, Dict, List, Union
 
-import openfed
 import torch
-from openfed.utils.types import PACKAGES
 from torch import Tensor
 from torch._six import container_abcs
-from torch.optim import Optimizer
+
+from ..types import Package
 
 
 class _RequiredParameter(object):
@@ -23,7 +22,7 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Aggregator(object):
+class Aggregator(Package):
     r"""Base class for all aggregators.
 
     Aggregator初始化阶段会接受一个参数列表。这个参数列表包含所有可能从客户端收集来的参数。
@@ -58,10 +57,10 @@ class Aggregator(object):
     """
 
     # 列表中的参数会被打包到package中
-    package_key_list: List[str] = []
+    package_key_list: List[str] = None
 
     # 列表中的参数会从package中解压出来
-    unpackage_key_list: List[str] = []
+    unpackage_key_list: List[str] = None
 
     _hook_for_auto_reduce_infos: List[Callable]
     _received_infos: List[Dict]
@@ -380,7 +379,7 @@ class Aggregator(object):
 
         return self._apply_hook_for_auto_reduce()
 
-    def step(self, received_params: PACKAGES, received_info: Dict):
+    def step(self, received_params: Dict[str, Union[Tensor, Dict[str, Tensor]]], received_info: Dict):
         """追加一个新的数据，并进行相关检查。
         """
         for group in self.param_groups:
@@ -417,32 +416,3 @@ class Aggregator(object):
 
     def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
-
-    def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
-        """将聚合到的keys的值赋予到obj（一般是Optimizer，或者结构类似于optimizer的设计）的状态字典中。
-        提供了类似package中unpack_state的功能。但是这里是将聚合过来的state做了一个赋值。
-
-        如果keys为None，会尝试读取unpackage_keys_list。
-        """
-        if isinstance(keys, str):
-            keys = [keys]
-        if keys is None:
-            if hasattr(obj, "unpackage_key_list"):
-                keys = obj.unpackage_key_list
-            else:
-                keys = []
-
-        if len(keys) == 0:
-            if openfed.DEBUG:
-                raise ValueError("Got empty keys")
-            else:
-                # Empty keys
-                warnings.warn("Got empty keys")
-                return
-
-        for group in obj.param_groups:
-            for p in group["params"]:
-                dst_state = obj.state[p]
-                src_state = self.state[p]
-                for key in keys:
-                    dst_state[key] = src_state[key]

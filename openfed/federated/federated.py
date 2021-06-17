@@ -4,12 +4,11 @@ from typing import List, Union
 
 import openfed
 import openfed.utils as utils
-from openfed.utils.types import STATUS, FedAddr
+from openfed.types import STATUS, FedAddr
 
-from .core.federated_c10d import FederatedWorld, ProcessGroup
-from .monitor.monitor import Monitor
-from .pack.package import Package
-from .register import World, register
+from .core import FederatedWorld, ProcessGroup, register, World
+from .deliver import Delivery
+from .inform import Informer
 from .utils.safe_exited import get_head_info, safe_exited
 
 
@@ -75,11 +74,12 @@ class Joint(Thread):
 
         # bound pg with the federated world
         for sub_pg in sub_pg_list:
-            monitor = Monitor(fed_world.get_store(
+            informer = Informer(fed_world.get_store(
                 sub_pg), fed_world, self.world)
-            package = Package(sub_pg, fed_world, self.world)
+            delivery = Delivery(sub_pg, fed_world, self.world)
             with self.world.joint_lock:
-                self.world._pg_mapping[sub_pg] = [package, monitor, fed_world]
+                self.world._pg_mapping[sub_pg] = [
+                    delivery, informer, fed_world]
         if openfed.VERBOSE:
             print(utils.green_color("Connected"), f"{self.fed_addr}")
 
@@ -204,11 +204,10 @@ class Destroy(object):
             world._current_pg = world._NULL_GP
 
         # 获取对应的federated_world
-        package, monitor, fed_world = world._pg_mapping[pg]
+        delivery, informer, fed_world = world._pg_mapping[pg]
 
         # 将informer状态设置成OFFINE
-        monitor.set_state(STATUS.OFFLINE)
-        monitor.manual_stop()
+        informer.set_state(STATUS.OFFLINE)
 
         # 将键值对从全局字典中移除
         del world._pg_mapping[pg]
@@ -251,8 +250,8 @@ class Reign(object):
     """
     pg: ProcessGroup
     world: World
-    package: Package
-    monitor: Monitor
+    delivery: Delivery
+    informer: Informer
     federated_world: FederatedWorld
 
     # version 是用来标明当前端数据的版本号的。
@@ -261,17 +260,17 @@ class Reign(object):
     def __init__(self,
                  pg: ProcessGroup,
                  world: World,
-                 package: Package,
-                 monitor: Monitor,
+                 delivery: Delivery,
+                 informer: Informer,
                  federated_world: FederatedWorld):
         self.pg = pg
         self.world = world
-        self.package = package
-        self.monitor = monitor
+        self.delivery = delivery
+        self.informer = informer
         self.federated_world = federated_world
         self.version = 0
 
-        self.monitor.set("version", self.version)
+        self.informer.set("version", self.version)
 
     def upload(self):
         """将package中的数据传送到另一方并且处理相关逻辑。
@@ -279,16 +278,16 @@ class Reign(object):
         """
         if self.world.is_queen():
             # 1. 写入自身版本号
-            self.monitor.set('version', self.version)
+            self.informer.set('version', self.version)
             # 2. 设置STATUE状态为PUSH，告知另一端自己等待上传数据
-            self.monitor.set_state(STATUS.PUSH)
+            self.informer.set_state(STATUS.PUSH)
             # 3. 进入阻塞，等待数据上传
-            self.package.push()
+            self.delivery.push()
             # 4. 设置自己的状态为ZOMBINE
-            self.monitor.set_state(STATUS.ZOMBINE)
+            self.informer.set_state(STATUS.ZOMBINE)
         else:
             # 1. 写入服务器端的版本号
-            self.monitor.set('version', self.version)
+            self.informer.set('version', self.version)
             # 2. 设置状态为完成ZOMBINE，先设置状态，在推送数据。
             # 防止通信延迟造成的逻辑错误。
             # 比如，当客户端上传完模型，现在需要再次下载一个新的模型时，
@@ -296,11 +295,11 @@ class Reign(object):
             # 而此时服务器端才接收完模型，其要将ZOMBINE设置到状态里。
             # 但是由于延时，可能导致其在PULL生效之后，才写入的ZOMBINE
             # 那么，这时候该客户端将进入无限期的等待中而不会得到服务器的响应。
-            self.monitor.set_state(STATUS.PULL)
+            self.informer.set_state(STATUS.PULL)
             # 3. 发送数据
-            self.package.push()
+            self.delivery.push()
             # 4. 设置自己的状态为ZOMBINE
-            self.monitor.set_state(STATUS.ZOMBINE)
+            self.informer.set_state(STATUS.ZOMBINE)
 
     def download(self):
         """从另一方接收package数据。
@@ -308,22 +307,22 @@ class Reign(object):
         """
         if self.world.is_queen():
             # 1. 写入自身版本号
-            self.monitor.set('version', self.version)
+            self.informer.set('version', self.version)
             # 2. 设置STATUE状态为PULL，告知另一端自己等待下载数据
-            self.monitor.set_state(STATUS.PULL)
+            self.informer.set_state(STATUS.PULL)
             # 3. 进入阻塞，等待数据上传
-            self.package.pull()
+            self.delivery.pull()
             # 4. 设置自己的状态为ZOMBINE
-            self.monitor.set_state(STATUS.ZOMBINE)
+            self.informer.set_state(STATUS.ZOMBINE)
         else:
             # 1. 写入服务器端的版本号
-            self.monitor.set('version', self.version)
+            self.informer.set('version', self.version)
             # 2. 设置状态为完成ZOMBINE。先设置状态，再推送数据。
-            self.monitor.set_state(STATUS.PUSH)
+            self.informer.set_state(STATUS.PUSH)
             # 3. 发送数据
-            self.package.pull()
+            self.delivery.pull()
             # 4. 设置自己的状态为ZOMBINE
-            self.monitor.set_state(STATUS.ZOMBINE)
+            self.informer.set_state(STATUS.ZOMBINE)
 
     def destroy(self):
         """退出联邦学习。

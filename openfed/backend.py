@@ -6,7 +6,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from .aggregate import Aggregator
 from .federated.federated import Maintainer, Reign, World, process_generator
-from .utils.types import STATUS, FedAddr, default_fed_addr
+from .types import STATUS, FedAddr, default_fed_addr
 
 
 class Backend(Thread):
@@ -113,7 +113,7 @@ class Backend(Thread):
                 self.reign = reign
 
                 if reign is not None:
-                    state = reign.monitor.get_state()
+                    state = reign.informer.get_state()
 
                     if state == STATUS.ZOMBINE:
                         # Do nothing, skip
@@ -140,8 +140,8 @@ class Backend(Thread):
         assert self.aggregator is not None, "Set aggregator first"
 
         # 从底层获取接收到的数据
-        packages = self.reign.package.tensor_indexed_packages
-        task_info = self.reign.monitor.get_task_info()
+        packages = self.reign.delivery.tensor_indexed_packages
+        task_info = self.reign.informer.get_task_info()
 
         self.aggregator.step(packages, task_info)
 
@@ -159,14 +159,14 @@ class Backend(Thread):
         assert self.state_dict is not None, "state dict is not specified"
 
         # 先删除之前的数据
-        self.reign.package.reset()
+        self.reign.delivery.reset()
 
         # 指定要打包的数据
-        self.reign.package.set_state_dict(self.state_dict)
+        self.reign.delivery.set_state_dict(self.state_dict)
 
         # 打包数据
-        self.reign.package.pack_state(self.aggregator)
-        self.reign.package.pack_state(self.optimizer)
+        self.reign.delivery.pack_state(self.aggregator)
+        self.reign.delivery.pack_state(self.optimizer)
 
         # 准备发送
         return True
