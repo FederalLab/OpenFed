@@ -39,8 +39,6 @@ class Joint(Thread):
 
         self.world = world
 
-        self.stopped = False
-
         if self.world.is_king():
             # 如果是服务器，那就使用start函数进入后台运行
             self.start()
@@ -80,11 +78,6 @@ class Joint(Thread):
                 self.world._pg_mapping[sub_pg] = reign
         if openfed.VERBOSE:
             print(utils.green_color("Connected"), f"{self.fed_addr}")
-
-        self.stopped = True
-
-    def manual_stop(self):
-        self.stopped = True
 
 
 class Maintainer(Thread):
@@ -330,7 +323,7 @@ class Reign(Informer, Delivery):
         Destroy.destroy(self.pg, self.world)
 
 
-def process_generator() -> Reign:
+def reign_generator() -> Reign:
     """生成器，不断的遍历整个pg数组，并且返回一个pg。
     注意：返回的pg可能是无效的。
         当不存在pg时，会返回一个None。

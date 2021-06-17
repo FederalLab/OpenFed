@@ -1,22 +1,16 @@
 import datetime
 import json
-from collections import OrderedDict
 from enum import Enum, unique
-from typing import Any, Callable, Dict
-
+from typing import Any, Dict
+from collections import OrderedDict
 import openfed
-from openfed.types import APPROVED
 
 from ..core import FederatedWorld, Store, World
-from .gpu_info import getGPUInfo
-from .sys_info import getSysInfo
+from .functional import Collector
 
 # 以下常量用于设置store里面的键值对。
 OPENFED_IDENTIFY = "OPENFED_IDENTIFY"
 OPENFED_STATUS = "OPENFED_STATUS"
-
-OPENFED_SYS_INFO = "OPENFED_SYS_INFO"
-OPENFED_GPU_INFO = "OPENFED_GPU_INFO"
 
 OPENFED_TASK_INFO = "OPENFED_TASK_INFO"
 
@@ -85,7 +79,11 @@ class Informer(object):
     world: World
     federated_world: FederatedWorld
 
+    _collector_dict: Dict
+
     def __init__(self):
+        self._collector_dict = OrderedDict()
+
         # 写入一个初始状态，必须采用原始的方式写入，否则程序会因为不同的执行速度而导致读取到无效的信息。
         # 例如：当我们建立连接后，对方会去读取你的键值，如果没有被设置，则会等待，但是一旦被设置了，就会直接读取到结果。
         # 这时候，你要保证你的状态是正确的，否则的话，对方会强制下线
@@ -161,26 +159,6 @@ class Informer(object):
     def set_task_info(self, task_info: dict):
         self.set(OPENFED_TASK_INFO, task_info)
 
-    def get_gpu_state(self) -> dict:
-        return self.get(OPENFED_GPU_INFO)
-
-    def set_gpu_state(self):
-        if self.world.APPROVED == APPROVED.ALL or self.world.APPROVED == APPROVED.GPU:
-            gpu_state = getGPUInfo()
-        else:
-            gpu_state = {}
-        self.set(OPENFED_GPU_INFO, gpu_state)
-
-    def get_sys_state(self) -> dict:
-        return self.get(OPENFED_SYS_INFO)
-
-    def set_sys_state(self):
-        if self.world.APPROVED == APPROVED.ALL or self.world.APPROVED == APPROVED.SYS:
-            sys_state = getSysInfo()
-        else:
-            sys_state = {}
-        self.set(OPENFED_SYS_INFO, sys_state)
-
     # 关于状态的一些函数
     def alive(self):
         """判断客户端是否在线
@@ -218,3 +196,20 @@ class Informer(object):
 
     def is_offline(self):
         return self.world.ALIVE and self._get_state() == STATUS.OFFLINE
+
+    def _register_collector(self, key: str, collector: Collector):
+        assert key not in self._collector_dict
+
+        self._collector_dict[key] = collector
+
+    def collect(self):
+        """运行预设的钩子，去收集相关信息并且上传。
+
+        当你想要用这个来更好的控制你的训练进程的时候，非常有用。
+        比如比可以把训练的epoch、learning rate等参数封装成一个collector，
+        然后每次训练完直接collect一下，就可以方便的上传到服务器。
+        """
+        cdict = {}
+        for k, f in self._collector_dict.items():
+            cdict[k] = f()
+        self._update(cdict)

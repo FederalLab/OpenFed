@@ -6,7 +6,7 @@ import openfed
 from torch import Tensor
 from torch.optim import Optimizer
 from .aggregate import Aggregator
-from .federated.federated import Maintainer, Reign, World, process_generator
+from .federated.federated import Maintainer, Reign, World, reign_generator
 from .types import FedAddr, default_fed_addr
 
 
@@ -110,7 +110,7 @@ class Backend(Thread):
         如果你希望程序在前台运行，那么请直接调用run()函数。
         """
         while not self.stopped:
-            for reign in process_generator():
+            for reign in reign_generator():
                 self.reign = reign
 
                 if reign is not None:
@@ -203,7 +203,7 @@ class Backend(Thread):
 
     def finish(self):
         # 强制杀死所有的进程，并且退出进程
-        for reign in process_generator():
+        for reign in reign_generator():
             if reign is not None:
                 reign.destroy()
 
