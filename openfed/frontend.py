@@ -3,11 +3,11 @@ from typing import Any, Dict, List, Union, overload
 from torch import Tensor
 from torch.optim import Optimizer
 
+from .common import Address, Peeper, default_address
 from .federated.federated import Maintainer, Reign, World, default_reign
-from .common import Address, default_address
 
 
-class Frontend(object):
+class Frontend(Peeper):
     """为客户端提供一个统一简洁的接口！
     对于常规训练，用户只需要接触这个类，就可以解决所有的通讯问题。
     """
