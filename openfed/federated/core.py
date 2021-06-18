@@ -9,7 +9,6 @@ from datetime import timedelta
 from enum import Enum, unique
 from typing import Any, Dict, List, Optional, Tuple, Union, overload
 
-import openfed
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
@@ -22,7 +21,7 @@ from torch._six import string_classes
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous
 
-from ..common import Array, logger
+from ..common import Array, log_debug_info
 
 _MPI_AVAILABLE = True
 _NCCL_AVAILABLE = True
@@ -647,7 +646,7 @@ class FederatedWorld(object):
 
     def destroy_process_group(self, group=None):
         """
-        Destroy a given process group, and deinitialize the distributed package
+        Destory a given process group, and deinitialize the distributed package
 
         Args:
             group (ProcessGroup, optional): The process group to be destroyed, if
@@ -964,17 +963,15 @@ class _Register(Array):
     def deleted_federated_world(cls, federated_world: FederatedWorld):
         if federated_world in __federated_world__:
             if federated_world.is_initialized():
-                if openfed.VERBOSE:
-                    logger.info(
-                        "Try to destroy all process group in federated world.")
+                log_debug_info(
+                    "Try to destory all process groups in federated world.")
                 federated_world.destroy_process_group(
                     group=federated_world.WORLD)
             del __federated_world__[federated_world]
 
     def deleted_all_federated_world(self):
-        if openfed.VERBOSE:
-            logger.info(
-                "Try to delete all process group in all federated world.")
+        log_debug_info(
+                "Try to delete all process groups in all federated worlds.")
 
         # 从后往前删除，防止出现错误
         for f in range(len(self)-1, -1):

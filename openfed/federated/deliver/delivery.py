@@ -33,24 +33,16 @@ class Delivery(Package, Hook):
     # 因此我们提供了两种方式.
     # tensor_indexed_packages
 
-    # 字典中的每一个参数，都会传递给cypher。如果需要过滤某些参数，你可以直接修改cypher中实现的方法。
-    # 在需要向外发送数据的情况下，cypher.pack函数会依次被调用
-    # 在接收到外部传来的数据时，cypher.unpack函数会依次被调用
-    _cypher_hooks: List[Cypher]
-
     def __init__(self) -> None:
 
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
-        self._cypher_hooks = []
 
-    def register_cypher(self, hook: Union[Cypher, List[Cypher]]):
+    def register_cypher(self, cypher: Cypher):
         """添加一个hook或者一个hook list
         hook的pack和unpack函数会在发送、接收到数据时，自动调用。
         """
-        if isinstance(hook, (list, tuple)):
-            hook = (hook,)
-        self._cypher_hooks.extend(hook)
+        Hook.register_hook(self, func=cypher)
 
     def key_tensor_map(self, key: str, tensor: Tensor):
         """将一个键值对加入到同步数据流中。
@@ -131,7 +123,7 @@ class Delivery(Package, Hook):
         r_packages = received[other_rank]
 
         # 解密数据！注意！逆序进行
-        for hook in self._cypher_hooks[::-1]:
+        for hook in self.hook_list[::-1]:
             r_packages = {k: hook.decrypt(k, v) for k, v in r_packages.items()}
 
         if self.world.is_queen():
@@ -149,7 +141,7 @@ class Delivery(Package, Hook):
         rank = 1 if self.world.is_king() else 0
 
         # 加密数据
-        for hook in self._cypher_hooks:
+        for hook in self.hook_list:
             self.packages = {k: hook.encrypt(k, v)
                              for k, v in self.packages.items()}
 

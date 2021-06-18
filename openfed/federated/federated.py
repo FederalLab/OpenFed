@@ -3,7 +3,7 @@ from typing import List, Union
 
 import openfed
 
-from ..common import Address, SafeTread, logger
+from ..common import Address, SafeTread, log_debug_info, log_verbose_info, log_error_info
 from .core import FederatedWorld, ProcessGroup, Store, World, register
 from .deliver import Delivery
 from .inform import Informer
@@ -26,11 +26,9 @@ class Joint(SafeTread):
                 # 自动设置rank
                 address.rank = 1 if world.is_queen() else 0
             else:
-                raise RuntimeError(
-                    "Please specify the correct rank when world size is not 2")
-
-        if openfed.VERBOSE:
-            logger.info(f"Try to connect to \n{address}")
+                msg = "Please specify the correct rank when world size is not 2"
+                log_error_info(msg)
+                raise RuntimeError(msg)
 
         self.address = address
 
@@ -54,6 +52,8 @@ class Joint(SafeTread):
         在一个程序的运行过程中，你可以反复的调用该函数，建立许多不同的连接。这使得你可以自由的控制
         客户端的增加，而不需要在一开始就指定所有的客户端。
         """
+        log_verbose_info(f"Connect to \n{str(self.address)}")
+
         # create a federated world and auto register it
         fed_world = FederatedWorld()
 
@@ -62,7 +62,7 @@ class Joint(SafeTread):
             register.register_federated_world(fed_world, self.world)
 
         # build the connection between the federated world
-        fed_world.init_process_group(**self.address.as_dict())
+        fed_world.init_process_group(**self.address.as_dict)
 
         # 无论在客户端还是服务器端，这里的rank都是指定0，也就是服务器端。
         sub_pg_list = fed_world.build_point2point_group(rank=0)
@@ -73,8 +73,7 @@ class Joint(SafeTread):
                 sub_pg), sub_pg, fed_world, self.world)
             with self.world.joint_lock:
                 self.world._pg_mapping[sub_pg] = reign
-        if openfed.VERBOSE:
-            logger.info(f"Connected to\n{self.address}")
+        log_verbose_info(f"Conneted to {repr(self.address)}")
 
     def __repr__(self):
         return "Joint"
@@ -122,15 +121,16 @@ class Maintainer(SafeTread):
             self.pending_queue.extend(self.read_address_from_file())
 
             if len(self.pending_queue) > 1:
-                raise RuntimeError(
-                    "Too many fed addr are specified. Only allowed 1.")
+                msg = "Too many fed addr are specified. Only allowed 1."
+                log_error_info(msg)
+                raise RuntimeError(msg)
             elif len(self.pending_queue) == 1:
                 address = self.pending_queue.pop()
                 Joint(address, self.world)
                 self.finished_queue.append(address)
             else:
-                if openfed.VERBOSE:
-                    logger.warning("An valid address is missed.")
+                log_verbose_info(
+                    "Waiting for a valid address to build a connection.")
 
     def read_address_from_file(self) -> List[Address]:
         if self.address_file is None:
@@ -166,6 +166,7 @@ class Maintainer(SafeTread):
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
         """
+        log_debug_info(f"Add a new address {repr(address)} manually.")
         if self.world.is_king():
             self.pending_queue.append(address)
         else:
@@ -175,11 +176,11 @@ class Maintainer(SafeTread):
         return "Maintainer"
 
 
-class Destroy(object):
+class Destory(object):
     """销毁客户端。
     """
     @classmethod
-    def destroy(cls, pg: ProcessGroup, world: World = None):
+    def destory(cls, pg: ProcessGroup, world: World = None):
         """如果不指定world，则使用默认组。也就是在__federated_world__中的第一个。
         """
         if world is None:
@@ -221,14 +222,14 @@ class Destroy(object):
     def destroy_current(cls, world: World = None):
         if world is None:
             world = register.default_world
-        cls.destroy(world._current_pg, world)
+        cls.destory(world._current_pg, world)
 
     @classmethod
     def destroy_all(cls, world: World = None):
         if world is None:
             world = register.default_world
         for pg in world._pg_mapping:
-            cls.destroy(pg, world)
+            cls.destory(pg, world)
 
 
 class Reign(Informer, Delivery):
@@ -339,11 +340,11 @@ class Reign(Informer, Delivery):
             self.zombine()
             return True
 
-    def destroy(self):
+    def destory(self):
         """退出联邦学习。
         """
         # 销毁当前进程
-        Destroy.destroy(self.pg, self.world)
+        Destory.destory(self.pg, self.world)
 
     def __repr__(self) -> str:
         string = "Reign\n"

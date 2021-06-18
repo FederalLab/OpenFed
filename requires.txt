@@ -2,3 +2,4 @@ bidict
 psutil
 prettytable
 loguru
+random_word

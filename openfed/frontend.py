@@ -3,10 +3,9 @@ from typing import Any, Dict, List, Union, overload
 from torch import Tensor
 from torch.optim import Optimizer
 
-from .common import Address, Peeper, default_address, logger
+from .common import Address, Peeper, default_address, log_debug_info, log_info
 from .federated.federated import Maintainer, Reign, World, default_reign
 import openfed
-import warnings
 
 
 class Frontend(Peeper):
@@ -62,20 +61,16 @@ class Frontend(Peeper):
 
     def upload(self) -> bool:
         state = self.reign.upload()
-        msg = "Failed to upload data, the server may have shut down."
-        if openfed.DEBUG and not state:
-            logger.error(msg)
-        elif not state:
-            logger.warning(msg)
+        if not state:
+            msg = "Failed to upload data, the server may have shut down."
+            log_info(msg)
         return state
 
     def download(self) -> bool:
         state = self.reign.download()
-        msg = "Failed to upload data, the server may have shut down."
-        if openfed.DEBUG and not state:
-            logger.error(msg)
-        elif not state:
-            logger.warning(msg)
+        if not state:
+            msg = "Failed to upload data, the server may have shut down."
+            log_info(msg)
         return state
 
     def set_task_info(self, task_info: Dict) -> None:
@@ -93,7 +88,7 @@ class Frontend(Peeper):
     def finish(self):
         # 已经完成了训练，退出联邦学习。
         if self.reign is not None:
-            self.reign.destroy()
+            self.reign.destory()
 
         self.maintainer.manual_stop()
 

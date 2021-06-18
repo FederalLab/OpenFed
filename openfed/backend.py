@@ -7,8 +7,10 @@ from torch.optim import Optimizer
 import openfed
 
 from .aggregate import Aggregator
-from .common import Address, Hook, Peeper, SafeTread, default_address, logger
-from .federated.federated import Maintainer, Reign, World, reign_generator, register
+from .common import (Address, Hook, Peeper, SafeTread, default_address,
+                     log_debug_info, log_error_info, log_verbose_info)
+from .federated.federated import (Maintainer, Reign, World, register,
+                                  reign_generator)
 
 
 class Backend(SafeTread, Peeper, Hook):
@@ -21,8 +23,6 @@ class Backend(SafeTread, Peeper, Hook):
     # 一旦传递进来，那么这里的模型参数应该始终保持id不变。
     # 也就是说，你应该设置net.state_dict(..., keep_vars=True)
     state_dict: Dict[str, Tensor]
-
-    stopped: bool
 
     # 一个maintiner用于处理连接
     maintiner: Maintainer
@@ -38,7 +38,7 @@ class Backend(SafeTread, Peeper, Hook):
     received_numbers: int
 
     # 记录上一次模型更新的时间，可以根据这个来判断是否超时强制更新
-    last_time: float
+    last_aggregate_time: float
 
     @overload
     def __init__(self):
@@ -94,7 +94,7 @@ class Backend(SafeTread, Peeper, Hook):
         self.reign = None
 
         self.received_numbers = 0
-        self.last_time = time.time()
+        self.last_aggregate_time = time.time()
 
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
         self.state_dict = state_dict
@@ -111,35 +111,63 @@ class Backend(SafeTread, Peeper, Hook):
         如果你希望程序在前台运行，那么请直接调用run()函数。
         """
         while not self.stopped:
+            self.step_at_new_episode()
             rg = reign_generator()
             for reign in rg:
-                if self.stopped:
-                    break
-                self.reign = reign
-                if reign is not None:
+                if not self.stopped and reign is not None:
+                    self.reign = reign
+                    self.step_at_first()
                     if reign.is_zombine():
-                        # Do nothing, skip
-                        ...
+                        self.step_at_zombine()
                     elif reign.is_offline():
                         # Destory process
-                        reign.destroy()
+                        if self.step_before_destory():
+                            self.step_after_destory(reign.destory())
+                        else:
+                            self.step_at_failed()
                     elif reign.is_pushing():
                         # 表示客户端要上传数据PUSH，那么我们要download数据
-                        reign.download()
-                        self.after_received_a_new_model()
+                        if self.step_before_download():
+                            self.step_after_download(reign.download())
+                        else:
+                            self.step_at_failed()
                     elif reign.is_pulling():
                         # 首先进行一些判断，来确定是否响应这个请求
-                        if self.before_send_a_new_model():
+                        if self.step_before_upload():
                             # 表示客户端请求下载一组数据PULL，那我们要upload数据来满足他
-                            reign.upload()
+                            self.step_after_upload(reign.upload())
+                        else:
+                            self.step_at_failed()
                     else:
                         raise Exception("Invalid state")
                 # 常规的状态检查和更新
-                self.update()
+                self.step_at_last()
                 time.sleep(openfed.SLEEP_LONG_TIME)
-            del rg
+            else:
+                del rg
 
-    def after_received_a_new_model(self):
+        self.finish()
+        return "Backend exited."
+
+    def step_at_new_episode(self):
+        pass
+
+    def step_at_first(self):
+        pass
+
+    def step_at_zombine(self):
+        pass
+
+    def step_before_destory(self) -> bool:
+        return True
+
+    def step_after_destory(self, state=...):
+        pass
+
+    def step_before_download(self) -> bool:
+        return True
+
+    def step_after_download(self, state=...):
         assert self.aggregator is not None, "Set aggregator first"
 
         # 从底层获取接收到的数据
@@ -150,9 +178,9 @@ class Backend(SafeTread, Peeper, Hook):
 
         self.received_numbers += 1
 
-        logger.info(f"Receive model @{self.received_numbers}")
+        log_verbose_info(f"Receive model @{self.received_numbers}")
 
-    def before_send_a_new_model(self) -> bool:
+    def step_before_upload(self) -> bool:
         """当客户端要求返回一个新的模型时，我们可能会面临不同的情况，这个申请可能无法满足。
         当无法满足的时候，返回False，否则返回True。
         这个函数中，应该包含了对package等需要传送的相关数据的设置。
@@ -174,7 +202,10 @@ class Backend(SafeTread, Peeper, Hook):
         # 准备发送
         return True
 
-    def update(self):
+    def step_after_upload(self, state=...):
+        pass
+
+    def step_at_last(self):
         """用于更新内部状态
         """
 
@@ -191,12 +222,15 @@ class Backend(SafeTread, Peeper, Hook):
             # 重置状态
             self.aggregator.zero_grad()
             self.received_numbers = 0
-            self.last_time = time.time()
+            self.last_aggregate_time = time.time()
 
             self.manual_stop()
         else:
             # 暂时啥也不做
             ...
+
+    def step_at_failed(self):
+        pass
 
     def __repr__(self):
         return "Backend"

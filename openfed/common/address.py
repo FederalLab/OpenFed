@@ -2,8 +2,11 @@ import json
 from typing import List, TypeVar
 
 from prettytable import PrettyTable
+from random_word import RandomWords
 
 _A = TypeVar("_A", bound='Address')
+
+_rw = RandomWords()
 
 
 class Address(object):
@@ -86,6 +89,9 @@ class Address(object):
         self.world_size = world_size
         self.rank = rank
         self.store = store
+        if len(group_name) == 0:
+            # 获取一个随机的名字给他
+            group_name = rw.get_random_word()
         self.group_name = group_name
 
     @classmethod
@@ -117,6 +123,11 @@ class Address(object):
             json.dump(address_dict_list, f)
 
     def __repr__(self):
+        # 调用repr方法，输出一个简介
+        return f"@ {self.group_name}"
+
+    def __str__(self):
+        # 调用str方法，输出一个详细内容
         table = PrettyTable(
             ['backend', 'init_method', 'world_size', 'rank', 'store', 'group_name']
         )
@@ -126,6 +137,7 @@ class Address(object):
         )
         return "Address \n" + str(table)
 
+    @property
     def as_dict(self):
         # 这个函数主要是为了让fedaddr支持解包操作，方便将其作为参数传入底层的方法。
         return dict(
