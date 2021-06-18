@@ -161,6 +161,8 @@ class Informer(Hook):
         self.set(OPENFED_TASK_INFO, task_info)
 
     # 关于状态的一些函数
+    # 关于状态判定：ing表示将自己的状态设置成这个。
+    # 读取的都是对方的状态，设置的都是自己的状态！
     def alive(self):
         """判断客户端是否在线
         """

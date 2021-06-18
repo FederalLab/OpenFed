@@ -260,19 +260,32 @@ class Reign(Informer, Delivery):
         self.version = 0
         self.set("version", self.version)
 
-    def upload(self):
+    def upload(self) -> bool:
         """将package中的数据传送到另一方并且处理相关逻辑。
         你在任何情况下，都应该通过这种方式，upload数据，而不是直接使用package.push操作。
+
+        Returns: 返回一个bool，来表示操作是否成功。
         """
+
+        # 记住一个原则：设置的永远都是自己的状态，读取的永远都是对方的状态
         if self.world.is_queen():
             # 1. 写入自身版本号
             self.set('version', self.version)
             # 2. 设置STATUE状态为PUSH，告知另一端自己等待上传数据
             self.pushing()
             # 3. 进入阻塞，等待数据上传
+            tic = time.time()
+            while not self.is_pulling():  # 检查对方是否进入了pulling状态
+                toc = time.time()
+                if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
+                    return False
+                time.sleep(openfed.SLEEP_SHORT_TIME)
+
             self.push()
             # 4. 设置自己的状态为ZOMBINE
             self.zombine()
+
+            return True
         else:
             # 1. 写入服务器端的版本号
             self.set('version', self.version)
@@ -283,15 +296,21 @@ class Reign(Informer, Delivery):
             # 而此时服务器端才接收完模型，其要将ZOMBINE设置到状态里。
             # 但是由于延时，可能导致其在PULL生效之后，才写入的ZOMBINE
             # 那么，这时候该客户端将进入无限期的等待中而不会得到服务器的响应。
-            self.pulling()
+            self.pushing()
             # 3. 发送数据
             self.push()
             # 4. 设置自己的状态为ZOMBINE
             self.zombine()
+            # HACK: 考虑处理数据发送失败的问题。建议启用一个thread做这件事。
+            return True
 
-    def download(self):
+    def download(self) -> bool:
         """从另一方接收package数据。
         你在任何情况下，都应该通过这种方式，download数据，而不是直接使用package.pull操作。
+
+        Returns: 返回一个操作数来表示操作是否成功。
+
+        客户端会等待一段时间，服务器则直接返回falied。
         """
         if self.world.is_queen():
             # 1. 写入自身版本号
@@ -299,18 +318,27 @@ class Reign(Informer, Delivery):
             # 2. 设置STATUE状态为PULL，告知另一端自己等待下载数据
             self.pulling()
             # 3. 进入阻塞，等待数据上传
+            tic = time.time()
+            while not self.is_pushing():  # 检查对方是否进入了pushing状态
+                toc = time.time()
+                if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
+                    return False
+                time.sleep(openfed.SLEEP_SHORT_TIME)
+
             self.pull()
             # 4. 设置自己的状态为ZOMBINE
             self.zombine()
+            return True
         else:
             # 1. 写入服务器端的版本号
             self.set('version', self.version)
             # 2. 设置状态为完成ZOMBINE。先设置状态，再推送数据。
-            self.pushing()
+            self.pulling()
             # 3. 发送数据
             self.pull()
             # 4. 设置自己的状态为ZOMBINE
             self.zombine()
+            return True
 
     def destroy(self):
         """退出联邦学习。

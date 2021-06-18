@@ -5,6 +5,8 @@ from torch.optim import Optimizer
 
 from .common import Address, Peeper, default_address
 from .federated.federated import Maintainer, Reign, World, default_reign
+import openfed
+import warnings
 
 
 class Frontend(Peeper):
@@ -58,11 +60,23 @@ class Frontend(Peeper):
     def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
         self.reign.unpack_state(obj, keys)
 
-    def upload(self):
-        self.reign.upload()
+    def upload(self) -> bool:
+        state = self.reign.upload()
+        if openfed.DEBUG and not state:
+            raise RuntimeError(
+                "Failed to upload data, the server may have shut down.")
+        elif not state:
+            warnings.warn("Failed to upload data")
+        return state
 
-    def download(self):
-        self.reign.download()
+    def download(self) -> bool:
+        state = self.reign.download()
+        if openfed.DEBUG and not state:
+            raise RuntimeError(
+                "Failed to upload data, the server may have shut down.")
+        elif not state:
+            warnings.warn("Failed to upload data")
+        return state
 
     def set_task_info(self, task_info: Dict) -> None:
         self.reign.set_task_info(task_info)

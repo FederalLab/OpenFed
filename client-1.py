@@ -20,7 +20,8 @@ frontend.set_state_dict(net.state_dict(keep_vars=True))
 for i in range(1, 6):
     print(f"Train @{i}")
     # 下载一份数据
-    frontend.download()
+    if not frontend.download():
+        break
 
     # 进行训练
     net(torch.randn(128, 1, 1)).sum().backward()
@@ -33,7 +34,8 @@ for i in range(1, 6):
 
     frontend.set_task_info({"train_instances": random.randint(1, 200)})
 
-    frontend.upload()
+    if not frontend.upload():
+        break
 
 frontend.finish()
 
