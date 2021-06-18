@@ -8,7 +8,7 @@ import openfed
 
 from .aggregate import Aggregator
 from .common import Address, Hook, Peeper, SafeTread, default_address
-from .federated.federated import Maintainer, Reign, World, reign_generator
+from .federated.federated import Maintainer, Reign, World, reign_generator, register
 
 
 class Backend(SafeTread, Peeper, Hook):
@@ -111,7 +111,8 @@ class Backend(SafeTread, Peeper, Hook):
         如果你希望程序在前台运行，那么请直接调用run()函数。
         """
         while not self.stopped:
-            for reign in reign_generator():
+            rg = reign_generator()
+            for reign in rg:
                 if self.stopped:
                     break
                 self.reign = reign
@@ -137,6 +138,7 @@ class Backend(SafeTread, Peeper, Hook):
                 # 常规的状态检查和更新
                 self.update()
                 time.sleep(openfed.SLEEP_LONG_TIME)
+            del rg
 
     def after_received_a_new_model(self):
         assert self.aggregator is not None, "Set aggregator first"
@@ -202,9 +204,7 @@ class Backend(SafeTread, Peeper, Hook):
 
     def finish(self):
         # 强制杀死所有的进程，并且退出进程
-        for reign in reign_generator():
-            if reign is not None:
-                reign.destroy()
+        register.deleted_all_federated_world()
 
         self.stopped = True
         self.maintainer.manual_stop()

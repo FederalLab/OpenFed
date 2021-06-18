@@ -99,6 +99,24 @@ class World(object):
     # 想办法解决循环import的问题 [ProcessGroup, Reign]
     _pg_mapping: Dict
 
+    # 实现一些机制，使得可以迭代动态的可变变量_pg_mapping，而不会发生错误
+    def __len__(self) -> int:
+        return len(self._pg_mapping)
+
+    def __getitem__(self, index: int) -> List:
+        # [ProcessGroup, Reign]
+        # 通过int所要指定的值
+        if index >= len(self):
+            index = len(self) - 1
+        if index < 0:
+            return self._NULL_GP, None
+        else:
+            return list(self._pg_mapping.keys())[index], list(self._pg_mapping.values())[index]
+
+    @property
+    def default_reign(cls):
+        return cls[0][1]
+
     # 记录当前上层正在处理的pg是哪一个
     _NULL_GP: Any = None
     _current_pg: ProcessGroup
@@ -948,12 +966,16 @@ class _Register(object):
                     group=federated_world.WORLD)
             del __federated_world__[federated_world]
 
-    @classmethod
-    def deleted_all_federated_world(cls):
+    def deleted_all_federated_world(self):
         if openfed.VERBOSE:
             print("Try to delete all process group in all federated world.")
-        for k in __federated_world__:
-            cls.deleted_federated_world(k)
+
+        # 从后往前删除，防止出现错误
+        for f in range(len(self)-1, -1):
+            if 0 <= f < len(self):
+                federated_world, world = self[f]
+                self.deleted_federated_world(federated_world)
+                world.killed()
 
     @classmethod
     def is_registered(cls, federated_world: FederatedWorld) -> bool:
@@ -966,22 +988,19 @@ class _Register(object):
     def default_federated_world(cls) -> FederatedWorld:
         """ If not exists, return None
         """
-        for fed_world in __federated_world__:
-            return fed_world
-        else:
-            return None
+        return cls[0][0]
 
     @property
     def default_world(cls) -> World:
         """If not exists, return None
         """
-        for fed_world in __federated_world__:
-            return __federated_world__[fed_world]
-        else:
-            return None
+        return cls[0][1]
 
     def __len__(self):
         return len(__federated_world__)
+
+    def __getitem__(self, index: int) -> List[Union[FederatedWorld, World]]:
+        return list(__federated_world__.keys())[index], list(__federated_world__.values())[index]
 
 
 register = _Register()

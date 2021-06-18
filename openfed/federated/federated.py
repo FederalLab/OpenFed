@@ -333,21 +333,21 @@ def reign_generator() -> Reign:
     故，需要判断！
     """
     while len(register):
-        for _, world in register:
-            for pg, reign in world._pg_mapping.items():
+        # 以下的这套逻辑主要是为了应对register和world中的reign动态的修改
+        for r in range(len(register)):
+            if r < len(register):
+                world = register[r][1]
                 if not world.ALIVE:
-                    # 只有在确保openfed存活的状态下，才维持这个生成器
-                    # 否则的话，自动结束这个线程。
                     break
-                # 注意以下代码的运行逻辑
-                # 在生成器语法中，程序会进入后台执行。
-                # 当执行到yield语句时，程序将会阻塞，等待数据被取走。
-                # 当数据被取走后，程序才会继续向下执行。
-                # 因此，在这里，我们应该先等待pg被取走
-                # 然后再去将_current_pg更新成被取走的pg
-                # 如果先更新_current_pg的话，会导致实际的_current_pg指向发生错误
-                yield reign
-                reign.world._current_pg = pg
+                for w in range(len(world)):
+                    if w < len(world):
+                        pg, reign = world[w]
+                        if not world.ALIVE:
+                            break
+                        yield reign
+                        world._current_pg = pg
+                    else:
+                        break
     else:
         # 当列表为空的时候，yield一个空的GP
         # 否则无法进入for循环的话，将无法形成一个Generator
@@ -364,7 +364,4 @@ def default_reign() -> Reign:
     if len(register) == 0:
         raise RuntimeError("Please build a federated world first!")
     assert len(register) == 1, "More than one federated world."
-    for _, world in register:
-        for pg, reign in world._pg_mapping.items():
-            world._current_pg = pg
-            return reign
+    return register.default_world.default_reign
