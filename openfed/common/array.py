@@ -1,4 +1,4 @@
-from typing import Mapping, Any, List
+from typing import Any, List, Mapping
 
 
 class Array(object):
@@ -47,9 +47,11 @@ class Array(object):
         else:
             return list(self._default_mapping.keys())[index], list(self._default_mapping.values())[index]
 
+    @_check_initialized_called
     def __iter__(self):
         return self
 
+    @_check_initialized_called
     def __next__(self):
         self.tmp_index += 1
         if self.tmp_index >= len(self):
