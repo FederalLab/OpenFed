@@ -1,14 +1,13 @@
-import torch
 import torch.nn as nn
 import torch.optim as optim
-import time
 from openfed import Backend
 from openfed.aggregate import ElasticAggregator
 import openfed
 openfed.silence()
+# openfed.disable_dynamic_address_loading()
 
 print("Connect to Client...")
-backend = Backend(address=openfed.default_address_lists[:2])
+backend = Backend(address=openfed.default_address_lists[:3])
 
 # 创建一个模型，
 net = nn.Linear(1, 1)

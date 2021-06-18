@@ -8,7 +8,7 @@ from openfed.optim.elastic_aux import ElasticAux
 import time
 
 print("Connect to Server...")
-frontend = Frontend(address=openfed.default_address_lists[1])
+frontend = Frontend(address=openfed.default_address_lists[2])
 
 # 创建一个模型，
 net = nn.Linear(1, 1)

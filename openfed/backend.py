@@ -112,39 +112,43 @@ class Backend(SafeTread, Peeper, Hook):
         """
         while not self.stopped:
             self.step_at_new_episode()
-            rg = reign_generator()
-            for reign in rg:
-                if not self.stopped and reign is not None:
-                    self.reign = reign
-                    self.step_at_first()
-                    if reign.is_zombine():
-                        self.step_at_zombine()
-                    elif reign.is_offline():
-                        # Destory process
-                        if self.step_before_destory():
-                            self.step_after_destory(reign.destory())
+            with self.maintainer.maintainer_lock:
+                rg = reign_generator()
+                for reign in rg:
+                    if not self.stopped and reign is not None:
+                        self.reign = reign
+                        self.step_at_first()
+                        if reign.is_zombine():
+                            self.step_at_zombine()
+                        elif reign.is_offline():
+                            # Destory process
+                            if self.step_before_destory():
+                                self.step_after_destory(reign.destory())
+                            else:
+                                self.step_at_failed()
+                        elif reign.is_pushing():
+                            # 表示客户端要上传数据PUSH，那么我们要download数据
+                            if self.step_before_download():
+                                self.step_after_download(reign.download())
+                            else:
+                                self.step_at_failed()
+                        elif reign.is_pulling():
+                            # 首先进行一些判断，来确定是否响应这个请求
+                            if self.step_before_upload():
+                                # 表示客户端请求下载一组数据PULL，那我们要upload数据来满足他
+                                self.step_after_upload(reign.upload())
+                            else:
+                                self.step_at_failed()
                         else:
-                            self.step_at_failed()
-                    elif reign.is_pushing():
-                        # 表示客户端要上传数据PUSH，那么我们要download数据
-                        if self.step_before_download():
-                            self.step_after_download(reign.download())
-                        else:
-                            self.step_at_failed()
-                    elif reign.is_pulling():
-                        # 首先进行一些判断，来确定是否响应这个请求
-                        if self.step_before_upload():
-                            # 表示客户端请求下载一组数据PULL，那我们要upload数据来满足他
-                            self.step_after_upload(reign.upload())
-                        else:
-                            self.step_at_failed()
-                    else:
-                        raise Exception("Invalid state")
-                # 常规的状态检查和更新
-                self.step_at_last()
-                time.sleep(openfed.SLEEP_LONG_TIME)
-            else:
-                del rg
+                            # raise Exception("Invalid state")
+                            print("Invalid state")
+                    # 常规的状态检查和更新
+                    self.step_at_last()
+                else:
+                    del rg
+
+            # 留出时间给后台去争夺maintainer lock
+            time.sleep(openfed.SLEEP_SHORT_TIME)
 
         self.finish()
         return "Backend exited."

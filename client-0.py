@@ -5,6 +5,7 @@ import random
 import openfed
 from openfed import Frontend
 from openfed.optim.elastic_aux import ElasticAux
+import time
 
 print("Connect to Server...")
 frontend = Frontend(address=openfed.default_address_lists[0])
@@ -22,6 +23,8 @@ for i in range(1, 6):
     # 下载一份数据
     if not frontend.download():
         break
+
+    time.sleep(5.0)
 
     # 进行训练
     net(torch.randn(128, 1, 1)).sum().backward()

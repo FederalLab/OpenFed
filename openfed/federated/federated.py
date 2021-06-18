@@ -1,5 +1,7 @@
 import time
-from typing import List, Union
+from collections import OrderedDict
+from threading import Lock
+from typing import Dict, List, TypeVar, Union
 
 import openfed
 
@@ -19,6 +21,8 @@ class Joint(SafeTread):
     这是一个temperal的线程，不会常驻后台，故不需要监控openfed.ALIVE的状态。
     """
 
+    build_success: bool
+
     def __init__(self, address: Address, world: World):
         super().__init__()
 
@@ -32,6 +36,7 @@ class Joint(SafeTread):
                 raise RuntimeError(msg)
 
         self.address = address
+        self.build_success = False
 
         self.world = world
 
@@ -58,12 +63,15 @@ class Joint(SafeTread):
         # create a federated world and auto register it
         fed_world = FederatedWorld()
 
+        # build the connection between the federated world
+        try:
+            fed_world.init_process_group(**self.address.as_dict)
+        except Exception as e:
+            return f"Timeout while building connection to {repr(self.address)}"
+
         # register the world
         with self.world.joint_lock:
             register.register_federated_world(fed_world, self.world)
-
-        # build the connection between the federated world
-        fed_world.init_process_group(**self.address.as_dict)
 
         # 无论在客户端还是服务器端，这里的rank都是指定0，也就是服务器端。
         sub_pg_list = fed_world.build_point2point_group(rank=0)
@@ -74,10 +82,28 @@ class Joint(SafeTread):
                 sub_pg), sub_pg, fed_world, self.world)
             with self.world.joint_lock:
                 self.world._pg_mapping[sub_pg] = reign
+
+        self.build_success = True
         log_verbose_info(f"Conneted to {repr(self.address)}")
 
     def __repr__(self):
         return "Joint"
+
+
+_M = TypeVar("_M", bound="Maintainer")
+# 这个锁，非常重要！
+# 每当你创建一个新的maintainer时候，都会生成一个这种锁。
+# 这个锁的作用是为了防止后台建立连接的时候，造成所有线程阻塞
+# 这会导致正在处理的其他线程发生错误！
+# 如果你不需要动态加入新的联邦世界的话，那不需要考虑这个问题。
+# 因为你一开始就指定了所有的节点，并且直到所有的节点都加入进来后
+# 才会继续运行接下来的程序。
+_maintainer_lock_dict: Dict[_M, Lock] = OrderedDict()
+
+# 这是一把很特殊的锁，当你使用这个锁的时候，可以保证你的主线程在任何情况下都不会被
+# 后台创建连接的操作打断。除非你主动交出这把锁，否则不再会有任何新的。
+# 连接被创建。但是除此之外的openfed的其他功能不会受到任何影响。
+openfed_lock = Lock()
 
 
 class Maintainer(SafeTread):
@@ -90,6 +116,8 @@ class Maintainer(SafeTread):
     # 用来记录已完成的连接。
     finished_queue: List[Address]
 
+    maintainer_lock: Lock
+
     def __init__(self,
                  world: World,
                  address: Union[Address, List[Address]] = None,
@@ -98,6 +126,10 @@ class Maintainer(SafeTread):
             在客户端，一次只允许指定一个地址，如果多余一个地址，则会报错。
         """
         super().__init__()
+
+        self.maintainer_lock = Lock()
+        _maintainer_lock_dict[self] = self.maintainer_lock
+
         self.world = world
 
         self.pending_queue = list()
@@ -155,18 +187,55 @@ class Maintainer(SafeTread):
             new_addr = self.read_address_from_file()
             self.pending_queue.extend(new_addr)
 
-            for address in self.pending_queue:
-                Joint(address, self.world)
-            # mv pending_queue to finished_queue
-            # 小心！这里不允许使用append方法，否则clear之后，数据会被同时清空。
-            self.finished_queue.extend(self.pending_queue)
-            self.pending_queue = []
+            def acquire_all():
+                # 拿到所有的锁
+                for maintainer_lock in _maintainer_lock_dict.values():
+                    maintainer_lock.acquire()
+                openfed_lock.acquire()
 
-            time.sleep(openfed.SLEEP_SHORT_TIME)
+            def release_all():
+                # 释放所有的锁
+                for maintainer_lock in _maintainer_lock_dict.values():
+                    maintainer_lock.release()
+                openfed_lock.release()
+
+            build_failed = []
+            if openfed.is_dynamic_address_loading():
+                for address in self.pending_queue:
+                    acquire_all()
+                    joint = Joint(address, self.world)
+                    joint.join()
+                    release_all()
+                    if joint.build_success:
+                        self.finished_queue.append(address)
+                    else:
+                        build_failed.append(address)
+                    # 等待一小段时间再去获取锁，为了把机会留给其他人
+                    time.sleep(openfed.SLEEP_SHORT_TIME)
+            else:
+
+                for address in self.pending_queue:
+                    joint = Joint(address, self.world)
+                    joint.join()
+
+                    if joint.build_success:
+                        self.finished_queue.append(address)
+                    else:
+                        build_failed.append(address)
+            self.pending_queue = build_failed
+
+            if len(self.pending_queue) == 0:
+                # 如果没有排队等待，那就睡眠长一些！减少CPU占用
+                time.sleep(openfed.SLEEP_VERY_LONG_TIME)
+            else:
+                time.sleep(openfed.SLEEP_SHORT_TIME)
 
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
         """
+        if not openfed.DYNAMIC_ADDRESS_LOADING and self.world.is_king():
+            raise RuntimeError("Dynamic loading is not allowed!")
+
         log_debug_info(f"Add a new address {repr(address)} manually.")
         if self.world.is_king():
             self.pending_queue.append(address)
@@ -175,6 +244,11 @@ class Maintainer(SafeTread):
 
     def __repr__(self):
         return "Maintainer"
+
+    def __del__(self):
+        # 删除锁！！！
+        del _maintainer_lock_dict[self]
+        super().__del__()
 
 
 class Destory(object):

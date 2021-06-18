@@ -35,6 +35,8 @@ class SafeTread(Thread):
         """
         self.safe_exit(self.safe_run())
 
+        self.stopped = True
+
     def safe_exit(self, msg: str):
         if openfed.VERBOSE or openfed.DEBUG:
             time_string = _thread_pool[self]

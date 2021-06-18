@@ -18,7 +18,9 @@ from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         ReduceScatterOptions, ScatterOptions,
                                         Store)
 from torch._six import string_classes
-from torch.distributed.constants import default_pg_timeout
+from ..common.constants import DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT, DEFAULT_PG_LONG_TIMEOUT
+from ..common.vars import is_dynamic_address_loading
+
 from torch.distributed.rendezvous import rendezvous
 
 from ..common import Array, log_debug_info
@@ -427,7 +429,7 @@ class FederatedWorld(object):
     def init_process_group(self,
                            backend,
                            init_method=None,
-                           timeout=default_pg_timeout,
+                           timeout=DEFAULT_PG_TIMEOUT,
                            world_size=-1,
                            rank=-1,
                            store=None,
@@ -509,10 +511,32 @@ class FederatedWorld(object):
 
         # whatever the backend is, we need a store to exchange information.
         if store is None:
+            if is_dynamic_address_loading():
+                if rank == 0:
+                    tmp_timeout = DEFAULT_PG_SHORT_TIMEOUT
+                else:
+                    tmp_timeout = DEFAULT_PG_LONG_TIMEOUT
+            else:
+                tmp_timeout = timeout
+
             rendezvous_iterator = rendezvous(
-                init_method, rank, world_size, timeout=timeout
+                init_method, rank, world_size, timeout=tmp_timeout
             )
             store, rank, world_size = next(rendezvous_iterator)
+
+            if is_dynamic_address_loading():
+                # 下面这段代码，对于服务器端是否能够及时反映出客户端未上线
+                # 并且防止主程序阻塞，起着至关重要的作用！
+                # 请不要删除，或者修改他们，除非你知道为什么那么做！
+                if rank == 0:
+                    store.set("RANK_ZERO", "True")
+                    store.set_timeout(tmp_timeout)
+                    store.get("RANK_OTHER")
+                else:
+                    store.set("RANK_OTHER", "True")
+                    store.set_timeout(tmp_timeout)
+                    store.get("RANK_ZERO")
+
             store.set_timeout(timeout)
 
         backend = Backend(backend)
@@ -564,7 +588,7 @@ class FederatedWorld(object):
                                   backend,
                                   store,
                                   group_name=None,
-                                  timeout=default_pg_timeout):
+                                  timeout=DEFAULT_PG_TIMEOUT):
         """
         Create a new distributed process group.
 
@@ -797,7 +821,7 @@ class FederatedWorld(object):
         else:
             work.wait()
 
-    def new_group(self, ranks=None, timeout=default_pg_timeout, backend=None):
+    def new_group(self, ranks=None, timeout=DEFAULT_PG_TIMEOUT, backend=None):
         """
         Creates a new distributed group.
 
@@ -893,7 +917,7 @@ class FederatedWorld(object):
 
         return pg
 
-    def build_point2point_group(self, rank: int = 0, timeout=default_pg_timeout, backend=None) -> List[ProcessGroup]:
+    def build_point2point_group(self, rank: int = 0, timeout=DEFAULT_PG_TIMEOUT, backend=None) -> List[ProcessGroup]:
         """Build point2point group, :param:rank will be regarded as new rank=0 and connect to other rank in this world.
 
         .. note:: 
@@ -926,7 +950,7 @@ class TemporaryConnection(object):
     temporary_group: ProcessGroup
     federated_world: FederatedWorld
 
-    def __init__(self, federated_world: FederatedWorld, ranks=List[int], timeout=default_pg_timeout, backend=None):
+    def __init__(self, federated_world: FederatedWorld, ranks=List[int], timeout=DEFAULT_PG_TIMEOUT, backend=None):
         self.federated_world = federated_world
         self.ranks = ranks
         self.timeout = timeout
@@ -971,7 +995,7 @@ class _Register(Array):
 
     def deleted_all_federated_world(self):
         log_debug_info(
-                "Try to delete all process groups in all federated worlds.")
+            "Try to delete all process groups in all federated worlds.")
 
         # 从后往前删除，防止出现错误
         for f in range(len(self)-1, -1):
