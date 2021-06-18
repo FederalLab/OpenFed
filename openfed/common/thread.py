@@ -31,14 +31,13 @@ class SafeTread(Thread):
         """
             子类通过实现safe_run方法来实现相关的函数功能。
         """
-        self.safe_run()
+        self.safe_exit(self.safe_run())
 
-        self.safe_exit()
-
-    def safe_exit(self):
+    def safe_exit(self, msg: str):
         if openfed.VERBOSE or openfed.DEBUG:
             time_string = _thread_pool[self]
-            print(utils.red_color("Exited"), self, f"Created at {time_string}")
+            print(utils.red_color("Exited"), self,
+                  f"Created at {time_string}", msg if msg else "")
         del _thread_pool[self]
 
     def __repr__(self) -> str:
