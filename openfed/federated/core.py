@@ -22,6 +22,8 @@ from torch._six import string_classes
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous
 
+from ..common import Array
+
 _MPI_AVAILABLE = True
 _NCCL_AVAILABLE = True
 _GLOO_AVAILABLE = True
@@ -49,12 +51,23 @@ class _ROLE(Enum):
     QUEEN = False
 
 
-class World(object):
+class World(Array):
     """World里面所有的状态，都只是给本地程序使用的。
     比如ALIVE状态，标志的是本地的这个程序是否还在运行。
     这个和informer里面的状态的含义是不一样的。
     informer里面的状态指的是联邦学习过程中的相关状态。因此不要混淆。
     """
+
+    def __init__(self):
+
+        self.ALIVE = True
+
+        self.ROLE = _ROLE.QUEEN
+        self._pg_mapping = OrderedDict()
+        self._current_pg = self._NULL_GP
+
+        super().__init__(self._pg_mapping)
+
     # 标志当前openfed world是否还在运行
     # 当ALIVE=False，程序的相关进程会自从退出
     # 防止程序运行时错误
@@ -99,34 +112,21 @@ class World(object):
     # 想办法解决循环import的问题 [ProcessGroup, Reign]
     _pg_mapping: Dict
 
-    # 实现一些机制，使得可以迭代动态的可变变量_pg_mapping，而不会发生错误
-    def __len__(self) -> int:
-        return len(self._pg_mapping)
-
-    def __getitem__(self, index: int) -> List:
-        # [ProcessGroup, Reign]
-        # 通过int所要指定的值
-        if index >= len(self):
-            index = len(self) - 1
-        if index < 0:
-            return self._NULL_GP, None
-        else:
-            return list(self._pg_mapping.keys())[index], list(self._pg_mapping.values())[index]
+    @property
+    def default_reign(self):
+        return self.default_values
 
     @property
-    def default_reign(cls):
-        return cls[0][1]
+    def default_pg(self) -> ProcessGroup:
+        pg = self.default_keys
+        if pg is None:
+            return self._NULL_GP
+        else:
+            return pg
 
     # 记录当前上层正在处理的pg是哪一个
     _NULL_GP: Any = None
     _current_pg: ProcessGroup
-
-    def __init__(self, ):
-        self.ALIVE = True
-
-        self.ROLE = _ROLE.QUEEN
-        self._pg_mapping = OrderedDict()
-        self._current_pg = self._NULL_GP
 
     def is_valid_process_group(self, pg: ProcessGroup):
         return pg is not self._NULL_GP and pg in self._pg_mapping
@@ -948,7 +948,11 @@ class TemporaryConnection(object):
 __federated_world__: Dict[FederatedWorld, World] = OrderedDict()
 
 
-class _Register(object):
+class _Register(Array):
+
+    def __init__(self):
+        super(_Register, self).__init__(__federated_world__)
+
     @classmethod
     def register_federated_world(cls, federated_world: FederatedWorld, world: World):
         if federated_world in __federated_world__:
@@ -981,26 +985,17 @@ class _Register(object):
     def is_registered(cls, federated_world: FederatedWorld) -> bool:
         return federated_world in __federated_world__
 
-    def __iter__(self):
-        return zip(__federated_world__.keys(), __federated_world__.values())
-
     @property
-    def default_federated_world(cls) -> FederatedWorld:
+    def default_federated_world(self) -> FederatedWorld:
         """ If not exists, return None
         """
-        return cls[0][0]
+        return self.default_keys
 
     @property
-    def default_world(cls) -> World:
+    def default_world(self) -> World:
         """If not exists, return None
         """
-        return cls[0][1]
-
-    def __len__(self):
-        return len(__federated_world__)
-
-    def __getitem__(self, index: int) -> List[Union[FederatedWorld, World]]:
-        return list(__federated_world__.keys())[index], list(__federated_world__.values())[index]
+        return self.default_values
 
 
 register = _Register()

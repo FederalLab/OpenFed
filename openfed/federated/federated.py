@@ -326,28 +326,15 @@ class Reign(Informer, Delivery):
 
 
 def reign_generator() -> Reign:
-    """生成器，不断的遍历整个pg数组，并且返回一个pg。
-    注意：返回的pg可能是无效的。
-        当不存在pg时，会返回一个None。
-        由于yield是提前准备数据，那么pg可能被删除。
-    故，需要判断！
-    """
-    while len(register):
-        # 以下的这套逻辑主要是为了应对register和world中的reign动态的修改
-        for r in range(len(register)):
-            if r < len(register):
-                world = register[r][1]
-                if not world.ALIVE:
-                    break
-                for w in range(len(world)):
-                    if w < len(world):
-                        pg, reign = world[w]
-                        if not world.ALIVE:
-                            break
-                        yield reign
-                        world._current_pg = pg
-                    else:
-                        break
+    # 以下的这套逻辑主要是为了应对register和world中的reign动态的修改
+    for _, world in register:
+        if world is None and not world.ALIVE:
+            break
+        for pg, reign in world:
+            if reign is None and not world.ALIVE:
+                break
+            yield reign
+            world._current_pg = pg
     else:
         # 当列表为空的时候，yield一个空的GP
         # 否则无法进入for循环的话，将无法形成一个Generator

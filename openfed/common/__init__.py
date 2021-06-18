@@ -6,3 +6,4 @@ from .vars import *
 from .wrapper import Wrapper
 from .hook import Hook
 from .peeper import Peeper
+from .array import Array
