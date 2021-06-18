@@ -2,11 +2,8 @@ import json
 from typing import List, TypeVar
 
 from prettytable import PrettyTable
-from random_word import RandomWords
 
 _A = TypeVar("_A", bound='Address')
-
-_rw = RandomWords()
 
 
 class Address(object):
@@ -89,9 +86,6 @@ class Address(object):
         self.world_size = world_size
         self.rank = rank
         self.store = store
-        if len(group_name) == 0:
-            # 获取一个随机的名字给他
-            group_name = rw.get_random_word()
         self.group_name = group_name
 
     @classmethod
@@ -152,22 +146,31 @@ class Address(object):
 
 # 给定一个默认的fed addr地址，方便做实验验证的时候，不需要每次都指定地址。
 
-default_address = Address(
-    backend="gloo", init_method='tcp://localhost:1994', group_name="OpenFed"
-)
+default_address = Address(backend="gloo",
+                          init_method='tcp://localhost:1994',
+                          group_name="OpenFed"
+                          )
 
 # 设置四个默认地址，用于实验
 default_address_lists = [
     Address(
-        backend="gloo", init_method='tcp://localhost:1994', group_name="OpenFed"
+        backend="gloo",
+        init_method='tcp://localhost:1994',
+        group_name="Admirable"
     ),
     Address(
-        backend="gloo", init_method='tcp://localhost:1995', group_name="OpenFed"
+        backend="gloo",
+        init_method='tcp://localhost:1995',
+        group_name="Amazing"
     ),
     Address(
-        backend="gloo", init_method='tcp://localhost:1996', group_name="OpenFed"
+        backend="gloo",
+        init_method='tcp://localhost:1996',
+        group_name="Astonishing"
     ),
     Address(
-        backend="gloo", init_method='tcp://localhost:1997', group_name="OpenFed"
+        backend="gloo",
+        init_method='tcp://localhost:1997',
+        group_name="Brilliant"
     ),
 ]

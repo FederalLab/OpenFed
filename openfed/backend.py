@@ -8,7 +8,7 @@ import openfed
 
 from .aggregate import Aggregator
 from .common import (Address, Hook, Peeper, SafeTread, default_address,
-                     log_debug_info, log_error_info, log_verbose_info)
+                     log_verbose_info)
 from .federated.federated import (Maintainer, Reign, World, register,
                                   reign_generator)
 

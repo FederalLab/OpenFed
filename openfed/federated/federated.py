@@ -3,7 +3,8 @@ from typing import List, Union
 
 import openfed
 
-from ..common import Address, SafeTread, log_debug_info, log_verbose_info, log_error_info
+from ..common import (Address, SafeTread, log_debug_info, log_error_info,
+                      log_verbose_info)
 from .core import FederatedWorld, ProcessGroup, Store, World, register
 from .deliver import Delivery
 from .inform import Informer
