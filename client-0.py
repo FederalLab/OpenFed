@@ -2,12 +2,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
-
+import openfed
 from openfed import Frontend
 from openfed.optim.elastic_aux import ElasticAux
 
 print("Connect to Server...")
-frontend = Frontend()
+frontend = Frontend(address=openfed.default_address_lists[0])
 
 # 创建一个模型，
 net = nn.Linear(1, 1)

@@ -8,8 +8,7 @@ import openfed
 openfed.silence()
 
 print("Connect to Client...")
-backend = Backend()
-
+backend = Backend(address=openfed.default_address_lists[:2])
 
 # 创建一个模型，
 net = nn.Linear(1, 1)

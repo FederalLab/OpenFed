@@ -144,3 +144,18 @@ default_address = Address(
     backend="gloo", init_method='tcp://localhost:1994', group_name="OpenFed"
 )
 
+# 设置四个默认地址，用于实验
+default_address_lists = [
+    Address(
+        backend="gloo", init_method='tcp://localhost:1994', group_name="OpenFed"
+    ),
+    Address(
+        backend="gloo", init_method='tcp://localhost:1995', group_name="OpenFed"
+    ),
+    Address(
+        backend="gloo", init_method='tcp://localhost:1996', group_name="OpenFed"
+    ),
+    Address(
+        backend="gloo", init_method='tcp://localhost:1997', group_name="OpenFed"
+    ),
+]

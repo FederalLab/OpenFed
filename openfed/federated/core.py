@@ -898,6 +898,10 @@ class FederatedWorld(object):
                     pg_list.append(pg)
         return pg_list
 
+    def __repr__(self) -> str:
+        # TODO: Add more information here.
+        return "FederatedWorld"
+
 
 class TemporaryConnection(object):
     """Useful while wraper any operation as point2point, point2servel operation.
@@ -1760,7 +1764,8 @@ def all_gather_object(object_list, obj, group=None, federated_world=None):
         object_sizes_tensor[i].unsqueeze(dim=0) for i in range(group_size)
     ]
     # Allgather tensor sizes
-    all_gather(object_size_list, local_size, group=group)
+    all_gather(object_size_list, local_size, group=group,
+               federated_world=federated_world)
     max_object_size = int(max(object_size_list).item())  # type: ignore
     # Resize tensor to max size across all ranks.
     input_tensor.resize_(max_object_size)
@@ -1772,7 +1777,8 @@ def all_gather_object(object_list, obj, group=None, federated_world=None):
         coalesced_output_tensor[max_object_size * i: max_object_size * (i + 1)]
         for i in range(group_size)
     ]
-    all_gather(output_tensors, input_tensor, group=group)
+    all_gather(output_tensors, input_tensor, group=group,
+               federated_world=federated_world)
     # Deserialize outputs back to object.
     for i, tensor in enumerate(output_tensors):
         tensor = tensor.type(torch.ByteTensor)  # type:ignore[call-overload]
@@ -1833,7 +1839,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
         return
 
     # Ensure object_gather_list is specified appopriately.
-    my_rank = federated_world.get_rank()
+    my_rank = federated_world.get_rank(group)
     federated_world._validate_output_list_for_rank(
         my_rank, dst, object_gather_list)
     input_tensor, local_size = _object_to_tensor(obj)
@@ -1855,7 +1861,8 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
     # Allgather tensor sizes. An all-gather is needed here despite this being a
     # gather, since each rank needs to broadcast a tensor of the same (maximal)
     # size.
-    all_gather(object_size_list, local_size, group=group)
+    all_gather(object_size_list, local_size, group=group,
+               federated_world=federated_world)
     max_object_size = int(max(object_size_list).item())  # type: ignore
     # Resize tensor to max size across all ranks.
     input_tensor.resize_(max_object_size)
@@ -1876,6 +1883,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
         gather_list=output_tensors if my_rank == dst else None,
         dst=dst,
         group=group,
+        federated_world=federated_world,
     )
     if my_rank != dst:
         return
@@ -1959,7 +1967,8 @@ def broadcast_object_list(object_list, src=0, group=None, federated_world=None):
         object_sizes_tensor = object_sizes_tensor.to(current_device)
 
     # Broadcast object sizes
-    broadcast(object_sizes_tensor, src=src, group=group)
+    broadcast(object_sizes_tensor, src=src, group=group,
+              federated_world=federated_world)
 
     # Concatenate and broadcast serialized object tensors
     if my_rank == src:
@@ -1969,7 +1978,8 @@ def broadcast_object_list(object_list, src=0, group=None, federated_world=None):
 
     if is_nccl_backend:
         object_tensor = object_tensor.to(current_device)
-    broadcast(object_tensor, src=src, group=group)
+    broadcast(object_tensor, src=src, group=group,
+              federated_world=federated_world)
     # Deserialize objects using their stored sizes.
     offset = 0
     if my_rank != src:
@@ -2062,7 +2072,8 @@ def scatter_object_list(scatter_object_output_list,
             tensor.resize_(max_tensor_size)
     else:
         max_tensor_size = torch.LongTensor([0])
-    broadcast(max_tensor_size, src=src, group=group)
+    broadcast(max_tensor_size, src=src, group=group,
+              federated_world=federated_world)
 
     # Scatter actual serialized objects
     output_tensor = torch.ByteTensor(max_tensor_size.item())

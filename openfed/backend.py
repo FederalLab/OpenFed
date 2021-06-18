@@ -112,9 +112,11 @@ class Backend(SafeTread, Peeper, Hook):
         """
         while not self.stopped:
             for reign in reign_generator():
+                if self.stopped:
+                    break
                 self.reign = reign
-
                 if reign is not None:
+                    print(reign)
                     if reign.is_zombine():
                         # Do nothing, skip
                         ...

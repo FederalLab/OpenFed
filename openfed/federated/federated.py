@@ -318,6 +318,12 @@ class Reign(Informer, Delivery):
         # 销毁当前进程
         Destroy.destroy(self.pg, self.world)
 
+    def __repr__(self) -> str:
+        string = "Reign\n"
+        string += f"Version: {self.version}\n"
+        string += f"Status: {self._get_state()}\n"
+        return string
+
 
 def reign_generator() -> Reign:
     """生成器，不断的遍历整个pg数组，并且返回一个pg。
