@@ -5,6 +5,8 @@ from typing import Dict, final
 import openfed
 import openfed.utils as utils
 
+from .logger import logger
+
 
 class SafeTread(Thread):
     # 用来控制整个线程是否退出。
@@ -24,7 +26,7 @@ class SafeTread(Thread):
         _thread_pool[self] = utils.time_string()
 
         if openfed.VERBOSE or openfed.DEBUG:
-            print(utils.yellow_color("New Thread"), self)
+            logger.info(f"Create a new thread\n{self}")
 
     @final
     def run(self):
@@ -36,8 +38,8 @@ class SafeTread(Thread):
     def safe_exit(self, msg: str):
         if openfed.VERBOSE or openfed.DEBUG:
             time_string = _thread_pool[self]
-            print(utils.red_color("Exited"), self,
-                  f"Created at {time_string}", msg if msg else "")
+            logger.info(
+                f"Exited a thread\n{self}, {msg if msg else ''}, {time_string}")
         del _thread_pool[self]
 
     def __repr__(self) -> str:

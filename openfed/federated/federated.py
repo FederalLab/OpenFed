@@ -2,9 +2,8 @@ import time
 from typing import List, Union
 
 import openfed
-import openfed.utils as utils
 
-from ..common import Address, SafeTread
+from ..common import Address, SafeTread, logger
 from .core import FederatedWorld, ProcessGroup, Store, World, register
 from .deliver import Delivery
 from .inform import Informer
@@ -31,7 +30,7 @@ class Joint(SafeTread):
                     "Please specify the correct rank when world size is not 2")
 
         if openfed.VERBOSE:
-            print(utils.yellow_color("Connect..."), f"{address}")
+            logger.info(f"Try to connect to \n{address}")
 
         self.address = address
 
@@ -75,7 +74,7 @@ class Joint(SafeTread):
             with self.world.joint_lock:
                 self.world._pg_mapping[sub_pg] = reign
         if openfed.VERBOSE:
-            print(utils.green_color("Connected"), f"{self.address}")
+            logger.info(f"Connected to\n{self.address}")
 
     def __repr__(self):
         return "Joint"
@@ -131,7 +130,7 @@ class Maintainer(SafeTread):
                 self.finished_queue.append(address)
             else:
                 if openfed.VERBOSE:
-                    print(utils.red_color("Addr Missed"))
+                    logger.warning("An valid address is missed.")
 
     def read_address_from_file(self) -> List[Address]:
         if self.address_file is None:

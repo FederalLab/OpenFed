@@ -1,3 +1,4 @@
 bidict
 psutil
 prettytable
+loguru

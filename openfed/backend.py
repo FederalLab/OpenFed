@@ -7,7 +7,7 @@ from torch.optim import Optimizer
 import openfed
 
 from .aggregate import Aggregator
-from .common import Address, Hook, Peeper, SafeTread, default_address
+from .common import Address, Hook, Peeper, SafeTread, default_address, logger
 from .federated.federated import Maintainer, Reign, World, reign_generator, register
 
 
@@ -117,7 +117,6 @@ class Backend(SafeTread, Peeper, Hook):
                     break
                 self.reign = reign
                 if reign is not None:
-                    print(reign)
                     if reign.is_zombine():
                         # Do nothing, skip
                         ...
@@ -151,7 +150,7 @@ class Backend(SafeTread, Peeper, Hook):
 
         self.received_numbers += 1
 
-        print(f"Received model @{self.received_numbers}")
+        logger.info(f"Receive model @{self.received_numbers}")
 
     def before_send_a_new_model(self) -> bool:
         """当客户端要求返回一个新的模型时，我们可能会面临不同的情况，这个申请可能无法满足。

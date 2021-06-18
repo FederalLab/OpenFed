@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 import openfed
 import openfed.utils as utils
-from openfed.common import Hook
+from openfed.common import Hook, logger
 
 from ..core import FederatedWorld, Store, World
 from .functional import Collector
@@ -49,7 +49,7 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
         if openfed.DEBUG:
             # 双方在结束连接时，总会有一方先退出，导致另一方数据读取错误。
             # 这里不是一个bug，所以只是print了异常
-            print(e)
+            logger.warning(e)
         return False
 
 
@@ -65,7 +65,7 @@ def safe_store_get(store: Store, key: str) -> Dict:
         if openfed.DEBUG:
             # 双方在结束连接时，总会有一方先退出，导致另一方数据读取错误。
             # 这里不是一个bug，所以只是print了异常
-            print(e)
+            logger.warning(e)
         return {}
 
 

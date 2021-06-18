@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
+import time
 from openfed import Backend
 from openfed.aggregate import ElasticAggregator
 import openfed

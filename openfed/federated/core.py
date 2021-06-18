@@ -22,7 +22,7 @@ from torch._six import string_classes
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous
 
-from ..common import Array
+from ..common import Array, logger
 
 _MPI_AVAILABLE = True
 _NCCL_AVAILABLE = True
@@ -965,14 +965,16 @@ class _Register(Array):
         if federated_world in __federated_world__:
             if federated_world.is_initialized():
                 if openfed.VERBOSE:
-                    print("Try to destroy all process group in federated world.")
+                    logger.info(
+                        "Try to destroy all process group in federated world.")
                 federated_world.destroy_process_group(
                     group=federated_world.WORLD)
             del __federated_world__[federated_world]
 
     def deleted_all_federated_world(self):
         if openfed.VERBOSE:
-            print("Try to delete all process group in all federated world.")
+            logger.info(
+                "Try to delete all process group in all federated world.")
 
         # 从后往前删除，防止出现错误
         for f in range(len(self)-1, -1):
