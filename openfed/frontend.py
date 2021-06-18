@@ -97,6 +97,6 @@ class Frontend(Peeper):
 
         self.maintainer.manual_stop()
 
-    def __expr__(self):
+    def __repr__(self):
         # TODO: 输出一些基本信息
         return "Frontend"
