@@ -77,10 +77,9 @@ class Backend(SafeTread, Peeper, Hook):
         address_file = kwargs.get('address_file', None)
 
         if world is None:
-            world = World()
-            world.set_king()
+            world = World(king=True)
         else:
-            assert world.is_king(), "Backend must be king."
+            assert world.king, "Backend must be king."
 
         if address is None and address_file is None:
             address = default_address

@@ -33,11 +33,10 @@ class Frontend(Peeper):
         world = kwargs.get('world', None)
         address = kwargs.get('address', None)
         if world is None:
-            world = World()
-            world.set_queen()
+            world = World(king=False)
         else:
             world = kwargs['world']
-            assert world.is_queen(), "Frontend must be queen."
+            assert world.queen, "Frontend must be queen."
 
         if address is None:
             address = default_address

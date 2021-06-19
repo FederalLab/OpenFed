@@ -85,11 +85,11 @@ class Informer(Hook):
 
     @property
     def _i_key(self) -> str:
-        return OPENFED_IDENTIFY + "_" + ("KING" if self.world.is_king() else "QUEEN")
+        return OPENFED_IDENTIFY + "_" + ("KING" if self.world.king else "QUEEN")
 
     @property
     def _u_key(self) -> str:
-        return OPENFED_IDENTIFY + "_" + ("KING" if not self.world.is_king() else "QUEEN")
+        return OPENFED_IDENTIFY + "_" + ("KING" if not self.world.king else "QUEEN")
 
     def _write(self, info: Dict) -> bool:
         """Write info to self._i_key.

@@ -99,8 +99,8 @@ class Delivery(Package, Hook):
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         received = [None, None]
-        rank = 0 if self.world.is_king() else 1
-        other_rank = 1 if self.world.is_king() else 0
+        rank = 0 if self.world.king else 1
+        other_rank = 1 if self.world.king else 0
 
         gather_object(None, received, dst=rank, group=self.pg,
                       federated_world=self.federated_world)
@@ -112,7 +112,7 @@ class Delivery(Package, Hook):
             r_packages = {k: hook.decrypt(k, v) for k, v in r_packages.items()}
 
         # Queen will load `param` to Tensor by an in-place operation.
-        if auto_load_param and self.world.is_queen():
+        if auto_load_param and self.world.queen:
             for k, v in r_packages.items():
                 if 'param' in v:
                     self.key_tensor_bidict[k].data.copy_(v['param'])
@@ -125,7 +125,7 @@ class Delivery(Package, Hook):
         assert self.federated_world._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
-        rank = 1 if self.world.is_king() else 0
+        rank = 1 if self.world.king else 0
 
         # encrypt data
         for hook in self.hook_list:

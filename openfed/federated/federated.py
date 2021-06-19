@@ -29,7 +29,7 @@ class Joint(SafeTread):
         if address.rank == -1:
             if address.world_size == 2:
                 # 自动设置rank
-                address.rank = 1 if world.is_queen() else 0
+                address.rank = 1 if world.queen else 0
             else:
                 msg = "Please specify the correct rank when world size is not 2"
                 log_error_info(msg)
@@ -40,7 +40,7 @@ class Joint(SafeTread):
 
         self.world = world
 
-        if self.world.is_king():
+        if self.world.king:
             # 如果是服务器，那就使用start函数进入后台运行
             self.start()
         else:
@@ -146,7 +146,7 @@ class Maintainer(SafeTread):
         else:
             address = []
 
-        if self.world.is_king():
+        if self.world.king:
             self.pending_queue.extend(address)
             self.pending_queue.extend(self.read_address_from_file())
 
@@ -256,11 +256,11 @@ class Maintainer(SafeTread):
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
         """
-        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.is_king():
+        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.king:
             raise RuntimeError("Dynamic loading is not allowed!")
 
         log_debug_info(f"Add a new address {repr(address)} manually.")
-        if self.world.is_king():
+        if self.world.king:
             self.pending_queue.append(address)
         else:
             Joint(address, self.world)
@@ -372,7 +372,7 @@ class Reign(Informer, Delivery):
         """
 
         # 记住一个原则：设置的永远都是自己的状态，读取的永远都是对方的状态
-        if self.world.is_queen():
+        if self.world.queen:
             # 1. 写入自身版本号
             self.set('version', self.version)
             # 2. 设置STATUE状态为PUSH，告知另一端自己等待上传数据
@@ -415,7 +415,7 @@ class Reign(Informer, Delivery):
 
         客户端会等待一段时间，服务器则直接返回falied。
         """
-        if self.world.is_queen():
+        if self.world.queen:
             # 1. 写入自身版本号
             self.set('version', self.version)
             # 2. 设置STATUE状态为PULL，告知另一端自己等待下载数据

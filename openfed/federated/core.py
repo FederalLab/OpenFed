@@ -1,4 +1,3 @@
-from typing import TypeVar
 import contextlib
 import logging
 import pickle
@@ -8,7 +7,8 @@ import warnings
 from collections import OrderedDict
 from datetime import timedelta
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, overload
+from typing import (Any, Dict, List, Optional, Tuple, Type, TypeVar, Union,
+                    overload)
 
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
@@ -23,7 +23,8 @@ from torch.distributed.rendezvous import rendezvous
 
 from ..common import Array, log_debug_info, logger
 from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
-                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT, SLEEP_LONG_TIME)
+                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT,
+                                SLEEP_LONG_TIME)
 from ..common.vars import DYNAMIC_ADDRESS_LOADING
 
 _MPI_AVAILABLE = True
@@ -57,19 +58,47 @@ _World = TypeVar("_World", bound="World")
 _world_list: List[_World] = []
 
 
-class World(Array):
-    """World里面所有的状态，都只是给本地程序使用的。
-    比如ALIVE状态，标志的是本地的这个程序是否还在运行。
-    这个和informer里面的状态的含义是不一样的。
-    informer里面的状态指的是联邦学习过程中的相关状态。因此不要混淆。
+class Reign():
+    """Define here for better code analysis. 
+    Refer openfed.federated.federated.Reign for more details about this class.
     """
+    ...
 
-    def __init__(self):
-        # 注册到全局世界中
+
+class World(Array):
+    """Relation map between World, FederatedWorld and ProcessGroup:
+        World
+        ├── FederatedWorld-a
+        │   └── ProcessGroup-1
+        └── FederatedWorld-b
+            ├── ProcessGroup-1
+            └── ProcessGroup-2
+    """
+    # If you want to exist current World, set it False
+    ALIVE: bool
+
+    # Your role in this World.
+    # You can have different roles in different Worlds.
+    ROLE: _ROLE
+
+    _pg_mapping: Dict[ProcessGroup, Reign]
+
+    # Use them to track processes group.
+    _NULL_GP: Any = None
+    _current_pg: ProcessGroup
+
+    # avoid the conflict while joint many new FederatedWorlds to current World at the some time
+    joint_lock = threading.Lock()
+
+    def __init__(self, king: bool = False):
+        """
+        Args: 
+            king: if True, set the world as king. Once the role is specified, you cannot change it again.
+        """
         _world_list.append(self)
-        self.ALIVE = True
 
-        self.ROLE = _ROLE.QUEEN
+        self.ALIVE = True
+        self.ROLE = _ROLE.QUEEN if not king else _ROLE.KING
         self._pg_mapping = OrderedDict()
         self._current_pg = self._NULL_GP
 
@@ -77,81 +106,40 @@ class World(Array):
 
     @classmethod
     def clear_world(cls):
-        """
-        当你打算完全退出联邦学习的时候，并且不再接收任何新的连接的时候，调用这个函数去结束所有的任务。
-        否则的话，请不要这么做。
+        """Kill all world in _world_list with force.
+        It is not safe to call this, but it can make you exit OpenFed env as soon as possible.
         """
         for world in _world_list:
             world.killed()
 
-    # 标志当前openfed world是否还在运行
-    # 当ALIVE=False，程序的相关进程会自从退出
-    # 防止程序运行时错误
-    # 当你想要退出一个openfed world时，你应该设置这个flag
-    ALIVE: bool
-
     def killed(self):
-        # 退出的同时，将所有pg的状态设置成OFFLINE
+        """Shout down this world with force. 
+        If any reign still uses, make them offline directly.
+        """
         for _, reign in self:
             reign.offline()
-        self.ALIVE = False
-
-    # ROLE用来明确当前世界中自己的身份
-    # 默认所有的KING是rank=0，所有的QUEEN是rank=1
-    ROLE: _ROLE
-
-    def set_king(self):
-        self.ROLE = _ROLE.KING
-
-    def set_queen(self):
-        self.ROLE = _ROLE.QUEEN
-
-    def is_king(self):
-        return self.ROLE == _ROLE.KING
-
-    def is_queen(self):
-        return self.ROLE == _ROLE.QUEEN
-
-    @overload
-    def set_openfed_state(self, state: _ROLE):
-        """设置当前进程的身份。
-        """
-
-    @overload
-    def set_openfed_state(self, state):
-        """根据state的类型，类设置正确的变量。
-        """
-        if isinstance(state, _ROLE):
-            self.ROLE = state
         else:
-            raise NotImplementedError
-
-    # 我们遍历的是pg，而不是federated_world。
-    # 想办法解决循环import的问题 [ProcessGroup, Reign]
-    _pg_mapping: Dict
+            self.ALIVE = False
 
     @property
-    def default_reign(self):
+    def king(self) -> bool:
+        return self.ROLE == _ROLE.KING
+
+    @property
+    def queen(self) -> bool:
+        return self.ROLE == _ROLE.QUEEN
+
+    @property
+    def default_reign(self) -> Reign:
         return self.default_values
 
     @property
     def default_pg(self) -> ProcessGroup:
         pg = self.default_keys
-        if pg is None:
-            return self._NULL_GP
-        else:
-            return pg
+        return pg if pg is not None else self._NULL_GP
 
-    # 记录当前上层正在处理的pg是哪一个
-    _NULL_GP: Any = None
-    _current_pg: ProcessGroup
-
-    def is_valid_process_group(self, pg: ProcessGroup):
+    def is_valid_process_group(self, pg: ProcessGroup) -> bool:
         return pg is not self._NULL_GP and pg in self._pg_mapping
-
-    # 添加一些锁，用于处理进程之间的同步问题
-    # 提供一个context来做这件事
-    joint_lock = threading.Lock()
 
 
 class Backend(object):
@@ -1011,7 +999,7 @@ class _Register(Array):
                     "Force to destroy all process groups in federated world.")
             federated_world.destroy_process_group(
                 group=federated_world.WORLD)
-            
+
             del __federated_world__[federated_world]
             del federated_world
 
