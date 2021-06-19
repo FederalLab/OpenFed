@@ -18,7 +18,7 @@ from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         ProcessGroup, ReduceOp, ReduceOptions,
                                         ReduceScatterOptions, ScatterOptions,
                                         Store)
-from torch._six import string_classes
+from torch.distributed import Backend
 from torch.distributed.rendezvous import rendezvous
 
 from ..common import Array, log_debug_info, logger
@@ -27,25 +27,16 @@ from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                 SLEEP_LONG_TIME)
 from ..common.vars import DYNAMIC_ADDRESS_LOADING
 
-_MPI_AVAILABLE = True
-_NCCL_AVAILABLE = True
-_GLOO_AVAILABLE = True
-
-
 try:
-    from torch._C._distributed_c10d import ProcessGroupMPI
+    from torch.distributed.distributed_c10d import (ProcessGroupGloo,
+                                                    ProcessGroupMPI,
+                                                    ProcessGroupNCCL)
 except ImportError:
-    _MPI_AVAILABLE = False
+    ...
 
-try:
-    from torch._C._distributed_c10d import ProcessGroupNCCL
-except ImportError:
-    _NCCL_AVAILABLE = False
-
-try:
-    from torch._C._distributed_c10d import ProcessGroupGloo
-except ImportError:
-    _GLOO_AVAILABLE = False
+from torch.distributed.distributed_c10d import (is_gloo_available,
+                                                is_mpi_available,
+                                                is_nccl_available)
 
 
 @unique
@@ -142,93 +133,17 @@ class World(Array):
         return pg is not self._NULL_GP and pg in self._pg_mapping
 
 
-class Backend(object):
-    """
-    An enum-like class of available backends: GLOO, NCCL, MPI, and other registered
-    backends.
-
-    The values of this class are lowercase strings, e.g., ``"gloo"``. They can
-    be accessed as attributes, e.g., ``Backend.NCCL``.
-
-    This class can be directly called to parse the string, e.g.,
-    ``Backend(backend_str)`` will check if ``backend_str`` is valid, and
-    return the parsed lowercase string if so. It also accepts uppercase strings,
-    e.g., ``Backend("GLOO")`` returns ``"gloo"``.
-
-    .. note:: The entry ``Backend.UNDEFINED`` is present but only used as
-            initial value of some fields. Users should neither use it directly
-            nor assume its existence.
-    """
-    UNDEFINED = "undefined"
-    GLOO = "gloo"
-    NCCL = "nccl"
-    MPI = "mpi"
-    TCP = "tcp"
-
-    def __new__(cls, name: str):
-        if not isinstance(name, string_classes):
-            raise ValueError(
-                "Backend name must be a string, but got: {}".format(name))
-        value = getattr(Backend, name.upper(), Backend.UNDEFINED)
-
-        if value == Backend.TCP:
-            raise ValueError("TCP backend has been deprecated. Please use "
-                             "Gloo or MPI backend for collective operations "
-                             "on CPU tensors.")
-        elif value == Backend.UNDEFINED:
-            raise ValueError("Invalid backend: '{}'".format(name))
-        elif value != Backend.GLOO and value != Backend.NCCL and value != Backend.MPI:
-            value = name
-        return value
-
-    @classmethod
-    def register_backend(cls, name, func):
-        """
-        Registers a new backend.
-
-        This class method is used by 3rd party cpp extension to register new backend.
-
-        Args:
-            name (str): Backend name matching with the one in `init_process_group()`.
-            func (function): Function handler that instantiates the backend.
-                            The function should be implemented in the backend cpp extension
-                            and takes four arguments, including prefix_store, rank,
-                            world_size, and timeout.
-
-        .. note:: This support of 3rd party backend is experimental and subject to change.
-
-        """
-        setattr(Backend, name.upper(), func)
-
-
-def is_mpi_available():
-    """
-    Checks if the MPI backend is available.
-    """
-    return _MPI_AVAILABLE
-
-
-def is_nccl_available():
-    """
-    Checks if the NCCL backend is available.
-    """
-    return _NCCL_AVAILABLE
-
-
-def is_gloo_available():
-    """
-    Checks if the Gloo backend is available.
-    """
-    return _GLOO_AVAILABLE
-
-
 class FederatedWorld(object):
     """Wraper all variables as a privacy namespace.
     """
 
-    def __init__(self):
-        """初始化一个新的联邦世界，并且将它注册到字典中。
+    def __init__(self, world: World):
         """
+        Args: 
+            world: the world this federated world belongs to.
+        """
+        self.world: World = world
+
         # Alias to self.WORLD for backward compatibility
         self.WORLD: Optional[ProcessGroup] = None
         self.NON_GROUP_MEMBER = object()

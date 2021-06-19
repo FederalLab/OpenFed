@@ -61,7 +61,7 @@ class Joint(SafeTread):
         log_verbose_info(f"Connect to \n{str(self.address)}")
 
         # create a federated world and auto register it
-        fed_world = FederatedWorld()
+        fed_world = FederatedWorld(self.world)
 
         # build the connection between the federated world
         try:
