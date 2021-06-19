@@ -1,9 +1,13 @@
+import time
 from typing import Any, Dict, List, Union, overload
 
 from torch import Tensor
 from torch.optim import Optimizer
 
-from .common import Address, Peeper, default_address, log_info
+import openfed
+from openfed.common.constants import SLEEP_SHORT_TIME
+
+from .common import Address, Peeper, default_address, log_info, logger
 from .federated.federated import Maintainer, Reign, World, default_reign
 
 
@@ -46,6 +50,10 @@ class Frontend(Peeper):
 
     def build_connection(self, address: Address):
         self.maintainer = Maintainer(self.world, address)
+        while not default_reign():
+            if openfed.VERBOSE.is_verbose:
+                logger.info("Wait for generating a valid reign")
+            time.sleep(SLEEP_SHORT_TIME)
         self.reign = default_reign()
 
     def set_state_dict(self, state_dict: Dict[str, Tensor]):

@@ -1,14 +1,11 @@
-import contextlib
 import logging
-import pickle
 import threading
 import time
 import warnings
 from collections import OrderedDict
 from datetime import timedelta
 from enum import Enum, unique
-from typing import (Any, Dict, List, Optional, Tuple, Type, TypeVar, Union,
-                    overload)
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
@@ -19,13 +16,18 @@ from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         ReduceScatterOptions, ScatterOptions,
                                         Store)
 from torch.distributed import Backend
+from torch.distributed.distributed_c10d import (_batch_p2p_manager,
+                                                _check_single_tensor,
+                                                _check_tensor_list,
+                                                _object_to_tensor,
+                                                _tensor_to_object,
+                                                supports_complex)
 from torch.distributed.rendezvous import rendezvous
 
 from ..common import Array, log_debug_info, logger
 from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
-                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT,
-                                SLEEP_LONG_TIME)
-from ..common.vars import DYNAMIC_ADDRESS_LOADING, DEBUG
+                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT)
+from ..common.vars import DEBUG, DYNAMIC_ADDRESS_LOADING
 
 try:
     from torch.distributed.distributed_c10d import (ProcessGroupGloo,
@@ -34,8 +36,7 @@ try:
 except ImportError:
     ...
 
-from torch.distributed.distributed_c10d import (is_gloo_available,
-                                                is_mpi_available,
+from torch.distributed.distributed_c10d import (is_mpi_available,
                                                 is_nccl_available)
 
 
@@ -495,18 +496,7 @@ class FederatedWorld(object):
                     group_name=group_name,
                     timeout=timeout))
 
-        def attempt_init_backend(timeout):
-            init_backend(timeout)
-
-        if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
-            try:
-                attempt_init_backend(tmp_timeout)
-            except Exception as e:
-                if DEBUG.is_debug:
-                    logger.error(e)
-                raise e
-        else:
-            init_backend(timeout)
+        init_backend(timeout)
 
         self._pg_group_ranks[self.WORLD] = {
             i: i for i in range(self.WORLD.size())}  # type: ignore
@@ -885,64 +875,37 @@ class FederatedWorld(object):
         return "FederatedWorld"
 
 
-class TemporaryConnection(object):
-    """Useful while wraper any operation as point2point, point2servel operation.
-    """
-    temporary_group: ProcessGroup
-    federated_world: FederatedWorld
-
-    def __init__(self, federated_world: FederatedWorld, ranks=List[int], timeout=DEFAULT_PG_TIMEOUT, backend=None):
-        self.federated_world = federated_world
-        self.ranks = ranks
-        self.timeout = timeout
-        self.backend = backend
-
-    def __enter__(self):
-        # build sub process group
-        self.temporary_group = self.federated_world.new_group(
-            self.ranks, self.timeout, self.backend)
-        return self
-
-    def __exit__(self, *unused):
-        self.federated_world.destroy_process_group(self.temporary_group)
-
-
 # At most case, you are not allowed to modifed this list manually.
-# FederatedWorld是底层的通讯抽象，World是对应的参数配置
-__federated_world__: Dict[FederatedWorld, World] = OrderedDict()
+_federated_world: Dict[FederatedWorld, World] = OrderedDict()
 
 
 class _Register(Array):
 
     def __init__(self):
-        super(_Register, self).__init__(__federated_world__)
+        super(_Register, self).__init__(_federated_world)
 
     @classmethod
     def register_federated_world(cls, federated_world: FederatedWorld, world: World):
-        if federated_world in __federated_world__:
+        if federated_world in _federated_world:
             raise KeyError("Already registered.")
         else:
-            __federated_world__[federated_world] = world
+            _federated_world[federated_world] = world
 
     @classmethod
     def deleted_federated_world(cls, federated_world: FederatedWorld):
-        """这个方法，应该由Destory来调用。
-        如果你需要手动调用这个方法，那么你必须要保证这个federated_world中所有的pg状态都被合理的设置过。
-        Destroy会保证这点。这使得通信双方可以快速的感知对方下线。
-        """
-        if federated_world in __federated_world__:
+        if federated_world in _federated_world:
             if federated_world.is_initialized():
                 log_debug_info(
                     "Force to destroy all process groups in federated world.")
             federated_world.destroy_process_group(
                 group=federated_world.WORLD)
 
-            del __federated_world__[federated_world]
+            del _federated_world[federated_world]
             del federated_world
 
     @classmethod
     def is_registered(cls, federated_world: FederatedWorld) -> bool:
-        return federated_world in __federated_world__
+        return federated_world in _federated_world
 
     @property
     def default_federated_world(self) -> FederatedWorld:
@@ -958,21 +921,6 @@ class _Register(Array):
 
 
 register = _Register()
-
-
-# Some reduce ops are not supported by complex numbers and will result in an error.
-# We currently provide complex support to the distributed API by viewing
-# complex tensors as real (torch.view_as_real), meaning that calling
-# these unsupported ops will return garbage values rather than error out.
-# (e.g. max(2+3i, 3+2i) = 3+3i)
-# We'd like calls to unsupported ops to error out accordingly,
-# rather than returning garbage values.
-
-
-def supports_complex(reduceOp: ReduceOp) -> bool:
-    denyList = [ReduceOp.MAX, ReduceOp.MIN, ReduceOp.PRODUCT,
-                ReduceOp.BAND, ReduceOp.BOR, ReduceOp.BXOR]
-    return reduceOp not in denyList
 
 
 def isend(tensor,
@@ -1132,35 +1080,6 @@ def recv(tensor,
             group_src_rank = federated_world._get_group_rank(pg, src)
             pg.recv([tensor], group_src_rank, tag).wait()
         return src
-
-
-def _check_single_tensor(param, param_name):
-    """
-    Helper to check that the parameter ``param_name`` is a single tensor.
-    """
-    if not isinstance(param, torch.Tensor):
-        raise RuntimeError("Invalid function argument. Expected parameter `{}` "
-                           "to be of type torch.Tensor.".format(param_name))
-
-
-def _check_tensor_list(param, param_name):
-    """
-    Helper to check that the parameter ``param_name`` is a list of tensors.
-    """
-    if not isinstance(param, list) or \
-            not all(isinstance(p, torch.Tensor) for p in param):
-        raise RuntimeError("Invalid function argument. Expected parameter `{}` "
-                           "to be of type List[torch.Tensor].".format(param_name))
-
-
-def _check_op(op):
-    """
-    Helper to check that the ``op`` is either isend or irecv.
-    """
-    if op not in [isend, irecv]:
-        raise RuntimeError("Invalid ``op``. Expected ``op`` "
-                           "to be of type ``torch.distributed.isend`` or "
-                           "``torch.distributed.irecv``.")
 
 
 def broadcast_multigpu(tensor_list,
@@ -1649,21 +1568,6 @@ def all_gather_multigpu(output_tensor_lists,
         return work
     else:
         work.wait()
-
-
-def _object_to_tensor(obj):
-    buffer = pickle.dumps(obj)
-    byte_storage = torch.ByteStorage.from_buffer(
-        buffer)  # type: ignore[attr-defined]
-    byte_tensor = torch.ByteTensor(byte_storage)
-    local_size = torch.LongTensor([byte_tensor.numel()])
-    return byte_tensor, local_size
-
-
-def _tensor_to_object(tensor, tensor_size):
-    buf = tensor.numpy().tobytes()[:tensor_size]
-    out = pickle.loads(buf)
-    return out
 
 
 def all_gather_object(object_list, obj, group=None, federated_world=None):
@@ -2668,55 +2572,6 @@ def all_to_all(output_tensor_list,
         return work
     else:
         work.wait()
-
-
-try:
-    from torch.distributed.distributed_c10d import ProcessGroupNCCL
-except ImportError:
-    ProcessGroupNCCL = None
-
-
-@contextlib.contextmanager
-def _batch_p2p_manager(backend):
-    if backend == Backend.NCCL:
-        ProcessGroupNCCL._group_start()
-    try:
-        yield
-    finally:
-        if backend == Backend.NCCL:
-            ProcessGroupNCCL._group_end()
-
-
-class P2POp(object):
-    """
-    A class to build point-to-point operations for ``batch_isend_irecv``.
-
-    This class builds the type of P2P operation, communication buffer, peer rank,
-    Process Group group, and tag. Instances of this class will be passed to
-    ``batch_isend_irecv`` for point-to-point communications.
-
-    Args:
-        op (callable): A function to send data to or receive data from a peer process.
-            The type of ``op`` is either ``torch.distributed.isend`` or
-            ``torch.distributed.irecv``.
-        tensor (Tensor): Tensor to send or receive.
-        peer (int): Destination or source rank.
-        group (ProcessGroup, optional): The process group to work on. If None,
-            the default process group will be used.
-        tag (int, optional): Tag to match send with recv.
-    """
-
-    def __init__(self, op, tensor, peer, group=None, tag=0):
-        self.op = op
-        self.tensor = tensor
-        self.peer = peer
-        self.group = group
-        self.tag = tag
-
-    def __new__(cls, op, tensor, peer, group=None, tag=0):
-        _check_op(op)
-        _check_single_tensor(tensor, "tensor")
-        return object.__new__(cls)
 
 
 def batch_isend_irecv(p2p_op_list,

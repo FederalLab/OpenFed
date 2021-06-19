@@ -103,8 +103,9 @@ class Informer(Hook):
         info = safe_store_get(self.store, self._u_key)
 
         if OPENFED_STATUS not in info:
-            # set as ZOMBINE, not OFFLINE.
-            info[OPENFED_STATUS] = STATUS.ZOMBINE.value
+            # The server is quiet stable, if read failed, we think it is offline.
+            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBINE.value
+
         if key is not None:
             return info[key]
         else:
@@ -191,9 +192,14 @@ class Informer(Hook):
         """Collect message from other side.
         """
         for k, f in self.hook_dict.items():
-            f.load_message(self.get(k))
-            if openfed.VERBOSE.is_verbose:
-                logger.info(f)
+            try:
+                f.load_message(self.get(k))
+            except KeyError as e:
+                if openfed.DEBUG.is_debug:
+                    logger.error(e)
+            finally:
+                if openfed.VERBOSE.is_verbose:
+                    logger.info(f)
 
     def scatter(self):
         """Scatter self.hook information to the other end.
