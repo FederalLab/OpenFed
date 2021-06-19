@@ -9,7 +9,7 @@ import openfed
 from .aggregate import Aggregator
 from .common import (Address, Hook, Peeper, SafeTread, default_address,
                      log_verbose_info)
-from .federated.federated import (Maintainer, Reign, World, register,
+from .federated.federated import (Destroy, Maintainer, Reign, World, register,
                                   reign_generator)
 
 
@@ -121,9 +121,9 @@ class Backend(SafeTread, Peeper, Hook):
                         if reign.is_zombine():
                             self.step_at_zombine()
                         elif reign.is_offline():
-                            # Destory process
-                            if self.step_before_destory():
-                                self.step_after_destory(reign.destory())
+                            # Destroy process
+                            if self.step_before_destroy():
+                                self.step_after_destroy(reign.destroy())
                             else:
                                 self.step_at_failed()
                         elif reign.is_pushing():
@@ -167,10 +167,10 @@ class Backend(SafeTread, Peeper, Hook):
     def step_at_zombine(self):
         pass
 
-    def step_before_destory(self) -> bool:
+    def step_before_destroy(self) -> bool:
         return True
 
-    def step_after_destory(self, state=...):
+    def step_after_destroy(self, state=...):
         pass
 
     def step_before_download(self) -> bool:
@@ -246,7 +246,6 @@ class Backend(SafeTread, Peeper, Hook):
 
     def finish(self):
         # 强制杀死所有的进程，并且退出进程
-        register.deleted_all_federated_world()
+        Destroy.destroy_all_in_all_world()
 
-        self.stopped = True
         self.maintainer.manual_stop()

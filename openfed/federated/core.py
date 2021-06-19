@@ -1,3 +1,4 @@
+from typing import TypeVar
 import contextlib
 import logging
 import pickle
@@ -7,7 +8,7 @@ import warnings
 from collections import OrderedDict
 from datetime import timedelta
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Tuple, Union, overload
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, overload
 
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
@@ -22,7 +23,7 @@ from torch.distributed.rendezvous import rendezvous
 
 from ..common import Array, log_debug_info, logger
 from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
-                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT)
+                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT, SLEEP_LONG_TIME)
 from ..common.vars import DYNAMIC_ADDRESS_LOADING
 
 _MPI_AVAILABLE = True
@@ -52,6 +53,10 @@ class _ROLE(Enum):
     QUEEN = False
 
 
+_World = TypeVar("_World", bound="World")
+_world_list: List[_World] = []
+
+
 class World(Array):
     """World里面所有的状态，都只是给本地程序使用的。
     比如ALIVE状态，标志的是本地的这个程序是否还在运行。
@@ -60,7 +65,8 @@ class World(Array):
     """
 
     def __init__(self):
-
+        # 注册到全局世界中
+        _world_list.append(self)
         self.ALIVE = True
 
         self.ROLE = _ROLE.QUEEN
@@ -69,6 +75,15 @@ class World(Array):
 
         super().__init__(self._pg_mapping)
 
+    @classmethod
+    def clear_world(cls):
+        """
+        当你打算完全退出联邦学习的时候，并且不再接收任何新的连接的时候，调用这个函数去结束所有的任务。
+        否则的话，请不要这么做。
+        """
+        for world in _world_list:
+            world.killed()
+
     # 标志当前openfed world是否还在运行
     # 当ALIVE=False，程序的相关进程会自从退出
     # 防止程序运行时错误
@@ -76,7 +91,9 @@ class World(Array):
     ALIVE: bool
 
     def killed(self):
-        # 退出
+        # 退出的同时，将所有pg的状态设置成OFFLINE
+        for _, reign in self:
+            reign.offline()
         self.ALIVE = False
 
     # ROLE用来明确当前世界中自己的身份
@@ -670,7 +687,7 @@ class FederatedWorld(object):
 
     def destroy_process_group(self, group=None):
         """
-        Destory a given process group, and deinitialize the distributed package
+        Destroy a given process group, and deinitialize the distributed package
 
         Args:
             group (ProcessGroup, optional): The process group to be destroyed, if
@@ -984,24 +1001,19 @@ class _Register(Array):
 
     @classmethod
     def deleted_federated_world(cls, federated_world: FederatedWorld):
+        """这个方法，应该由Destory来调用。
+        如果你需要手动调用这个方法，那么你必须要保证这个federated_world中所有的pg状态都被合理的设置过。
+        Destroy会保证这点。这使得通信双方可以快速的感知对方下线。
+        """
         if federated_world in __federated_world__:
             if federated_world.is_initialized():
                 log_debug_info(
-                    "Try to destory all process groups in federated world.")
-                federated_world.destroy_process_group(
-                    group=federated_world.WORLD)
+                    "Force to destroy all process groups in federated world.")
+            federated_world.destroy_process_group(
+                group=federated_world.WORLD)
+            
             del __federated_world__[federated_world]
-
-    def deleted_all_federated_world(self):
-        log_debug_info(
-            "Try to delete all process groups in all federated worlds.")
-
-        # 从后往前删除，防止出现错误
-        for f in range(len(self)-1, -1):
-            if 0 <= f < len(self):
-                federated_world, world = self[f]
-                self.deleted_federated_world(federated_world)
-                world.killed()
+            del federated_world
 
     @classmethod
     def is_registered(cls, federated_world: FederatedWorld) -> bool:

@@ -117,6 +117,8 @@ class Maintainer(SafeTread):
     finished_queue: List[Address]
 
     maintainer_lock: Lock
+    # 用来控制所有不同连接的联邦世界。
+    world: World
 
     def __init__(self,
                  world: World,
@@ -211,10 +213,12 @@ class Maintainer(SafeTread):
                     release_all()
                     if joint.build_success:
                         self.finished_queue.append(address)
+                        # 等待一小段时间再去获取锁，为了把机会留给其他人
+                        time.sleep(openfed.SLEEP_SHORT_TIME)
                     else:
                         build_failed.append(address)
-                    # 等待一小段时间再去获取锁，为了把机会留给其他人
-                    time.sleep(openfed.SLEEP_SHORT_TIME)
+                        # 等待一段时间再去获取锁，为了把机会留给其他人
+                        time.sleep(openfed.SLEEP_LONG_TIME)
             else:
                 joint_address_mapping = []
                 for address in self.pending_queue:
@@ -232,12 +236,21 @@ class Maintainer(SafeTread):
             if len(self.pending_queue) == 0:
                 if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
                     # 如果没有排队等待，那就睡眠长一些！减少CPU占用
-                    time.sleep(openfed.SLEEP_VERY_LONG_TIME)
+                    time.sleep(openfed.SLEEP_LONG_TIME)
                 else:
                     # 退出for循环，表示已经完成所有的连接任务
                     break
             else:
                 time.sleep(openfed.SLEEP_LONG_TIME)
+
+    def kill_world(self):
+        # world一旦kill，所有相关的后台程序都会立刻结束
+        self.world.killed()
+
+    def manual_stop(self, kill_world: bool = True):
+        if kill_world:
+            self.kill_world()
+        super().manual_stop()
 
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
@@ -260,11 +273,11 @@ class Maintainer(SafeTread):
         super().__del__()
 
 
-class Destory(object):
+class Destroy(object):
     """销毁客户端。
     """
     @classmethod
-    def destory(cls, pg: ProcessGroup, world: World = None):
+    def destroy(cls, pg: ProcessGroup, world: World = None):
         """如果不指定world，则使用默认组。也就是在__federated_world__中的第一个。
         """
         if world is None:
@@ -287,16 +300,13 @@ class Destory(object):
         federated_world.destroy_process_group(pg)
 
         # 判断是否需要直接删除fed world
-        if not federated_world.is_initialized():
+        if not federated_world.is_initialized() or federated_world._group_count == 1:
             # 说明删除pg后，这个fed world没有任何pg存在
             # 因此可以直接删除
-            world.killed()
-            register.deleted_federated_world(federated_world)
-        elif federated_world._group_count == 1:
+
             # 说明删除之后，还剩下一个全局gp
             # 就说明这是一个共享的fed world。
             # 剩下全局pg的时候，就说明其他的客户端都退出，所以这里可以直接删除
-            world.killed()
             register.deleted_federated_world(federated_world)
         else:
             # 说明这个世界中还有其他客户端，因此，暂时不能断开全局gp。
@@ -306,14 +316,23 @@ class Destory(object):
     def destroy_current(cls, world: World = None):
         if world is None:
             world = register.default_world
-        cls.destory(world._current_pg, world)
+        cls.destroy(world._current_pg, world)
 
     @classmethod
-    def destroy_all(cls, world: World = None):
+    def destroy_all_in_a_world(cls, world: World = None):
         if world is None:
             world = register.default_world
-        for pg in world._pg_mapping:
-            cls.destory(pg, world)
+        for pg, _ in world:
+            if pg is not None:
+                cls.destroy(pg, world)
+
+    @classmethod
+    def destroy_all_in_all_world(cls):
+        """如果你想结束联邦学习，那调用这个函数
+        """
+        for _, world in register:
+            if world is not None:
+                cls.destroy_all_in_a_world(world)
 
 
 class Reign(Informer, Delivery):
@@ -361,7 +380,7 @@ class Reign(Informer, Delivery):
             tic = time.time()
             while not self.is_pulling():  # 检查对方是否进入了pulling状态
                 toc = time.time()
-                if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
+                if toc-tic > openfed.SLEEP_VERY_LONG_TIME or self.is_offline():
                     return False
                 time.sleep(openfed.SLEEP_SHORT_TIME)
 
@@ -404,7 +423,7 @@ class Reign(Informer, Delivery):
             tic = time.time()
             while not self.is_pushing():  # 检查对方是否进入了pushing状态
                 toc = time.time()
-                if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
+                if toc-tic > openfed.SLEEP_VERY_LONG_TIME or self.is_offline():
                     return False
                 time.sleep(openfed.SLEEP_SHORT_TIME)
 
@@ -423,11 +442,11 @@ class Reign(Informer, Delivery):
             self.zombine()
             return True
 
-    def destory(self):
+    def destroy(self):
         """退出联邦学习。
         """
         # 销毁当前进程
-        Destory.destory(self.pg, self.world)
+        Destroy.destroy(self.pg, self.world)
 
     def __repr__(self) -> str:
         string = "Reign\n"

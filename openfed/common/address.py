@@ -116,7 +116,7 @@ class Address(object):
     def __str__(self):
         # 调用str方法，输出一个详细内容
         table = PrettyTable(
-            ['backend', 'init_method', 'world_size', 'rank', 'store', 'group_name']
+            ['Backend', 'Init Method', 'World Size', 'Rank', 'Store', 'Group Name']
         )
         table.add_row(
             [self.backend, self.init_method, self.world_size,

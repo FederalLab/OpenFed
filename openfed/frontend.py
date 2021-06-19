@@ -87,7 +87,7 @@ class Frontend(Peeper):
     def finish(self):
         # 已经完成了训练，退出联邦学习。
         if self.reign is not None:
-            self.reign.destory()
+            self.reign.destroy()
 
         self.maintainer.manual_stop()
 
