@@ -22,7 +22,7 @@ def silence():
     VERBOSE = False
 
 
-DYNAMIC_ADDRESS_LOADING = True
+DYNAMIC_ADDRESS_LOADING = False
 
 # FIXME 修复from ..common import XXX 的时候，XXX并不是全局共享的问题。
 

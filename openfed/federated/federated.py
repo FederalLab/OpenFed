@@ -148,6 +148,9 @@ class Maintainer(SafeTread):
             self.pending_queue.extend(self.read_address_from_file())
 
             self.start()
+            if not openfed.is_dynamic_address_loading():
+                # 如果不是动态加载的话，则会阻塞进程，直到所有的连接都正确建立
+                self.join()
         else:
             # 如果是客户端，并且给定连接地址的话，则直接连接
             self.pending_queue.extend(address)
@@ -213,11 +216,13 @@ class Maintainer(SafeTread):
                     # 等待一小段时间再去获取锁，为了把机会留给其他人
                     time.sleep(openfed.SLEEP_SHORT_TIME)
             else:
-
+                joint_address_mapping = []
                 for address in self.pending_queue:
                     joint = Joint(address, self.world)
-                    joint.join()
+                    joint_address_mapping.append([joint, address])
 
+                for joint, address in joint_address_mapping:
+                    joint.join()
                     if joint.build_success:
                         self.finished_queue.append(address)
                     else:
@@ -225,10 +230,14 @@ class Maintainer(SafeTread):
             self.pending_queue = build_failed
 
             if len(self.pending_queue) == 0:
-                # 如果没有排队等待，那就睡眠长一些！减少CPU占用
-                time.sleep(openfed.SLEEP_VERY_LONG_TIME)
+                if openfed.is_dynamic_address_loading():
+                    # 如果没有排队等待，那就睡眠长一些！减少CPU占用
+                    time.sleep(openfed.SLEEP_VERY_LONG_TIME)
+                else:
+                    # 退出for循环，表示已经完成所有的连接任务
+                    break
             else:
-                time.sleep(openfed.SLEEP_SHORT_TIME)
+                time.sleep(openfed.SLEEP_LONG_TIME)
 
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。

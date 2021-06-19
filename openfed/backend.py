@@ -213,7 +213,7 @@ class Backend(SafeTread, Peeper, Hook):
         """用于更新内部状态
         """
 
-        if self.received_numbers == 5:
+        if self.received_numbers == 50:
             # 开始聚合
             task_info = self.aggregator.aggregate()
 

@@ -18,13 +18,13 @@ elastic_aux = ElasticAux(net.parameters())
 # 将模型参数告知后端
 frontend.set_state_dict(net.state_dict(keep_vars=True))
 
-for i in range(1, 6):
+for i in range(1, 51):
     print(f"Train @{i}")
     # 下载一份数据
     if not frontend.download():
         break
 
-    time.sleep(5.0)
+    time.sleep(1.0)
 
     # 进行训练
     net(torch.randn(128, 1, 1)).sum().backward()
