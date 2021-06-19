@@ -18,12 +18,12 @@ from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         ReduceScatterOptions, ScatterOptions,
                                         Store)
 from torch._six import string_classes
-from ..common.constants import DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT, DEFAULT_PG_LONG_TIMEOUT
-from ..common.vars import is_dynamic_address_loading
-
 from torch.distributed.rendezvous import rendezvous
 
 from ..common import Array, log_debug_info, logger
+from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
+                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT)
+from ..common.vars import is_dynamic_address_loading
 
 _MPI_AVAILABLE = True
 _NCCL_AVAILABLE = True
@@ -940,7 +940,6 @@ class FederatedWorld(object):
         return pg_list
 
     def __repr__(self) -> str:
-        # TODO: Add more information here.
         return "FederatedWorld"
 
 

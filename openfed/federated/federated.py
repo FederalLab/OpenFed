@@ -376,7 +376,6 @@ class Reign(Informer, Delivery):
             self.push()
             # 4. 设置自己的状态为ZOMBINE
             self.zombine()
-            # HACK: 考虑处理数据发送失败的问题。建议启用一个thread做这件事。
             return True
 
     def download(self) -> bool:
