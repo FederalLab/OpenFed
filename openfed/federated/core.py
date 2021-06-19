@@ -15,12 +15,14 @@ from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         ProcessGroup, ReduceOp, ReduceOptions,
                                         ReduceScatterOptions, ScatterOptions,
                                         Store)
-from torch.distributed import Backend
-from torch.distributed.distributed_c10d import (_batch_p2p_manager,
+from torch.distributed.distributed_c10d import (Backend, P2POp,
+                                                _batch_p2p_manager,
                                                 _check_single_tensor,
                                                 _check_tensor_list,
                                                 _object_to_tensor,
                                                 _tensor_to_object,
+                                                is_mpi_available,
+                                                is_nccl_available,
                                                 supports_complex)
 from torch.distributed.rendezvous import rendezvous
 
@@ -35,9 +37,6 @@ try:
                                                     ProcessGroupNCCL)
 except ImportError:
     ...
-
-from torch.distributed.distributed_c10d import (is_mpi_available,
-                                                is_nccl_available)
 
 
 @unique
