@@ -118,21 +118,21 @@ class Backend(SafeTread, Peeper, Hook):
                     if not self.stopped and reign is not None:
                         self.reign = reign
                         self.step_at_first()
-                        if reign.is_zombine():
+                        if reign.is_zombine:
                             self.step_at_zombine()
-                        elif reign.is_offline():
+                        elif reign.is_offline:
                             # Destroy process
                             if self.step_before_destroy():
                                 self.step_after_destroy(reign.destroy())
                             else:
                                 self.step_at_failed()
-                        elif reign.is_pushing():
+                        elif reign.is_pushing:
                             # 表示客户端要上传数据PUSH，那么我们要download数据
                             if self.step_before_download():
                                 self.step_after_download(reign.download())
                             else:
                                 self.step_at_failed()
-                        elif reign.is_pulling():
+                        elif reign.is_pulling:
                             # 首先进行一些判断，来确定是否响应这个请求
                             if self.step_before_upload():
                                 # 表示客户端请求下载一组数据PULL，那我们要upload数据来满足他
@@ -181,7 +181,7 @@ class Backend(SafeTread, Peeper, Hook):
 
         # 从底层获取接收到的数据
         packages = self.reign.tensor_indexed_packages
-        task_info = self.reign.get_task_info()
+        task_info = self.reign.task_info
 
         self.aggregator.step(packages, task_info)
 

@@ -528,7 +528,7 @@ class FederatedWorld(object):
 
         # whatever the backend is, we need a store to exchange information.
         if store is None:
-            if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
+            if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                 if rank == 0:
                     tmp_timeout = DEFAULT_PG_SHORT_TIMEOUT
                 else:
@@ -541,7 +541,7 @@ class FederatedWorld(object):
             )
             store, rank, world_size = next(rendezvous_iterator)
 
-            if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
+            if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                 # 下面这段代码，对于服务器端是否能够及时反映出客户端未上线
                 # 并且防止主程序阻塞，起着至关重要的作用！
                 # 请不要删除，或者修改他们，除非你知道为什么那么做！

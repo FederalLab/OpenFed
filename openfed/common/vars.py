@@ -11,10 +11,11 @@ class _DEBUG(object):
     def unset_debug(self):
         self.debug = False
 
-    def is_debug(self):
+    @property
+    def is_debug(self) -> bool:
         return self.debug
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="DEBUG",
             description="If debug is enabled, more details will be provided."
@@ -34,10 +35,11 @@ class _VERBOSE(object):
     def unset_verbose(self):
         self.verbose = False
 
-    def is_verbose(self):
+    @property
+    def is_verbose(self) -> bool:
         return self.verbose
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="VERBOSE",
             description="If verbose is enabled, some necessary information will be provided."
@@ -59,10 +61,11 @@ class _DYNAMIC_ADDRESS_LOADING(object):
     def unset_dynamic_address_loading(self):
         self.dynamic_address_loading = False
 
-    def is_dynamic_address_loading(self):
+    @property
+    def is_dynamic_address_loading(self) -> bool:
         return self.dynamic_address_loading
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="DYNAMIC_ADDRESS_LOADING",
             description="If dynamic_address_loading is enabled, a thread will be created to maintain new connection."

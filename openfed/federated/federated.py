@@ -67,6 +67,7 @@ class Joint(SafeTread):
         try:
             fed_world.init_process_group(**self.address.as_dict)
         except Exception as e:
+            del fed_world
             return f"Timeout while building connection to {repr(self.address)}"
 
         # register the world
@@ -150,7 +151,7 @@ class Maintainer(SafeTread):
             self.pending_queue.extend(self.read_address_from_file())
 
             self.start()
-            if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
+            if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                 # 如果不是动态加载的话，则会阻塞进程，直到所有的连接都正确建立
                 self.join()
         else:
@@ -205,7 +206,7 @@ class Maintainer(SafeTread):
                 openfed_lock.release()
 
             build_failed = []
-            if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
+            if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                 for address in self.pending_queue:
                     acquire_all()
                     joint = Joint(address, self.world)
@@ -234,7 +235,7 @@ class Maintainer(SafeTread):
             self.pending_queue = build_failed
 
             if len(self.pending_queue) == 0:
-                if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
+                if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                     # 如果没有排队等待，那就睡眠长一些！减少CPU占用
                     time.sleep(openfed.SLEEP_LONG_TIME)
                 else:
@@ -255,7 +256,7 @@ class Maintainer(SafeTread):
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
         """
-        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading() and self.world.is_king():
+        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.is_king():
             raise RuntimeError("Dynamic loading is not allowed!")
 
         log_debug_info(f"Add a new address {repr(address)} manually.")
@@ -378,9 +379,9 @@ class Reign(Informer, Delivery):
             self.pushing()
             # 3. 进入阻塞，等待数据上传
             tic = time.time()
-            while not self.is_pulling():  # 检查对方是否进入了pulling状态
+            while not self.is_pulling:  # 检查对方是否进入了pulling状态
                 toc = time.time()
-                if toc-tic > openfed.SLEEP_VERY_LONG_TIME or self.is_offline():
+                if toc-tic > openfed.SLEEP_VERY_LONG_TIME or self.is_offline:
                     return False
                 time.sleep(openfed.SLEEP_SHORT_TIME)
 
@@ -421,9 +422,9 @@ class Reign(Informer, Delivery):
             self.pulling()
             # 3. 进入阻塞，等待数据上传
             tic = time.time()
-            while not self.is_pushing():  # 检查对方是否进入了pushing状态
+            while not self.is_pushing:  # 检查对方是否进入了pushing状态
                 toc = time.time()
-                if toc-tic > openfed.SLEEP_VERY_LONG_TIME or self.is_offline():
+                if toc-tic > openfed.SLEEP_VERY_LONG_TIME or self.is_offline:
                     return False
                 time.sleep(openfed.SLEEP_SHORT_TIME)
 

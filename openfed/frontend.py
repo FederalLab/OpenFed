@@ -76,7 +76,7 @@ class Frontend(Peeper):
         self.reign.set_task_info(task_info)
 
     def get_task_info(self) -> Dict:
-        return self.reign.get_task_info()
+        return self.reign.task_info
 
     def set(self, key: str, value: Any) -> None:
         self.reign.set(key, value)

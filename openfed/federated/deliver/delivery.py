@@ -1,76 +1,62 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Union
 
 from bidict import bidict
-from openfed.common import Package, Hook
+from openfed.common import Hook, Package
 from torch import Tensor
 
+from ...utils import openfed_class_fmt
 from ..core import FederatedWorld, ProcessGroup, World, gather_object
-from .functional import Cypher
+from .functional import Cypher, FormotCheck
 
 
 class Delivery(Package, Hook):
+    """Delivery: Include Tensor related communication function in a single class.
+    """
 
     pg: ProcessGroup
     federated_world: FederatedWorld
     world: World
 
-    #! 注意！param对外始终保持id不变性，无论出现在哪里！只要是来自Package内部的数据，
-    #! 那就始终都指向同一个内存区域！
-    #! 只有当pull、push函数被调用以后以后，才会发生数据同步的操作！
-
-    # key_tensor初始化之后id就不会发生改变
     key_tensor_bidict: bidict
-    # package存储的是交互数据
-    # 如果需要向外发送数据的话，会调用pack打包数据，然后传递给下层。
-    # 如果需要从外接收数据的话，这个packages会被直接替换掉。
-    # tensor_indexed_packages会重新使用key_tensor_dict，使其可以被原始的tensor正确索引。
     packages: Dict[str, Dict[str, Tensor]]
-    # 默认情况下，packages是以str索引，这是为了方便处理从底层接收到的数据。
-    # 我们提供了一个方法，使得其适合于用Tensor索引。
-    # str标志是在所有的端中都是一致的。Tensor的id则并不是一致的。
-    # 但是，使用tensor索引可以更灵活的和其他模块兼容。
-    # 因此我们提供了两种方式.
-    # tensor_indexed_packages
 
     def __init__(self) -> None:
-
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
+        self.register_cypher(FormotCheck())
 
-    def register_cypher(self, cypher: Cypher):
-        """添加一个hook或者一个hook list
-        hook的pack和unpack函数会在发送、接收到数据时，自动调用。
+    def register_cypher(self, cypher: Cypher) -> None:
+        """Register a cypher to encrypt/decrypt the Tensor.
         """
         Hook.register_hook(self, func=cypher)
 
-    def key_tensor_map(self, key: str, tensor: Tensor):
-        """将一个键值对加入到同步数据流中。
-        key 不能是param，param是内部使用的键值。
+    def key_tensor_map(self, key: str, tensor: Tensor) -> None:
+        """Add a new <key, tensor> pair to package.
         """
         if key in self.key_tensor_bidict or key == "param":
             raise KeyError(f"{key} already existed.")
         self.key_tensor_bidict[key] = tensor
         self.packages[key]["param"] = tensor
 
-    def set_state_dict(self, state_dict: dict):
-        """将state dict中的键值对加入到同步数据流中。
+    def set_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
+        """Add a state_dict to package.
         """
         for k, v in state_dict.items():
             self.key_tensor_map(k, v)
 
     def key_name(self, t: Tensor) -> str:
-        """返回一个tensor对应的字符串
+        """Return the string name for the given tensor t.
         """
         return self.key_tensor_bidict.inverse[t]
 
     def key_tensor(self, key: str) -> Tensor:
-        """返回一个字符串对应的tensor。
+        """Return the tensor for the given key.
         """
         return self.key_tensor_bidict.get(key)
 
-    def pack(self, key: Union[str, Tensor], rdict: Dict[str, Tensor]):
-        """给定数据流中的一个key（可以是tensor也可以是str），将rdict中的内容，更新到数据流中。将覆盖数据。
+    def pack(self, key: Union[str, Tensor], rdict: Dict[str, Tensor]) -> None:
+        """Update rdict to the key in package.
         """
         if not isinstance(key, str):
             assert isinstance(key, Tensor)
@@ -80,8 +66,8 @@ class Delivery(Package, Hook):
 
         package.update(rdict)
 
-    def unpack(self, key: Union[str, Tensor], rdict: Dict[str, Any]):
-        """给定数据流中的一个key（可以是Tensor也可以是str），将数据流中rdict对应的键值加载到rdict中。
+    def unpack(self, key: Union[str, Tensor], rdict: Dict[str, Any]) -> Dict[str, Tensor]:
+        """Update rdict with the one saved in package.
         """
         if not isinstance(key, str):
             assert isinstance(key, Tensor)
@@ -93,22 +79,21 @@ class Delivery(Package, Hook):
         return rdict
 
     @property
-    def tensor_indexed_packages(self):
-        """返回一个由tensor索引的字典。当需要将接受的数据返回给aggretator处理的时候，调用此方法。
+    def tensor_indexed_packages(self) -> Dict[Tensor, Dict[str, Tensor]]:
+        """Return a Dict which indexed by Tensor.
         """
         return {self.key_tensor(k): v for k, v in self.packages.items()}
 
-    def reset(self):
+    def reset(self) -> None:
+        """Reset key_tensor_bidict and packages.
+        """
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
 
-    def pull(self) -> Dict[str, Dict[str, Tensor]]:
-        """
-        在调用这个函数之前，请告知另一端当前的状态
-        从另一端拉取数据。
-        如果此时是客户端，则会自动将拉取的数据中params参数以原址操作的方式，覆盖到key_tensor中。这是为了减少调用参数同步的额外操作。
-        换言之，如果是客户端调用这个函数，则模型参数会被直接更新到模型中，而不是保留在数据流中。
-        如果是服务器端，则不会有这个操作。
+    def pull(self, auto_load_param: bool = True) -> Dict[str, Dict[str, Tensor]]:
+        """Pull data from the other end. 
+        After received data, Queen will load `param` to Tensor by an in-palce operation automatically.
+        You can specify :param:auto_load_param as ``False`` to disable it.
         """
         assert self.federated_world._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
@@ -122,28 +107,36 @@ class Delivery(Package, Hook):
 
         r_packages = received[other_rank]
 
-        # 解密数据！注意！逆序进行
+        # NOTE: decrypt data in the reverse order.
         for hook in self.hook_list[::-1]:
             r_packages = {k: hook.decrypt(k, v) for k, v in r_packages.items()}
 
-        if self.world.is_queen():
+        # Queen will load `param` to Tensor by an in-place operation.
+        if auto_load_param and self.world.is_queen():
             for k, v in r_packages.items():
                 if 'param' in v:
                     self.key_tensor_bidict[k].data.copy_(v['param'])
         self.packages = r_packages
+        return r_packages
 
     def push(self) -> None:
-        """向另一段发送数据。
+        """Push data to the other end.
         """
         assert self.federated_world._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         rank = 1 if self.world.is_king() else 0
 
-        # 加密数据
+        # encrypt data
         for hook in self.hook_list:
             self.packages = {k: hook.encrypt(k, v)
                              for k, v in self.packages.items()}
 
         gather_object(self.packages, None, dst=rank,
                       group=self.pg, federated_world=self.federated_world)
+
+    def __repr__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="Delivery",
+            description=str(list(self.key_tensor_bidict.keys()))
+        )
