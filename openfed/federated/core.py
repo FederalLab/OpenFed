@@ -25,7 +25,7 @@ from ..common import Array, log_debug_info, logger
 from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                 DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT,
                                 SLEEP_LONG_TIME)
-from ..common.vars import DYNAMIC_ADDRESS_LOADING
+from ..common.vars import DYNAMIC_ADDRESS_LOADING, DEBUG
 
 try:
     from torch.distributed.distributed_c10d import (ProcessGroupGloo,
@@ -429,62 +429,84 @@ class FederatedWorld(object):
         elif init_method is None:
             init_method = "env://"
 
+        def init_store(rank, world_size, timeout):
+            rendezvous_iterator = rendezvous(
+                init_method, rank, world_size, timeout=timeout
+            )
+            store, rank, world_size = next(rendezvous_iterator)
+            return store, rank, world_size
+
+        tmp_timeout = DEFAULT_PG_SHORT_TIMEOUT if rank == 0 else DEFAULT_PG_LONG_TIMEOUT
+
+        def attempt_init_store(rank, world_size, timeout):
+            store, rank, world_size = init_store(rank, world_size, timeout)
+            # Test each other.
+            if rank == 0:
+                store.set("RANK_ZERO", "True")
+                store.set_timeout(timeout)
+                store.get("RANK_OTHER")
+            else:
+                store.set("RANK_OTHER", "True")
+                store.set_timeout(timeout)
+                store.get("RANK_ZERO")
+
+            return store, rank, world_size
+
         # whatever the backend is, we need a store to exchange information.
         if store is None:
             if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
-                if rank == 0:
-                    tmp_timeout = DEFAULT_PG_SHORT_TIMEOUT
-                else:
-                    tmp_timeout = DEFAULT_PG_LONG_TIMEOUT
+                try:
+                    store, rank, world_size = attempt_init_store(
+                        rank, world_size, tmp_timeout)
+                except Exception as e:
+                    if DEBUG.is_debug:
+                        logger.error(e)
+                    raise e
             else:
-                tmp_timeout = timeout
-
-            rendezvous_iterator = rendezvous(
-                init_method, rank, world_size, timeout=tmp_timeout
-            )
-            store, rank, world_size = next(rendezvous_iterator)
-
-            if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
-                # 下面这段代码，对于服务器端是否能够及时反映出客户端未上线
-                # 并且防止主程序阻塞，起着至关重要的作用！
-                # 请不要删除，或者修改他们，除非你知道为什么那么做！
-                if rank == 0:
-                    store.set("RANK_ZERO", "True")
-                    store.set_timeout(tmp_timeout)
-                    store.get("RANK_OTHER")
-                else:
-                    store.set("RANK_OTHER", "True")
-                    store.set_timeout(tmp_timeout)
-                    store.get("RANK_ZERO")
+                store, rank, world_size = init_store(rank, world_size, timeout)
 
             store.set_timeout(timeout)
 
         backend = Backend(backend)
 
-        if backend == Backend.MPI:
-            if world_size != -1 or rank != -1:
-                warnings.warn(
-                    "For MPI backend, world_size ({}) and rank ({}) "
-                    "are ignored since they are assigned by the "
-                    "MPI runtime.".format(world_size, rank))
+        def init_backend(timeout):
+            if backend == Backend.MPI:
+                if world_size != -1 or rank != -1:
+                    warnings.warn(
+                        "For MPI backend, world_size ({}) and rank ({}) "
+                        "are ignored since they are assigned by the "
+                        "MPI runtime.".format(world_size, rank))
 
-            self._update_default_pg(self._new_process_group_helper(
-                -1,
-                -1,
-                [],
-                Backend.MPI,
-                None,
-                group_name=group_name,
-                timeout=timeout))
+                self._update_default_pg(self._new_process_group_helper(
+                    -1,
+                    -1,
+                    [],
+                    Backend.MPI,
+                    None,
+                    group_name=group_name,
+                    timeout=timeout))
+            else:
+                self._update_default_pg(self._new_process_group_helper(
+                    world_size,
+                    rank,
+                    [],
+                    backend,
+                    store,
+                    group_name=group_name,
+                    timeout=timeout))
+
+        def attempt_init_backend(timeout):
+            init_backend(timeout)
+
+        if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
+            try:
+                attempt_init_backend(tmp_timeout)
+            except Exception as e:
+                if DEBUG.is_debug:
+                    logger.error(e)
+                raise e
         else:
-            self._update_default_pg(self._new_process_group_helper(
-                world_size,
-                rank,
-                [],
-                backend,
-                store,
-                group_name=group_name,
-                timeout=timeout))
+            init_backend(timeout)
 
         self._pg_group_ranks[self.WORLD] = {
             i: i for i in range(self.WORLD.size())}  # type: ignore
