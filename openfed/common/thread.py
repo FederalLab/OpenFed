@@ -5,7 +5,7 @@ from typing import Dict, final
 import openfed
 import openfed.utils as utils
 
-from .logger import logger
+from .logging import logger
 
 
 class SafeTread(Thread):

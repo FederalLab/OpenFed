@@ -23,7 +23,7 @@ from ..common.vars import is_dynamic_address_loading
 
 from torch.distributed.rendezvous import rendezvous
 
-from ..common import Array, log_debug_info
+from ..common import Array, log_debug_info, logger
 
 _MPI_AVAILABLE = True
 _NCCL_AVAILABLE = True

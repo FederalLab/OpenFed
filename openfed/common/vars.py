@@ -24,6 +24,8 @@ def silence():
 
 DYNAMIC_ADDRESS_LOADING = True
 
+# FIXME 修复from ..common import XXX 的时候，XXX并不是全局共享的问题。
+
 # 是否开启动态地址加载功能。
 # 如果开启动态地址加载功能，那么程序可以在运行过程中创建新的连接
 # 这使得你的程序更加的灵活，但是你需要维护maintainer_lock的关系，

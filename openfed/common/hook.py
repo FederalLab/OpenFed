@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from typing import Callable, Dict, List, overload
 
-from .logger import log_error_info
+from .logging import log_error_info
 
 
 class Hook(object):
