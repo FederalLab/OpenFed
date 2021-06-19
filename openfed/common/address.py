@@ -1,6 +1,6 @@
 import json
 from typing import List, TypeVar
-
+from ..utils import openfed_class_fmt
 from prettytable import PrettyTable
 
 _A = TypeVar("_A", bound='Address')
@@ -94,9 +94,7 @@ class Address(object):
         """
         with open(file, 'r') as f:
             address_dict_list = json.load(f)
-        address_list = []
-        for address_dict in address_dict_list:
-            address_list.append(Address(**address_dict))
+        address_list = [Address(**address) for address in address_dict_list]
         return address_list
 
     @classmethod
@@ -104,21 +102,16 @@ class Address(object):
         """
             address_list中的store不会被保存下来。因为不支持从这种方式初始化。
         """
-        address_dict_list = []
-        for address in address_list:
-            address_dict_list.append(
-                dict(backend=address.backend,
-                     init_method=address.init_method,
-                     world_size=address.world_size,
-                     rank=address.rank,
-                     group_name=address.group_name)
-            )
+        address_dict_list = [address.as_dict for address in address_list]
         with open(file, "w") as f:
             json.dump(address_dict_list, f)
 
     def __repr__(self):
         # 调用repr方法，输出一个简介
-        return f"@ {self.group_name}"
+        return openfed_class_fmt.format(
+            class_name="Address",
+            description=f"@ {self.group_name}",
+        )
 
     def __str__(self):
         # 调用str方法，输出一个详细内容
@@ -129,7 +122,10 @@ class Address(object):
             [self.backend, self.init_method, self.world_size,
                 self.rank, self.store, self.group_name]
         )
-        return "Address \n" + str(table)
+        return openfed_class_fmt.format(
+            class_name="Address",
+            description=str(table),
+        )
 
     @property
     def as_dict(self):
@@ -147,7 +143,7 @@ class Address(object):
 # 给定一个默认的fed addr地址，方便做实验验证的时候，不需要每次都指定地址。
 
 default_address = Address(backend="gloo",
-                          init_method='tcp://localhost:1994',
+                          init_method='tcp://localhost:1993',
                           group_name="OpenFed"
                           )
 

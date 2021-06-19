@@ -3,9 +3,8 @@ import torch.optim as optim
 from openfed import Backend
 from openfed.aggregate import ElasticAggregator
 import openfed
-openfed.silence()
-# openfed.disable_dynamic_address_loading()
 
+openfed.VERBOSE.set_verbose()
 print("Connect to Client...")
 backend = Backend(address=openfed.default_address_lists[:3])
 

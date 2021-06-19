@@ -1,43 +1,74 @@
-# 如果DEBUG=True，那相关的程序会输出部分调试信息
-# 会以更严格的方式，执行程序
-DEBUG: bool = False
+from ..utils import openfed_class_fmt
 
 
-def debug():
-    global DEBUG
-    DEBUG = True
+class _DEBUG(object):
+    def __init__(self):
+        self.debug = False
+
+    def set_debug(self):
+        self.debug = True
+
+    def unset_debug(self):
+        self.debug = False
+
+    def is_debug(self):
+        return self.debug
+
+    def __repr__(self):
+        return openfed_class_fmt.format(
+            class_name="DEBUG",
+            description="If debug is enabled, more details will be provided."
+                        "Call set_debug() to enable debug, unset_debug() to disable it.")
 
 
-# 如果VERBOSE=True, 相关程序会输出一些日志
-VERBOSE: bool = True
+DEBUG = _DEBUG()
 
 
-def verbose():
-    global VERBOSE
-    VERBOSE = True
+class _VERBOSE(object):
+    def __init__(self):
+        self.verbose = False
+
+    def set_verbose(self):
+        self.verbose = True
+
+    def unset_verbose(self):
+        self.verbose = False
+
+    def is_verbose(self):
+        return self.verbose
+
+    def __repr__(self):
+        return openfed_class_fmt.format(
+            class_name="VERBOSE",
+            description="If verbose is enabled, some necessary information will be provided."
+                        "Otherwise, OpenFed will reduce output messages as much as possible."
+                        "Call set_verbose() to enable verbose, unset_verbose() to disable it."
+        )
 
 
-def silence():
-    global VERBOSE
-    VERBOSE = False
+VERBOSE = _VERBOSE()
 
 
-DYNAMIC_ADDRESS_LOADING = False
+class _DYNAMIC_ADDRESS_LOADING(object):
+    def __init__(self):
+        self.dynamic_address_loading = True
 
-# FIXME 修复from ..common import XXX 的时候，XXX并不是全局共享的问题。
+    def set_dynamic_address_loading(self):
+        self.dynamic_address_loading = True
 
-# 是否开启动态地址加载功能。
-# 如果开启动态地址加载功能，那么程序可以在运行过程中创建新的连接
-# 这使得你的程序更加的灵活，但是你需要维护maintainer_lock的关系，
-# 避免发生抢占造成的其他问题。
-# 如果你选择关闭这个功能，那么你需要在程序的一开始就启动所有的机器
-# 否则的话，程序将会一直等待
+    def unset_dynamic_address_loading(self):
+        self.dynamic_address_loading = False
+
+    def is_dynamic_address_loading(self):
+        return self.dynamic_address_loading
+
+    def __repr__(self):
+        return openfed_class_fmt.format(
+            class_name="DYNAMIC_ADDRESS_LOADING",
+            description="If dynamic_address_loading is enabled, a thread will be created to maintain new connection."
+                        "Otherwise, OpenFed will get stuck until all address are correctly jointed."
+                        "Call set_dynamic_address_loading() to set dynamic_address_loading, unset_dynamic_address_loading to disable it."
+        )
 
 
-def disable_dynamic_address_loading():
-    global DYNAMIC_ADDRESS_LOADING
-    DYNAMIC_ADDRESS_LOADING = False
-
-
-def is_dynamic_address_loading():
-    return DYNAMIC_ADDRESS_LOADING
+DYNAMIC_ADDRESS_LOADING = _DYNAMIC_ADDRESS_LOADING()

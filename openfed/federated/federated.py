@@ -148,7 +148,7 @@ class Maintainer(SafeTread):
             self.pending_queue.extend(self.read_address_from_file())
 
             self.start()
-            if not openfed.is_dynamic_address_loading():
+            if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
                 # 如果不是动态加载的话，则会阻塞进程，直到所有的连接都正确建立
                 self.join()
         else:
@@ -203,7 +203,7 @@ class Maintainer(SafeTread):
                 openfed_lock.release()
 
             build_failed = []
-            if openfed.is_dynamic_address_loading():
+            if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
                 for address in self.pending_queue:
                     acquire_all()
                     joint = Joint(address, self.world)
@@ -230,7 +230,7 @@ class Maintainer(SafeTread):
             self.pending_queue = build_failed
 
             if len(self.pending_queue) == 0:
-                if openfed.is_dynamic_address_loading():
+                if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading():
                     # 如果没有排队等待，那就睡眠长一些！减少CPU占用
                     time.sleep(openfed.SLEEP_VERY_LONG_TIME)
                 else:
@@ -242,7 +242,7 @@ class Maintainer(SafeTread):
     def manual_joint(self, address: Address):
         """如果是客户端，则直接连接，会阻塞操作。如果是服务器，则加入队列，让后台自动连接。
         """
-        if not openfed.DYNAMIC_ADDRESS_LOADING and self.world.is_king():
+        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading() and self.world.is_king():
             raise RuntimeError("Dynamic loading is not allowed!")
 
         log_debug_info(f"Add a new address {repr(address)} manually.")

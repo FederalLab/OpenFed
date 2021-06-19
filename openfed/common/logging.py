@@ -10,13 +10,13 @@ def _prefix(func):
 
 @_prefix
 def log_debug_info(msg):
-    if DEBUG:
+    if DEBUG.is_debug():
         logger.debug(msg)
 
 
 @_prefix
 def log_verbose_info(msg):
-    if VERBOSE:
+    if VERBOSE.is_verbose():
         logger.info(msg)
 
 

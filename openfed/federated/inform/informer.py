@@ -46,7 +46,7 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
         store.set(key, jsonstr)
         return True
     except Exception as e:
-        if openfed.DEBUG:
+        if openfed.DEBUG.is_debug():
             # 双方在结束连接时，总会有一方先退出，导致另一方数据读取错误。
             # 这里不是一个bug，所以只是print了异常
             logger.warning(e)
@@ -62,7 +62,7 @@ def safe_store_get(store: Store, key: str) -> Dict:
         info = json.loads(jsonstr)
         return info
     except Exception as e:
-        if openfed.DEBUG:
+        if openfed.DEBUG.is_debug():
             # 双方在结束连接时，总会有一方先退出，导致另一方数据读取错误。
             # 这里不是一个bug，所以只是print了异常
             logger.warning(e)

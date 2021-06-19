@@ -141,7 +141,12 @@ class Backend(SafeTread, Peeper, Hook):
                                 self.step_at_failed()
                         else:
                             # raise Exception("Invalid state")
-                            print("Invalid state")
+                            # 因为这个状态的判断过程是通过实时读取的数据进行的，所以很有可能刚做完
+                            # pulling的判断，对方就恰好把状态设置成了pull，从而导致进入了valid state
+                            # 但是这个并没有任何问题，不算是bug
+                            # 另一种是客户端下线了，导致状态读取失败。但是也不会造成更多影响。
+                            # 所以这里直接skip就好
+                            ...
                     # 常规的状态检查和更新
                     self.step_at_last()
                 else:

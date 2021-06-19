@@ -3,9 +3,8 @@ from typing import Any, Dict, List, Union, overload
 from torch import Tensor
 from torch.optim import Optimizer
 
-from .common import Address, Peeper, default_address, log_debug_info, log_info
+from .common import Address, Peeper, default_address, log_info
 from .federated.federated import Maintainer, Reign, World, default_reign
-import openfed
 
 
 class Frontend(Peeper):
