@@ -5,7 +5,7 @@ import warnings
 from collections import OrderedDict
 from datetime import timedelta
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, final
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
@@ -26,7 +26,7 @@ from torch.distributed.distributed_c10d import (Backend, P2POp,
                                                 supports_complex)
 from torch.distributed.rendezvous import rendezvous
 
-from ..common import Array, ConnectTimeout, log_debug_info, logger
+from ..common import Array, ConnectTimeout, logger
 from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                 DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT)
 from ..common.vars import DEBUG, DYNAMIC_ADDRESS_LOADING

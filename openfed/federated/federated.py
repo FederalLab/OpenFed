@@ -48,7 +48,7 @@ class Joint(SafeTread):
 
     def safe_run(self):
         if openfed.VERBOSE.is_verbose:
-            logger.info(f"Try to connect to {repr(self.address)}")
+            logger.info(f"Waiting for \n{repr(self.address)}")
 
         # create a federated world
         fed_world = FederatedWorld(self.world)
@@ -89,7 +89,7 @@ class Joint(SafeTread):
 
         if openfed.VERBOSE.is_verbose:
             logger.info(
-                f"Connect to {repr(self.address)}\n{str(self.address)}\n")
+                f"Connected\n{str(self.address)}")
         return f"Success! {repr(self.address)}"
 
     def __repr__(self):
@@ -248,11 +248,13 @@ class Maintainer(Array, SafeTread):
             if len(self) == 0:
                 if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                     time.sleep(openfed.SLEEP_LONG_TIME)
-                return f"Success: {len(self.finished_queue)} new federeated world added."
+                else:
+                    return f"Success: {len(self.finished_queue)} new federeated world added."
             else:
                 if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                     raise RuntimeError(f"Failed: {len(self.discard_queue)}")
-                time.sleep(openfed.SLEEP_LONG_TIME)
+                else:
+                    time.sleep(openfed.SLEEP_LONG_TIME)
         return "Force Quit XXX" + str(self)
 
     def kill_world(self):

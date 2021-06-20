@@ -10,6 +10,7 @@ from .aggregate import Aggregator
 from .common import (Address, Hook, Peeper, SafeTread, default_address,
                      log_verbose_info)
 from .federated.federated import Destroy, Maintainer, Reign, World
+from .federated.lock import openfed_lock
 
 
 class Backend(SafeTread, Peeper, Hook):
@@ -82,6 +83,9 @@ class Backend(SafeTread, Peeper, Hook):
 
         if address is None and address_file is None:
             address = default_address
+        # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
+        # otherwise, it may interrupte the process and cause error before you go into loop()
+        openfed_lock.acquire()
 
         self.maintainer = Maintainer(
             world, address=address, address_file=address_file)
@@ -108,9 +112,11 @@ class Backend(SafeTread, Peeper, Hook):
         如果你希望程序进入后台运行，那么请使用start()。
         如果你希望程序在前台运行，那么请直接调用run()函数。
         """
+        # release openfed_lock here.
+        openfed_lock.release()
         while not self.stopped:
-            self.step_at_new_episode()
             with self.maintainer.maintainer_lock:
+                self.step_at_new_episode()
                 rg = Reign.reign_generator()
                 for reign in rg:
                     if not self.stopped and reign is not None:
