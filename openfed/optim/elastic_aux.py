@@ -1,7 +1,6 @@
 import torch
+from openfed.common import Wrapper
 from torch.optim import Optimizer
-from typing import List
-from ..common import Wrapper
 
 
 class ElasticAux(Optimizer, Wrapper):
