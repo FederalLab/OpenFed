@@ -9,7 +9,7 @@ import time
 
 print("Connect to Server...")
 frontend = Frontend(address=openfed.default_address_lists[0])
-
+frontend.openfed_digest()
 # 创建一个模型，
 net = nn.Linear(1, 1)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)

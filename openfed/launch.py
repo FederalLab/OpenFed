@@ -148,6 +148,7 @@ from typing import Optional, IO, List, Any
 node_local_rank_stdout_filename = "node_{}_local_rank_{}_stdout"
 node_local_rank_stderr_filename = "node_{}_local_rank_{}_stderr"
 
+
 def parse_args():
     """
     Helper function parsing the command line options
@@ -212,6 +213,7 @@ def parse_args():
     parser.add_argument('training_script_args', nargs=REMAINDER)
     return parser.parse_args()
 
+
 def main():
     args = parse_args()
 
@@ -239,7 +241,8 @@ def main():
         # Possibly create the directory to write subprocess log output to.
         if os.path.exists(args.logdir):
             if not os.path.isdir(args.logdir):
-                raise ValueError("argument --logdir must be a path to a directory.")
+                raise ValueError(
+                    "argument --logdir must be a path to a directory.")
         else:
             # create the relative directory
             os.mkdir(os.path.join(os.getcwd(), args.logdir))
@@ -261,9 +264,11 @@ def main():
                 cmd.append("-m")
         else:
             if not args.use_env:
-                raise ValueError("When using the '--no_python' flag, you must also set the '--use_env' flag.")
+                raise ValueError(
+                    "When using the '--no_python' flag, you must also set the '--use_env' flag.")
             if args.module:
-                raise ValueError("Don't use both the '--no_python' flag and the '--module' flag at the same time.")
+                raise ValueError(
+                    "Don't use both the '--no_python' flag and the '--module' flag at the same time.")
 
         cmd.append(args.training_script)
 
@@ -277,10 +282,14 @@ def main():
         if args.logdir:
             directory_path = os.path.join(os.getcwd(), args.logdir)
             node_rank = args.node_rank
-            stdout_file_name = node_local_rank_stdout_filename.format(node_rank, local_rank)
-            stderr_file_name = node_local_rank_stderr_filename.format(node_rank, local_rank)
-            stdout_handle = open(os.path.join(directory_path, stdout_file_name), "w")
-            stderr_handle = open(os.path.join(directory_path, stderr_file_name), "w")
+            stdout_file_name = node_local_rank_stdout_filename.format(
+                node_rank, local_rank)
+            stderr_file_name = node_local_rank_stderr_filename.format(
+                node_rank, local_rank)
+            stdout_handle = open(os.path.join(
+                directory_path, stdout_file_name), "w")
+            stderr_handle = open(os.path.join(
+                directory_path, stderr_file_name), "w")
             subprocess_file_handles.append((stdout_handle, stderr_handle))
             stdout_name = stdout_handle.name
             stderr_name = stderr_handle.name
@@ -298,7 +307,8 @@ def main():
                 except Exception:
                     pass
             if last_return_code is not None:
-                raise subprocess.CalledProcessError(returncode=last_return_code, cmd=cmd)
+                raise subprocess.CalledProcessError(
+                    returncode=last_return_code, cmd=cmd)
             if signum in sig_names:
                 print(f"Main process received {sig_names[signum]}, exiting")
             sys.exit(1)
@@ -307,9 +317,12 @@ def main():
         signal.signal(signal.SIGINT, sigkill_handler)
         signal.signal(signal.SIGTERM, sigkill_handler)
 
-        stdout_handle = None if not subprocess_file_handles else subprocess_file_handles[local_rank][0]
-        stderr_handle = None if not subprocess_file_handles else subprocess_file_handles[local_rank][1]
-        process = subprocess.Popen(cmd, env=current_env, stdout=stdout_handle, stderr=stderr_handle)
+        stdout_handle = None if not subprocess_file_handles else subprocess_file_handles[
+            local_rank][0]
+        stderr_handle = None if not subprocess_file_handles else subprocess_file_handles[
+            local_rank][1]
+        process = subprocess.Popen(
+            cmd, env=current_env, stdout=stdout_handle, stderr=stderr_handle)
         processes.append(process)
 
     try:
@@ -323,7 +336,8 @@ def main():
                 else:
                     if process.returncode != 0:
                         last_return_code = process.returncode  # for sigkill_handler
-                        sigkill_handler(signal.SIGTERM, None)  # not coming back
+                        # not coming back
+                        sigkill_handler(signal.SIGTERM, None)
                     else:
                         # exited cleanly
                         finished_processes.append(process)
@@ -335,6 +349,7 @@ def main():
         for (stdout_handle, stderr_handle) in subprocess_file_handles:
             stdout_handle.close()
             stderr_handle.close()
+
 
 if __name__ == "__main__":
     main()

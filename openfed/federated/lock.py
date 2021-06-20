@@ -3,7 +3,7 @@ from threading import Lock
 from typing import Dict
 
 import openfed
-from openfed.common import logger
+from openfed.common.logging import logger
 
 
 class Maintainer():

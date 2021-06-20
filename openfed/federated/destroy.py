@@ -1,5 +1,5 @@
 import openfed
-from openfed.common import logger
+from openfed.common.logging import logger
 from openfed.federated.country import ProcessGroup
 from openfed.federated.register import register
 from openfed.federated.reign import Reign

@@ -2,7 +2,7 @@ import time
 from typing import Generator, TypeVar
 
 import openfed
-from openfed.common import logger
+from openfed.common.logging import logger
 from openfed.federated.country import Country, ProcessGroup, Store
 from openfed.federated.deliver import Delivery
 from openfed.federated.inform import Informer

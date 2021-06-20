@@ -14,7 +14,7 @@ frontend = Frontend(address=openfed.default_address_lists[2])
 net = nn.Linear(1, 1)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 elastic_aux = ElasticAux(net.parameters())
-
+frontend.openfed_digest()
 # 将模型参数告知后端
 frontend.set_state_dict(net.state_dict(keep_vars=True))
 
@@ -42,4 +42,4 @@ for i in range(1, 31):
 
 frontend.finish()
 
-print("PASS") 
+print("PASS")
