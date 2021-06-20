@@ -36,7 +36,7 @@ DEBUG = _DEBUG()
 
 class _VERBOSE(object):
     def __init__(self):
-        self.verbose = False
+        self.verbose = True
 
     def set_verbose(self):
         self.verbose = True
