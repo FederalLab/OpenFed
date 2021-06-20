@@ -1,4 +1,3 @@
-import functools
 import warnings
 from collections import defaultdict
 from copy import deepcopy
@@ -22,40 +21,8 @@ required = _RequiredParameter()
 
 
 class Aggregator(Package, Wrapper, Hook):
-    r"""Base class for all aggregators.
-
-    Aggregator初始化阶段会接受一个参数列表。这个参数列表包含所有可能从客户端收集来的参数。
-    收集来的参数会以{服务器参数：【接收参数列表】}的方式以字典的方式存储。
-    接收的参数中一个服务器参数可能会绑定多个相关的参数。
-        记住！！接收参数是客户端更新后的参数，不是客户端累计的更新量！
-    每一次聚合阶段，我们会遍历所有的初始参数列表。如果能够找到对应参数，则进行聚合操作，否则跳过。
-    在聚合阶段，所有的子类都应当遵循以下规则：
-        1. 如果参数属性requires_grad=True，则将更新的参数记录在相应的grad属性中，而不直接修改服务器参数。
-        2. 如果参数属性requires_grad=False，则直接覆盖服务器参数。
-
-    每次传入的数据，除了参数字典外，还会顺带传入一个信息字典。信息字典中包含了一些来自客户端的基本数据。
-    信息字典中的每一个条目，如果符合以下格式，则会被自动进行聚合：
-        training_samples:
-            value: 1000
-            reduce_op: sum, 
-    其余条目则会被忽略。
-
-    defaults参数中定义了聚合过程中所必须包含的信息和其初始值，例如train_samples=0.
-    其中，初始值在大部分条件下不会被使用到。如果返回的信息字典中缺乏defaults中定义的关键词，则会发生错误。
-
-    .. warning::
-        Parameters need to be specified as collections that have a deterministic
-        ordering that is consistent between runs. Examples of objects that don't
-        satisfy those properties are sets and iterators over values of dictionaries.
-
-    Args:
-        params (iterable): an iterable of :class:`torch.Tensor` s or
-            :class:`dict` s. Specifies what Tensors should be optimized.
-        defaults: (dict): a dict containing default values of aggregation
-            options (used when a parameter group doesn't specify them).
+    r"""Base class for Aggregator.
     """
-
-    _hook_for_auto_reduce_infos: List[Callable]
     _received_infos: List[Dict]
 
     def __init__(self,
@@ -65,11 +32,11 @@ class Aggregator(Package, Wrapper, Hook):
                  aux_keys: List[str],
                  lagecy: bool = False):
         """
-            info_keys: 表示在聚合的过程中所需要涉及到的其他数据。
-            aux_keys: 进行聚合操作时，需要的额外的数据，这些数据会在调用zero_grad之后被清除。
-            lagecy: True表示在接收到新的数据后，直接缓存下来。False表示尽可能与之前的数据合并，以减少内存占用。
+        Args:
+            info_keys: necessary keys saved in returned info dict.
+            aux_keys: other tensor that needed to saved.
+            lagecy: if Ture, just stack received data, otherwise will merge them.
         """
-        # reset keys in state will be deleted once reset() called.
         self.lagecy = lagecy
 
         # add info_keys to defaults
@@ -78,8 +45,6 @@ class Aggregator(Package, Wrapper, Hook):
         defaults['lagecy'] = lagecy
 
         self.defaults = defaults
-
-        self._hook_for_profile()
 
         if isinstance(params, torch.Tensor):
             raise TypeError("params argument given to the aggregator should be "
@@ -98,7 +63,6 @@ class Aggregator(Package, Wrapper, Hook):
         for param_group in param_groups:
             self.add_param_group(param_group)
 
-        self._hook_for_auto_reduce_infos = []
         self._received_infos = []
 
     def __getstate__(self):
@@ -110,7 +74,6 @@ class Aggregator(Package, Wrapper, Hook):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self._hook_for_profile()  # To support multiprocessing pickle/unpickle.
 
     def __repr__(self):
         format_string = self.__class__.__name__ + ' ('
@@ -122,26 +85,6 @@ class Aggregator(Package, Wrapper, Hook):
                     format_string += '    {0}: {1}\n'.format(key, group[key])
         format_string += ')'
         return format_string
-
-    def _hook_for_profile(self):
-        self._zero_grad_profile_name = "Aggregator.zero_grad#{}.zero_grad".format(
-            self.__class__.__name__)
-
-        def profile_hook_step(func):
-
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                obj, *_ = args
-                profile_name = "Aggregator.step#{}.step".format(
-                    obj.__class__.__name__)
-                with torch.autograd.profiler.record_function(profile_name):
-                    return func(*args, **kwargs)
-            return wrapper
-
-        hooked = getattr(self.__class__.step, "hooked", None)
-        if not hooked:
-            self.__class__.step = profile_hook_step(self.__class__.step)
-            self.__class__.step.hooked = True
 
     def state_dict(self):
         r"""Returns the state of the aggregator as a :class:`dict`.
@@ -237,10 +180,6 @@ class Aggregator(Package, Wrapper, Hook):
 
     def zero_grad(self, set_to_none: bool = False):
         r"""Sets the gradients of all optimized :class:`torch.Tensor` s to zero.
-
-        除了清空梯度以外，这个函数还会清空aggregator的内部缓存。
-        如果是在服务器端使用，请务必调用aggregator.zero_grad()来清除梯度信息，而不是optimzier.zero_grad()。
-
         Args:
             set_to_none (bool): instead of setting to zero, set the grads to None.
                 This will in general have lower memory footprint, and can modestly improve performance.
@@ -253,29 +192,39 @@ class Aggregator(Package, Wrapper, Hook):
                 (in one case it does the step with a gradient of 0 and in the other it skips
                 the step altogether).
         """
-        if not hasattr(self, "_zero_grad_profile_name"):
-            self._hook_for_profile()
-
         # Clear buffers
         self._received_infos = []
 
-        with torch.autograd.profiler.record_function(self._zero_grad_profile_name):
-            for group in self.param_groups:
-                for p in group['params']:
-                    if p.grad is not None:
-                        if set_to_none:
-                            p.grad = None
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is not None:
+                    if set_to_none:
+                        p.grad = None
+                    else:
+                        if p.grad.grad_fn is not None:
+                            p.grad.detach_()
                         else:
-                            if p.grad.grad_fn is not None:
-                                p.grad.detach_()
-                            else:
-                                p.grad.requires_grad_(False)
-                            p.grad.zero_()
-                    # Clear buffer
-                    state = self.state[p]
-                    for k in group["aux_keys"]:
-                        if k in state:
-                            del state[k]
+                            p.grad.requires_grad_(False)
+                        p.grad.zero_()
+                # Clear buffer
+                state = self.state[p]
+                for k in group["aux_keys"]:
+                    if k in state:
+                        del state[k]
+
+    def clear_buffer(self):
+        r"""clear cached data.
+        """
+        # Clear buffers
+        self._received_infos = []
+
+        for group in self.param_groups:
+            for p in group['params']:
+                # Clear buffer
+                state = self.state[p]
+                for k in group["aux_keys"]:
+                    if k in state:
+                        del state[k]
 
     def add_param_group(self, param_group):
         r"""Add a param group to the :class:`Aggregator` s `param_groups`.
@@ -329,38 +278,28 @@ class Aggregator(Package, Wrapper, Hook):
         self.param_groups.append(param_group)
 
     def _check_defaults_keys(self, info_keys: List[str], received_info: Dict):
-        """检查返回的信息中是否有缺失了必要信息。
-        """
         for key in info_keys:
             if key not in received_info:
-                raise KeyError(f"{key} is needed, but not given.")
+                raise KeyError(f"{key} is needed, but not returned.")
 
     def register_hook_for_auto_reduce_infos(self, func: Callable):
-        """符合特定格式的键值对会被自动聚合。
-
-        func会接收聚合的List[Dict]数据，计算出想要的结果，然后返回。
         """
-        self._hook_for_auto_reduce_infos.append(func)
+        Args:
+            func: func will take in a list of dict infos and return the processed values.
+        """
+        self.register_hook(func=func)
 
-    def _apply_hook_for_auto_reduce(self) -> List[Any]:
+    def _auto_reduce(self) -> List[Any]:
         returns = []
         for fn in self._hook_for_auto_reduce_infos:
             returns.append(fn(self._received_infos))
         return returns
 
-    def aggregate(self) -> Dict:
+    def aggregate(self, clear_buffer: bool = True) -> Dict:
         r"""Performs a single aggregation step (parameter update).
 
-        Args:
-            closure (callable): A closure that reevaluates the model and
-                returns the loss. Optional for most aggregators.
-
-        .. note::
-            Unless otherwise specified, this function should not modify the
-            ``.grad`` field of the parameters.
-        该函数调用后，所有参数的grad属性被正确设置。
-        该函数会根据使用的是merge还是append的方式，来计算出最终正确的结果。
-        step函数会调用hook_for_auto_recude_info，返回处理结果。
+        Args: 
+            clear_buffer: if True, will clear the cached data.
         """
         for group in self.param_groups:
             lagecy = group['lagecy']
@@ -370,10 +309,13 @@ class Aggregator(Package, Wrapper, Hook):
                 else:
                     self._merge_aggregate(p, group=group)
 
-        return self._apply_hook_for_auto_reduce()
+        output = self._auto_reduce()
+        if clear_buffer:
+            self.clear_buffer()
+        return output
 
-    def step(self, received_params: Dict[str, Dict[str, Tensor]], received_info: Dict):
-        """追加一个新的数据，并进行相关检查。
+    def step(self, received_params: Dict[str, Dict[str, Tensor]], received_info: Dict) -> None:
+        """Add a new received data.
         """
         for group in self.param_groups:
             self._check_defaults_keys(group['info_keys'], received_info)
@@ -389,28 +331,19 @@ class Aggregator(Package, Wrapper, Hook):
         self._received_infos.append(received_info)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
-        """采用融合的方式，吸收新的客户端参数。始终只需要保存一个参数副本。
-        这种方式会更加节省内存空间，但是会损失每一个client的具体信息。因此部分算法可能不支持此设置。
-        如果你的算法支持这种方式，请实现它。
-        返回当前aggregator的一些状态字典。
-        """
         raise NotImplementedError
 
     def _merge_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
 
     def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
-        """采用追加的方式，吸收新的客户端参数。每次都直接把参数保存到内存中。
-        这种方式会占据大量的内存空间，但是可以保存所有的参数细节。
-        所有的算法，都应该支持这种方式。
-        返回当前aggregator的一些状态字典。
-        """
         raise NotImplementedError
 
     def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
 
     def unpack(self, key: Tensor, rdict: Dict[str, Any]) -> Dict[str, Tensor]:
+        """used for Package.
+        """
         state = self.state[key]
-
         return {key: state[key] for key in rdict}
