@@ -42,7 +42,7 @@ class Joint(SafeTread):
 
     def safe_run(self):
         if openfed.VERBOSE.is_verbose:
-            logger.info(f"Waiting for \n{repr(self.address)}")
+            logger.info(f"Waiting\n{repr(self.address)}")
 
         # create a country
         country = Country(self.world)

@@ -68,14 +68,14 @@ class Frontend(Peeper):
     def upload(self) -> bool:
         state = self.reign.upload()
         if not state:
-            msg = "Failed to upload data, the server may have shut down."
+            msg = "Upload Failed."
             logger.info(msg)
         return state
 
     def download(self) -> bool:
         state = self.reign.download()
         if not state:
-            msg = "Failed to upload data, the server may have shut down."
+            msg = "Download Falied."
             logger.info(msg)
         return state
 

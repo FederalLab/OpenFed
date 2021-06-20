@@ -56,11 +56,11 @@ class Reign(Informer, Delivery):
                 toc = time.time()
                 if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
                     if openfed.VERBOSE.is_verbose:
-                        logger.error("Timeout while uploading data ot server.")
+                        logger.error("Timeout")
                     return False
                 if self.is_offline:
                     if openfed.VERBOSE.is_verbose:
-                        logger.error("The server has shutted down.")
+                        logger.error("Server Offline")
                     return False
                 time.sleep(openfed.SLEEP_SHORT_TIME)
             else:
@@ -79,7 +79,7 @@ class Reign(Informer, Delivery):
             if not self.is_pulling:
                 # server will not wait for client in any time.
                 if openfed.DEBUG.is_debug:
-                    logger.error("Wrong state of client")
+                    logger.error("Wrong State")
                 return False
             else:
                 self.push()
@@ -101,11 +101,11 @@ class Reign(Informer, Delivery):
                 toc = time.time()
                 if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
                     if openfed.VERBOSE.is_verbose:
-                        logger.error("Downloading failed, time out.")
+                        logger.error("Timeout")
                     return False
                 if self.is_offline:
                     if openfed.VERBOSE.is_verbose:
-                        logger.error("The server has shutted down.")
+                        logger.error("Server Offline")
                     return False
                 time.sleep(openfed.SLEEP_SHORT_TIME)
             else:
@@ -117,7 +117,7 @@ class Reign(Informer, Delivery):
             if not self.is_pushing:
                 # server will not wait for client in any time.
                 if openfed.DEBUG.is_debug:
-                    logger.error("Wrong state of client")
+                    logger.error("Wrong State")
                 return False
             else:
                 self.pull()

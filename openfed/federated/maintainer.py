@@ -97,7 +97,9 @@ class Maintainer(Array, SafeTread):
             elif add in self.discard_queue:
                 if openfed.DEBUG.is_debug:
                     logger.error(
-                        f"{repr(add)} is not a valid address, please remove it from your address list.")
+                        f"Error Address"
+                        f"{str(add)}"
+                        f"Discarded.")
             else:
                 # add address to pending queue
                 self.pending_queue[add] = [time.time(), 0]
@@ -129,7 +131,9 @@ class Maintainer(Array, SafeTread):
                                 # move to discard queue
                                 if openfed.VERBOSE.is_verbose:
                                     logger.error(
-                                        f"Error address {repr(address)}, please remove it from your address list")
+                                        "Error Address\n"
+                                        f"{str(address)}"
+                                        f"Discarded.")
                                 self.discard_queue[address] = [
                                     time.time(), try_cnt]
                                 del self.pending_queue[address]
@@ -200,3 +204,9 @@ class Maintainer(Array, SafeTread):
     def __del__(self):
         del_maintainer_lock(self)
         super().__del__()
+
+    def clear_finished_queue(self):
+        self.finished_queue.clear()
+
+    def clear_discard_queue(self):
+        self.discard_queue.clear()
