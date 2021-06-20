@@ -54,6 +54,14 @@ class Destroy(object):
                 cls.destroy_all_in_a_world(world)
 
     @classmethod
-    def destroy_reign(cls, reign: Reign):
-        cls.destroy(reign.pg, reign.world)
-        del reign
+    def destroy_reign(cls, reign: Reign) -> bool:
+        try:
+            cls.destroy(reign.pg, reign.world)
+            del reign
+            return True
+        except Exception as e:
+            if openfed.DEBUG.is_debug:
+                raise e
+            else:
+                logger.error(e)
+            return False

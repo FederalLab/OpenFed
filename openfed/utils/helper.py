@@ -1,3 +1,1 @@
-"""
-提供一个单独的脚本，进行客户端的添加。
-"""
+# Provide a script to dynamic edit address.

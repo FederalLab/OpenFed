@@ -56,7 +56,7 @@ class ElasticAux(Optimizer, Wrapper):
 
         return loss
 
-    def clear(self):
+    def clear_buffer(self):
         """Clear accumulated importance weight.
         """
         for group in self.param_groups:
