@@ -6,10 +6,9 @@ from itertools import chain
 from typing import Any, Callable, Dict, List
 
 import torch
+from openfed.common import Hook, Package, Wrapper
 from torch import Tensor
 from torch._six import container_abcs
-
-from ..common import Hook, Package, Wrapper
 
 
 class _RequiredParameter(object):
