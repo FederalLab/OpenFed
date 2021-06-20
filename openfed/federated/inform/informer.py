@@ -7,7 +7,8 @@ import openfed.utils as utils
 from openfed.common import Hook, logger
 
 from ...utils import openfed_class_fmt
-from ..core import FederatedWorld, Store, World
+from ..federated_world import FederatedWorld, Store
+from ..world import World
 from .functional import Collector, SystemInfo
 
 OPENFED_IDENTIFY = "OPENFED_IDENTIFY"

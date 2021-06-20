@@ -8,7 +8,7 @@ import openfed
 from openfed.common.constants import SLEEP_SHORT_TIME
 
 from .common import Address, Peeper, default_address, log_info, logger
-from .federated.federated import Maintainer, Reign, World
+from .federated import Destroy, Maintainer, Reign, World
 
 
 class Frontend(Peeper):
@@ -94,7 +94,7 @@ class Frontend(Peeper):
     def finish(self):
         # 已经完成了训练，退出联邦学习。
         if self.reign is not None:
-            self.reign.destroy()
+            Destroy.destroy_reign(self.reign)
 
         self.maintainer.manual_stop()
 

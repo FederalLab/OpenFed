@@ -6,7 +6,9 @@ from openfed.common import Hook, Package
 from torch import Tensor
 
 from ...utils import openfed_class_fmt
-from ..core import FederatedWorld, ProcessGroup, World, gather_object
+from ..federated_world import FederatedWorld, ProcessGroup
+from ..functional import gather_object
+from ..world import World
 from .functional import Cypher, FormotCheck
 
 

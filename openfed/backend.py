@@ -127,7 +127,8 @@ class Backend(SafeTread, Peeper, Hook):
                         elif reign.is_offline:
                             # Destroy process
                             if self.step_before_destroy():
-                                self.step_after_destroy(reign.destroy())
+                                self.step_after_destroy(
+                                    Destroy.destroy_reign(reign))
                             else:
                                 self.step_at_failed()
                         elif reign.is_pushing:
