@@ -5,8 +5,7 @@ import os
 import h5py
 import numpy as np
 import torch
-
-from ..dataset import FederatedDataset
+from openfed.data.dataset import FederatedDataset
 
 word_count_file_path = None
 word_dict = None

@@ -6,8 +6,7 @@ import re
 import h5py
 import numpy as np
 import torch
-
-from ..dataset import FederatedDataset
+from openfed.data.dataset import FederatedDataset
 
 DEFAULT_BATCH_SIZE = 4
 DEFAULT_TRAIN_FILE = 'all_data_niid_2_keep_0_train_8.json'
