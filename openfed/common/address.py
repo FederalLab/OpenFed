@@ -23,9 +23,6 @@ class Address(object):
                  store=None,
                  group_name: str = ''):
         """
-        rank设置成-1的时候，会根据当前的身份自动推断。
-        仅仅当你是在建立点对点的连接的时候，才会有效。也就是world size==2的时候。
-
         Initializes the default distributed process group, and this will also
         initialize the distributed package.
 
