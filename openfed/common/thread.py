@@ -34,10 +34,10 @@ class SafeTread(Thread):
         if openfed.DEBUG.is_debug:
             time_string = _thread_pool[self]
             logger.info((
-                f"Exited Thread"
+                f"Exited Thread\n"
                 f"{self}"
-                f"{msg if msg else ''}"
-                f"Created Time: {time_string}"
+                f"{msg if msg else ''}\n"
+                f"Created Time: {time_string}\n"
                 f"Exited Time: {utils.time_string()}")
             )
         del _thread_pool[self]

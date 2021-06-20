@@ -9,7 +9,7 @@ from openfed.common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                       DEFAULT_PG_TIMEOUT)
 from openfed.common.exception import ConnectTimeout
 from openfed.common.logging import logger
-from openfed.common.vars import DEBUG, DYNAMIC_ADDRESS_LOADING
+from openfed.common.vars import DEBUG
 from openfed.federated.lock import acquire_all, release_all
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)
@@ -351,19 +351,15 @@ class Country(object):
 
         # whatever the backend is, we need a store to exchange information.
         if store is None:
-            if DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
-                try:
-                    store, rank, world_size = attempt_init_store(
-                        rank, world_size, tmp_timeout)
-                except Exception as e:
-                    if DEBUG.is_debug:
-                        logger.error(e)
-                    raise ConnectTimeout
-                finally:
-                    ...
-            else:
-                store, rank, world_size = init_store(rank, world_size, timeout)
-
+            try:
+                store, rank, world_size = attempt_init_store(
+                    rank, world_size, tmp_timeout)
+            except Exception as e:
+                if DEBUG.is_debug:
+                    logger.error(e)
+                raise ConnectTimeout
+            finally:
+                ...
             store.set_timeout(timeout)
 
         backend = Backend(backend)

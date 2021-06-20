@@ -17,7 +17,7 @@ class Joint(SafeTread):
     # Indicates whether the connection is established correctly.
     build_success: bool
 
-    def __init__(self, address: Address, world: World):
+    def __init__(self, address: Address, world: World, auto_start: bool = True):
         if address.rank == -1:
             if address.world_size == 2:
                 address.rank = 1 if world.queen else 0
@@ -33,15 +33,16 @@ class Joint(SafeTread):
 
         SafeTread.__init__(self)
         # start this thread
-        self.start()
+        if auto_start:
+            self.start()
 
-        if self.world.queen:
-            # if queen, wait until thread quit
-            self.join()
-            if not self.build_success:
-                msg = f"Connect to {str(self.address)} failed."
-                logger.error(msg)
-                raise RuntimeError(msg)
+            if self.world.queen:
+                # if queen, wait until thread quit
+                self.join()
+                if not self.build_success:
+                    msg = f"Connect to {str(self.address)} failed."
+                    logger.error(msg)
+                    raise RuntimeError(msg)
 
     def safe_run(self):
         if openfed.VERBOSE.is_verbose:

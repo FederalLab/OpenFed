@@ -56,8 +56,6 @@ class Backend(SafeTread, Peeper, Hook):
         """
 
     def __init__(self, **kwargs):
-        super().__init__()
-
         self.state_dict = kwargs.get('state_dict', None)
         self.aggregator = kwargs.get('aggregator', None)
         self.optimizer = kwargs.get('optimizer', None)
@@ -76,7 +74,8 @@ class Backend(SafeTread, Peeper, Hook):
 
         # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
         # otherwise, it may interrupte the process and cause error before you go into loop()
-        openfed_lock.acquire()
+        if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
+            openfed_lock.acquire()
 
         self.maintainer = Maintainer(
             world, address=address, address_file=address_file)
@@ -87,6 +86,8 @@ class Backend(SafeTread, Peeper, Hook):
         self.reign = None
         self.received_numbers = 0
         self.last_aggregate_time = time.time()
+
+        SafeTread.__init__(self)
 
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
         self.state_dict = state_dict
@@ -103,7 +104,8 @@ class Backend(SafeTread, Peeper, Hook):
             Use self.start() to start this loop in the thread.
         """
         # NOTE: release openfed_lock here.
-        openfed_lock.release()
+        if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
+            openfed_lock.release()
         while not self.stopped:
             with self.maintainer.maintainer_lock:
                 self.step_at_new_episode()

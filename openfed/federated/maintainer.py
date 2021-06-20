@@ -33,6 +33,8 @@ class Maintainer(Array, SafeTread):
     # The shared information among all country in this maintainer.
     world: World
 
+    abnormal_exited: bool
+
     def __init__(self,
                  world: World,
                  address: Union[Address, List[Address]] = None,
@@ -43,6 +45,7 @@ class Maintainer(Array, SafeTread):
         self.pending_queue = dict()
         self.finished_queue = dict()
         self.discard_queue = dict()
+        self.abnormal_exited = False
 
         Array.__init__(self, self.pending_queue)
 
@@ -70,6 +73,10 @@ class Maintainer(Array, SafeTread):
             self.start()
             if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                 self.join()
+                if self.abnormal_exited:
+                    # raise error here, but not in self.safe_run()
+                    raise RuntimeError(
+                        "Errors occured while building connection to new address.")
         else:
             if len(self) > 1:
                 msg = "Too many fed addr are specified. Only allowed 1."
@@ -119,49 +126,30 @@ class Maintainer(Array, SafeTread):
                     return False
                 return True
 
-            if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
-                for address,  (last_time, try_cnt) in self:
-                    if try_now(last_time, try_cnt):
-                        joint = Joint(address, self.world)
-                        joint.join()
-                        if joint.build_success:
-                            self.finished_queue[address] = [
-                                time.time(), try_cnt + 1]
-                            del self.pending_queue[address]
-                        else:
-                            try_cnt += 1
-                            if try_cnt > openfed.MAX_TRY_TIMES:
-                                # move to discard queue
-                                if openfed.VERBOSE.is_verbose:
-                                    logger.error(
-                                        "Error Address\n"
-                                        f"{str(address)}"
-                                        f"Discarded.")
-                                self.discard_queue[address] = [
-                                    time.time(), try_cnt]
-                                del self.pending_queue[address]
-                            else:
-                                self.pending_queue[address] = [
-                                    time.time(), try_cnt]
-            else:
-                joint_address_mapping = []
-                for address in self.pending_queue:
+            for address,  (last_time, try_cnt) in self:
+                if try_now(last_time, try_cnt):
                     joint = Joint(address, self.world)
-                    joint_address_mapping.append([joint, address])
-
-                for joint, address in joint_address_mapping:
                     joint.join()
                     if joint.build_success:
-                        self.finished_queue[address] = [time.time(), 1]
+                        self.finished_queue[address] = [
+                            time.time(), try_cnt + 1]
                         del self.pending_queue[address]
                     else:
-                        self.discard_queue[address] = [time.time(), 1]
-                        del self.pending_queue[address]
-                        msg = f"Failed build connection with {address}"
-                        if openfed.DEBUG.is_debug:
-                            raise RuntimeError(msg)
+                        try_cnt += 1
+                        if try_cnt > openfed.MAX_TRY_TIMES:
+                            # move to discard queue
+                            if openfed.VERBOSE.is_verbose:
+                                logger.error(
+                                    "Error Address\n"
+                                    f"{str(address)}"
+                                    f"Discarded.")
+                            self.discard_queue[address] = [
+                                time.time(), try_cnt]
+                            del self.pending_queue[address]
+                            break
                         else:
-                            logger.error(msg)
+                            self.pending_queue[address] = [
+                                time.time(), try_cnt]
 
             if len(self) == 0:
                 if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
@@ -170,7 +158,9 @@ class Maintainer(Array, SafeTread):
                     return f"Success: {len(self.finished_queue)} new federeated world added."
             else:
                 if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
-                    raise RuntimeError(f"Failed: {len(self.discard_queue)}")
+                    if len(self.discard_queue) != 0:
+                        self.abnormal_exited = True
+                        break
                 else:
                     time.sleep(openfed.SLEEP_LONG_TIME)
         return "Force Quit XXX" + str(self)

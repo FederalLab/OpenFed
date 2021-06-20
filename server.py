@@ -4,7 +4,8 @@ from openfed import Backend
 from openfed.aggregate import ElasticAggregator
 import openfed
 
-openfed.VERBOSE.set_verbose()
+openfed.DEBUG.set_debug()
+openfed.DYNAMIC_ADDRESS_LOADING.unset_dynamic_address_loading()
 print("Connect to Client...")
 backend = Backend(address=openfed.default_address_lists[:3])
 
