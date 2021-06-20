@@ -2,20 +2,18 @@ import logging
 import time
 import warnings
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
+from openfed.common import (DEBUG, DEFAULT_PG_LONG_TIMEOUT,
+                            DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT,
+                            DYNAMIC_ADDRESS_LOADING, ConnectTimeout, logger)
+from openfed.federated.lock import acquire_all, release_all
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)
 from torch.distributed.distributed_c10d import (Backend, P2POp,
                                                 is_mpi_available,
                                                 is_nccl_available)
 from torch.distributed.rendezvous import rendezvous
-
-from ..common import ConnectTimeout, logger
-from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
-                                DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT)
-from ..common.vars import DEBUG, DYNAMIC_ADDRESS_LOADING
-from .lock import acquire_all, release_all
 
 try:
     from torch.distributed.distributed_c10d import (ProcessGroupGloo,
@@ -29,14 +27,14 @@ class World():
     ...
 
 
-class FederatedWorld(object):
+class Country(object):
     """Wraper all variables as a privacy namespace.
     """
 
     def __init__(self, world: World):
         """
-        Args: 
-            world: the world this federated world belongs to.
+        Args:
+            world: the world this country belongs to.
         """
         self.world: World = world
 
@@ -770,7 +768,7 @@ class FederatedWorld(object):
     def build_point2point_group(self, rank: int = 0, timeout=DEFAULT_PG_TIMEOUT, backend=None) -> List[ProcessGroup]:
         """Build point2point group, :param:rank will be regarded as new rank=0 and connect to other rank in this world.
 
-        .. note:: 
+        .. note::
             Only build this if you really need it. Otherwise, please use new_group() to build single one.
         """
         assert 0 <= rank < self.get_world_size()
@@ -790,4 +788,4 @@ class FederatedWorld(object):
         return pg_list
 
     def __repr__(self) -> str:
-        return "FederatedWorld"
+        return "Country"

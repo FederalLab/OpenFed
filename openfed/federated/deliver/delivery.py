@@ -3,13 +3,12 @@ from typing import Any, Dict, Union
 
 from bidict import bidict
 from openfed.common import Hook, Package
+from openfed.federated.country import Country, ProcessGroup
+from openfed.federated.deliver.functional import Cypher, FormotCheck
+from openfed.federated.functional import gather_object
+from openfed.federated.world import World
+from openfed.utils import openfed_class_fmt
 from torch import Tensor
-
-from ...utils import openfed_class_fmt
-from ..federated_world import FederatedWorld, ProcessGroup
-from ..functional import gather_object
-from ..world import World
-from .functional import Cypher, FormotCheck
 
 
 class Delivery(Package, Hook):
@@ -17,7 +16,7 @@ class Delivery(Package, Hook):
     """
 
     pg: ProcessGroup
-    federated_world: FederatedWorld
+    country: Country
     world: World
 
     key_tensor_bidict: bidict
@@ -97,7 +96,7 @@ class Delivery(Package, Hook):
         After received data, Queen will load `param` to Tensor by an in-palce operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
         """
-        assert self.federated_world._get_group_size(
+        assert self.country._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         received = [None, None]
@@ -105,7 +104,7 @@ class Delivery(Package, Hook):
         other_rank = 1 if self.world.king else 0
 
         gather_object(None, received, dst=rank, group=self.pg,
-                      federated_world=self.federated_world)
+                      country=self.country)
 
         r_packages = received[other_rank]
 
@@ -124,7 +123,7 @@ class Delivery(Package, Hook):
     def push(self) -> None:
         """Push data to the other end.
         """
-        assert self.federated_world._get_group_size(
+        assert self.country._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         rank = 1 if self.world.king else 0
@@ -135,7 +134,7 @@ class Delivery(Package, Hook):
                              for k, v in self.packages.items()}
 
         gather_object(self.packages, None, dst=rank,
-                      group=self.pg, federated_world=self.federated_world)
+                      group=self.pg, country=self.country)
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(

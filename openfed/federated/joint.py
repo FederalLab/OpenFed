@@ -1,11 +1,10 @@
 import openfed
-
-from ..common import Address, ConnectTimeout, SafeTread, logger
-from ..utils import openfed_class_fmt
-from .federated_world import FederatedWorld
-from .register import register
-from .reign import Reign
-from .world import World
+from openfed.common import Address, ConnectTimeout, SafeTread, logger
+from openfed.federated.country import Country
+from openfed.federated.register import register
+from openfed.federated.reign import Reign
+from openfed.federated.world import World
+from openfed.utils import openfed_class_fmt
 
 
 class Joint(SafeTread):
@@ -45,38 +44,38 @@ class Joint(SafeTread):
         if openfed.VERBOSE.is_verbose:
             logger.info(f"Waiting for \n{repr(self.address)}")
 
-        # create a federated world
-        fed_world = FederatedWorld(self.world)
+        # create a country
+        country = Country(self.world)
 
-        # build the connection between the federated world
+        # build the connection between the country
         try:
-            fed_world.init_process_group(**self.address.as_dict)
+            country.init_process_group(**self.address.as_dict)
         except ConnectTimeout as cte:
-            del fed_world
+            del country
             if openfed.DEBUG.is_debug:
                 logger.error(str(cte))
             return f"Timeout {repr(self.address)}"
 
         # register the world
         with self.world.joint_lock:
-            register.register_federated_world(fed_world, self.world)
+            register.register_country(country, self.world)
 
         if self.address.world_size > 2:
             # rank is always set to 0 for that we want to build a
             # point2point connection between the master and each nodes.
-            sub_pg_list = fed_world.build_point2point_group(rank=0)
+            sub_pg_list = country.build_point2point_group(rank=0)
 
-            # bound pg with the federated world
+            # bound pg with the country
             for sub_pg in sub_pg_list:
-                reign = Reign(fed_world.get_store(
-                    sub_pg), sub_pg, fed_world, self.world)
+                reign = Reign(country.get_store(
+                    sub_pg), sub_pg, country, self.world)
                 with self.world.joint_lock:
                     self.world._pg_mapping[sub_pg] = reign
         else:
             # add the world group as reign if it is already a point to point connection.
-            pg = fed_world._get_default_group()
-            store = fed_world._get_default_store()
-            reign = Reign(store, pg, fed_world, self.world)
+            pg = country._get_default_group()
+            store = country._get_default_store()
+            reign = Reign(store, pg, country, self.world)
             with self.world.joint_lock:
                 self.world._pg_mapping[pg] = reign
 
@@ -92,4 +91,3 @@ class Joint(SafeTread):
             class_name="Joint",
             description=str(self.address),
         )
-

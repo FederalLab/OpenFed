@@ -2,14 +2,13 @@ import time
 from typing import Generator, TypeVar
 
 import openfed
-
-from ..common import logger
-from ..utils import openfed_class_fmt
-from .deliver import Delivery
-from .federated_world import FederatedWorld, ProcessGroup, Store
-from .inform import Informer
-from .register import register
-from .world import World
+from openfed.common import logger
+from openfed.federated.country import Country, ProcessGroup, Store
+from openfed.federated.deliver import Delivery
+from openfed.federated.inform import Informer
+from openfed.federated.register import register
+from openfed.federated.world import World
+from openfed.utils import openfed_class_fmt
 
 _R = TypeVar("_R", bound='Reign')
 
@@ -20,7 +19,7 @@ class Reign(Informer, Delivery):
     store: Store
     pg: ProcessGroup
     world: World
-    federated_world: FederatedWorld
+    country: Country
 
     # the request version number
     version: int
@@ -28,12 +27,12 @@ class Reign(Informer, Delivery):
     def __init__(self,
                  store: Store,
                  pg: ProcessGroup,
-                 federated_world: FederatedWorld,
+                 country: Country,
                  world: World,
                  ):
         self.pg = pg
         self.store = store
-        self.federated_world = federated_world
+        self.country = country
         self.world = world
 
         Informer.__init__(self)

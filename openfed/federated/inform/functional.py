@@ -4,9 +4,8 @@ from abc import abstractmethod
 from typing import Any, Dict
 
 import openfed
+from openfed.common import logger
 from torch.optim.lr_scheduler import _LRScheduler
-
-from ...common import logger
 
 
 class Collector(object):

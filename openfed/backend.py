@@ -9,8 +9,7 @@ import openfed
 from .aggregate import Aggregator
 from .common import (Address, Hook, Peeper, SafeTread, default_address,
                      log_verbose_info)
-from .federated import Destroy, Maintainer, Reign, World
-from .federated.lock import openfed_lock
+from .federated import Destroy, Maintainer, Reign, World, openfed_lock
 
 
 class Backend(SafeTread, Peeper, Hook):

@@ -1,4 +1,5 @@
 import torch
+from openfed.federated.register import register
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
                                         BroadcastOptions, GatherOptions,
@@ -11,21 +12,19 @@ from torch.distributed.distributed_c10d import (Backend, _batch_p2p_manager,
                                                 _tensor_to_object,
                                                 supports_complex)
 
-from .register import register
-
 
 def isend(tensor,
           dst,
           group=None,
           tag=0,
-          federated_world=None):
+          country=None):
     """
     Sends a tensor asynchronously.
 
     Args:
         tensor (Tensor): Tensor to send.
         dst (int): Destination rank.
-        federated_world (FederatedWorld): The process group belongs to.
+        country (Country): The process group belongs to.
         group (ProcessGroup, optional): The process group to work on. If None,
             the default process group will be used.
         tag (int, optional): Tag to match send with remote recv
@@ -35,17 +34,17 @@ def isend(tensor,
         None, if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         return default_pg.send([tensor], dst, tag)
     else:
-        group_dst_rank = federated_world._get_group_rank(group, dst)
+        group_dst_rank = country._get_group_rank(group, dst)
         return group.send([tensor], group_dst_rank, tag)
 
 
@@ -53,7 +52,7 @@ def irecv(tensor,
           src,
           group=None,
           tag=0,
-          federated_world=None):
+          country=None):
     """
     Receives a tensor asynchronously.
 
@@ -61,7 +60,7 @@ def irecv(tensor,
         tensor (Tensor): Tensor to fill with received data.
         src (int): Source rank. Will receive from any
             process if unspecified(None). 
-        federated_world (FederatedWorld): The process group belongs to.
+        country (Country): The process group belongs to.
         group (ProcessGroup, optional): The process group to work on. If None,
             the default process group will be used.
         tag (int, optional): Tag to match recv with remote send
@@ -71,24 +70,24 @@ def irecv(tensor,
         None, if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
-    if group is None or group is federated_world.WORLD:
-        pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        pg = country._get_default_group()
     else:
         pg = group
 
     if src is None:
         return pg.recv_anysource([tensor], tag)
     else:
-        if pg is federated_world.WORLD:
+        if pg is country.WORLD:
             return pg.recv([tensor], src, tag)
         else:
-            group_src_rank = federated_world._get_group_rank(pg, src)
+            group_src_rank = country._get_group_rank(pg, src)
             return pg.recv([tensor], group_src_rank, tag)
 
 
@@ -96,30 +95,30 @@ def send(tensor,
          dst,
          group=None,
          tag=0,
-         federated_world=None):
+         country=None):
     """
     Sends a tensor synchronously.
 
     Args:
         tensor (Tensor): Tensor to send.
         dst (int): Destination rank.
-        federated_world (FederatedWorld): The process group belongs to.
+        country (Country): The process group belongs to.
         group (ProcessGroup, optional): The process group to work on. If None,
             the default process group will be used.
         tag (int, optional): Tag to match send with remote recv
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         default_pg.send([tensor], dst, tag).wait()
     else:
-        group_dst_rank = federated_world._get_group_rank(group, dst)
+        group_dst_rank = country._get_group_rank(group, dst)
         group.send([tensor], group_dst_rank, tag).wait()
 
 
@@ -127,7 +126,7 @@ def recv(tensor,
          src,
          group=None,
          tag=0,
-         federated_world=None):
+         country=None):
     """
     Receives a tensor synchronously.
 
@@ -135,7 +134,7 @@ def recv(tensor,
         tensor (Tensor): Tensor to fill with received data.
         src (int, optional): Source rank. Will receive from any
             process if unspecified(None).
-        federated_world (FederatedWorld): The process group belongs to.
+        country (Country): The process group belongs to.
         group (ProcessGroup, optional): The process group to work on. If None,
             the default process group will be used.
         tag (int, optional): Tag to match recv with remote send
@@ -145,14 +144,14 @@ def recv(tensor,
         -1, if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return -1
 
     if group is None:
-        pg = federated_world._get_default_group()
+        pg = country._get_default_group()
     else:
         pg = group
 
@@ -160,15 +159,15 @@ def recv(tensor,
         work = pg.recv_anysource([tensor], tag)
         work.wait()
         src_rank = work._source_rank()
-        if group is None or group is federated_world.WORLD:
+        if group is None or group is country.WORLD:
             return src_rank
         else:
-            return federated_world._get_global_rank(pg, src_rank)
+            return country._get_global_rank(pg, src_rank)
     else:
-        if group is None or group is federated_world.WORLD:
+        if group is None or group is country.WORLD:
             pg.recv([tensor], src, tag).wait()
         else:
-            group_src_rank = federated_world._get_group_rank(pg, src)
+            group_src_rank = country._get_group_rank(pg, src)
             pg.recv([tensor], group_src_rank, tag).wait()
         return src
 
@@ -178,7 +177,7 @@ def broadcast_multigpu(tensor_list,
                        group=None,
                        async_op=False,
                        src_tensor=0,
-                       federated_world=None):
+                       country=None):
     """
     Broadcasts the tensor to the whole group with multiple GPU tensors
     per node.
@@ -210,20 +209,20 @@ def broadcast_multigpu(tensor_list,
         None, if not async_op or if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     opts = BroadcastOptions()
     opts.rootRank = src
     opts.rootTensor = src_tensor
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         work = default_pg.broadcast(tensor_list, opts)
     else:
-        group_src_rank = federated_world._get_group_rank(group, src)
+        group_src_rank = country._get_group_rank(group, src)
         opts.rootRank = group_src_rank
         work = group.broadcast(tensor_list, opts)
     if async_op:
@@ -236,7 +235,7 @@ def broadcast(tensor,
               src,
               group=None,
               async_op=False,
-              federated_world=None):
+              country=None):
     """
     Broadcasts the tensor to the whole group.
 
@@ -256,21 +255,21 @@ def broadcast(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
     opts = BroadcastOptions()
     opts.rootRank = src
     opts.rootTensor = 0
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         work = default_pg.broadcast([tensor], opts)
     else:
-        group_src_rank = federated_world._get_group_rank(group, src)
+        group_src_rank = country._get_group_rank(group, src)
         opts.rootRank = group_src_rank
         work = group.broadcast([tensor], opts)
     if async_op:
@@ -283,7 +282,7 @@ def all_reduce_multigpu(tensor_list,
                         op=ReduceOp.SUM,
                         group=None,
                         async_op=False,
-                        federated_world=None):
+                        country=None):
     r"""
     Reduces the tensor data across all machines in such a way that all get
     the final result. This function reduces a number of tensors on every node,
@@ -317,9 +316,9 @@ def all_reduce_multigpu(tensor_list,
         None, if not async_op or if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     tensor_list = [t if not t.is_complex() else torch.view_as_real(t)
@@ -328,7 +327,7 @@ def all_reduce_multigpu(tensor_list,
     opts = AllreduceOptions()
     opts.reduceOp = op
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.allreduce(tensor_list, opts)
     else:
         work = group.allreduce(tensor_list, opts)
@@ -343,7 +342,7 @@ def all_reduce(tensor,
                op=ReduceOp.SUM,
                group=None,
                async_op=False,
-               federated_world=None):
+               country=None):
     """
     Reduces the tensor data across all machines in such a way that all get
     the final result.
@@ -390,10 +389,10 @@ def all_reduce(tensor,
         tensor([4.+4.j, 6.+6.j]) # Rank 1
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
     if tensor.is_complex():
@@ -405,7 +404,7 @@ def all_reduce(tensor,
     opts = AllreduceOptions()
     opts.reduceOp = op
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.allreduce([tensor], opts)
     else:
         work = group.allreduce([tensor], opts)
@@ -420,7 +419,7 @@ def all_reduce_coalesced(tensors,
                          op=ReduceOp.SUM,
                          group=None,
                          async_op=False,
-                         federated_world=None):
+                         country=None):
     """
     WARNING: at this time individual shape checking is not implemented across nodes.
     For example, if the rank 0 node passes [torch.rand(4), torch.rand(2)] and the
@@ -453,10 +452,10 @@ def all_reduce_coalesced(tensors,
         None, if not async_op or if not part of the group.
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_tensor_list(tensors, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
     if any([t.is_complex() for t in tensors]) and not supports_complex(op):
@@ -469,7 +468,7 @@ def all_reduce_coalesced(tensors,
     opts = AllreduceCoalescedOptions()
     opts.reduceOp = op
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.allreduce_coalesced(tensors, opts)
     else:
         work = group.allreduce_coalesced(tensors, opts)
@@ -486,7 +485,7 @@ def reduce_multigpu(tensor_list,
                     group=None,
                     async_op=False,
                     dst_tensor=0,
-                    federated_world=None):
+                    country=None):
     """
     Reduces the tensor data on multiple GPUs across all machines. Each tensor
     in ``tensor_list`` should reside on a separate GPU
@@ -517,9 +516,9 @@ def reduce_multigpu(tensor_list,
         None, otherwise
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     opts = ReduceOptions()
@@ -527,11 +526,11 @@ def reduce_multigpu(tensor_list,
     opts.rootRank = dst
     opts.rootTensor = dst_tensor
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         work = default_pg.reduce(tensor_list, opts)
     else:
-        group_dst_rank = federated_world._get_group_rank(group, dst)
+        group_dst_rank = country._get_group_rank(group, dst)
         opts.rootRank = group_dst_rank
         work = group.reduce(tensor_list, opts)
 
@@ -546,7 +545,7 @@ def reduce(tensor,
            op=ReduceOp.SUM,
            group=None,
            async_op=False,
-           federated_world=None):
+           country=None):
     """
     Reduces the tensor data across all machines.
 
@@ -568,21 +567,21 @@ def reduce(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
     opts = ReduceOptions()
     opts.reduceOp = op
     opts.rootRank = dst
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         work = default_pg.reduce([tensor], opts)
     else:
-        group_dst_rank = federated_world._get_group_rank(group, dst)
+        group_dst_rank = country._get_group_rank(group, dst)
         opts.rootRank = group_dst_rank
         work = group.reduce([tensor], opts)
 
@@ -596,7 +595,7 @@ def all_gather_multigpu(output_tensor_lists,
                         input_tensor_list,
                         group=None,
                         async_op=False,
-                        federated_world=None):
+                        country=None):
     """
     Gathers tensors from the whole group in a list.
     Each tensor in ``tensor_list`` should reside on a separate GPU
@@ -639,9 +638,9 @@ def all_gather_multigpu(output_tensor_lists,
         None, if not async_op or if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     output_tensor_lists = [[t if not t.is_complex() else torch.view_as_real(
@@ -650,7 +649,7 @@ def all_gather_multigpu(output_tensor_lists,
                          for t in input_tensor_list]
 
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.allgather(output_tensor_lists, input_tensor_list)
     else:
         work = group.allgather(output_tensor_lists, input_tensor_list)
@@ -661,7 +660,7 @@ def all_gather_multigpu(output_tensor_lists,
         work.wait()
 
 
-def all_gather_object(object_list, obj, group=None, federated_world=None):
+def all_gather_object(object_list, obj, group=None, country=None):
     """
     Gathers picklable objects from the whole group into a list. Similar to
     :func:`all_gather`, but Python objects can be passed in. Note that the object
@@ -707,13 +706,13 @@ def all_gather_object(object_list, obj, group=None, federated_world=None):
         >>> output
         ['foo', 12, {1: 2}]
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     input_tensor, local_size = _object_to_tensor(obj)
-    group_backend = federated_world.get_backend(group)
+    group_backend = country.get_backend(group)
     is_nccl_backend = group_backend == Backend.NCCL
     current_device = torch.device("cpu")
     if is_nccl_backend:
@@ -725,7 +724,7 @@ def all_gather_object(object_list, obj, group=None, federated_world=None):
         local_size = local_size.to(current_device)
     # Gather all local sizes. This is so that we can find the max size, and index
     # until the correct size when deserializing the tensors.
-    group_size = federated_world.get_world_size(group=group)
+    group_size = country.get_world_size(group=group)
     object_sizes_tensor = torch.zeros(
         group_size, dtype=torch.long, device=current_device)
     object_size_list = [
@@ -733,7 +732,7 @@ def all_gather_object(object_list, obj, group=None, federated_world=None):
     ]
     # Allgather tensor sizes
     all_gather(object_size_list, local_size, group=group,
-               federated_world=federated_world)
+               country=country)
     max_object_size = int(max(object_size_list).item())  # type: ignore
     # Resize tensor to max size across all ranks.
     input_tensor.resize_(max_object_size)
@@ -746,7 +745,7 @@ def all_gather_object(object_list, obj, group=None, federated_world=None):
         for i in range(group_size)
     ]
     all_gather(output_tensors, input_tensor, group=group,
-               federated_world=federated_world)
+               country=country)
     # Deserialize outputs back to object.
     for i, tensor in enumerate(output_tensors):
         tensor = tensor.type(torch.ByteTensor)  # type:ignore[call-overload]
@@ -754,7 +753,7 @@ def all_gather_object(object_list, obj, group=None, federated_world=None):
         object_list[i] = _tensor_to_object(tensor, tensor_size)
 
 
-def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_world=None):
+def gather_object(obj, object_gather_list=None, dst=0, group=None, country=None):
     """
     Gathers picklable objects from the whole group in a single process.
     Similar to :func:`gather`, but Python objects can be passed in. Note that the
@@ -801,17 +800,17 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
         >>> output
         ['foo', 12, {1: 2}]
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     # Ensure object_gather_list is specified appopriately.
-    my_rank = federated_world.get_rank(group)
-    federated_world._validate_output_list_for_rank(
+    my_rank = country.get_rank(group)
+    country._validate_output_list_for_rank(
         my_rank, dst, object_gather_list)
     input_tensor, local_size = _object_to_tensor(obj)
-    group_backend = federated_world.get_backend(group)
+    group_backend = country.get_backend(group)
     current_device = torch.device("cpu")
     is_nccl_backend = group_backend == Backend.NCCL
     if is_nccl_backend:
@@ -820,7 +819,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
         local_size = local_size.to(current_device)
     # Gather all local sizes. This is so that we can find the max size, and index
     # until the correct size when deserializing the tensors.
-    group_size = federated_world.get_world_size(group=group)
+    group_size = country.get_world_size(group=group)
     object_sizes_tensor = torch.zeros(
         group_size, dtype=torch.long, device=current_device)
     object_size_list = [
@@ -830,7 +829,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
     # gather, since each rank needs to broadcast a tensor of the same (maximal)
     # size.
     all_gather(object_size_list, local_size, group=group,
-               federated_world=federated_world)
+               country=country)
     max_object_size = int(max(object_size_list).item())  # type: ignore
     # Resize tensor to max size across all ranks.
     input_tensor.resize_(max_object_size)
@@ -851,7 +850,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
         gather_list=output_tensors if my_rank == dst else None,
         dst=dst,
         group=group,
-        federated_world=federated_world,
+        country=country,
     )
     if my_rank != dst:
         return
@@ -861,7 +860,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, federated_wor
         object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
 
 
-def broadcast_object_list(object_list, src=0, group=None, federated_world=None):
+def broadcast_object_list(object_list, src=0, group=None, country=None):
     """
     Broadcasts picklable objects in ``object_list`` to the whole group. Similar
     to :func:`broadcast`, but Python objects can be passed in.
@@ -909,12 +908,12 @@ def broadcast_object_list(object_list, src=0, group=None, federated_world=None):
         >>> broadcast_objects
         ['foo', 12, {1: 2}]
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
-    my_rank = federated_world.get_rank()
+    my_rank = country.get_rank()
     # Serialize object_list elements to tensors on src rank.
     if my_rank == src:
         tensor_list, size_list = zip(
@@ -923,7 +922,7 @@ def broadcast_object_list(object_list, src=0, group=None, federated_world=None):
     else:
         object_sizes_tensor = torch.LongTensor(len(object_list))
 
-    group_backend = federated_world.get_backend(group)
+    group_backend = country.get_backend(group)
     is_nccl_backend = group_backend == Backend.NCCL
     current_device = torch.device("cpu")
     if is_nccl_backend:
@@ -936,7 +935,7 @@ def broadcast_object_list(object_list, src=0, group=None, federated_world=None):
 
     # Broadcast object sizes
     broadcast(object_sizes_tensor, src=src, group=group,
-              federated_world=federated_world)
+              country=country)
 
     # Concatenate and broadcast serialized object tensors
     if my_rank == src:
@@ -947,7 +946,7 @@ def broadcast_object_list(object_list, src=0, group=None, federated_world=None):
     if is_nccl_backend:
         object_tensor = object_tensor.to(current_device)
     broadcast(object_tensor, src=src, group=group,
-              federated_world=federated_world)
+              country=country)
     # Deserialize objects using their stored sizes.
     offset = 0
     if my_rank != src:
@@ -963,7 +962,7 @@ def scatter_object_list(scatter_object_output_list,
                         scatter_object_input_list,
                         src=0,
                         group=None,
-                        federated_world=None):
+                        country=None):
     """
     Scatters picklable objects in ``scatter_object_input_list`` to the whole
     group. Similar to :func:`scatter`, but Python objects can be passed in. On
@@ -1011,9 +1010,9 @@ def scatter_object_list(scatter_object_output_list,
         >>> output_list
         [{1: 2}]
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     if (
@@ -1024,7 +1023,7 @@ def scatter_object_list(scatter_object_output_list,
             "Expected argument scatter_object_output_list to be a list of size at least 1."
         )
 
-    my_rank = federated_world.get_rank(group)
+    my_rank = country.get_rank(group)
     if my_rank == src:
         tensor_list, tensor_sizes = zip(
             *[_object_to_tensor(obj) for obj in scatter_object_input_list]
@@ -1041,7 +1040,7 @@ def scatter_object_list(scatter_object_output_list,
     else:
         max_tensor_size = torch.LongTensor([0])
     broadcast(max_tensor_size, src=src, group=group,
-              federated_world=federated_world)
+              country=country)
 
     # Scatter actual serialized objects
     output_tensor = torch.ByteTensor(max_tensor_size.item())
@@ -1069,7 +1068,7 @@ def all_gather(tensor_list,
                tensor,
                group=None,
                async_op=False,
-               federated_world=None):
+               country=None):
     """
     Gathers tensors from the whole group in a list.
 
@@ -1117,11 +1116,11 @@ def all_gather(tensor_list,
         [tensor([1.+1.j, 2.+2.j]), tensor([3.+3.j, 4.+4.j])] # Rank 1
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_tensor_list(tensor_list, "tensor_list")
     _check_single_tensor(tensor, "tensor")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
     tensor_list = [t if not t.is_complex() else torch.view_as_real(t)
@@ -1129,7 +1128,7 @@ def all_gather(tensor_list,
     tensor = tensor if not tensor.is_complex() else torch.view_as_real(tensor)
 
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.allgather([tensor_list], [tensor])
     else:
         work = group.allgather([tensor_list], [tensor])
@@ -1144,7 +1143,7 @@ def all_gather_coalesced(output_tensor_lists,
                          input_tensor_list,
                          group=None,
                          async_op=False,
-                         federated_world=None):
+                         country=None):
     """
     Gathers input tensors from the whole group in a list in a coalesced manner.
 
@@ -1188,11 +1187,11 @@ def all_gather_coalesced(output_tensor_lists,
     performance improvements but users of this function should take extra care
     to ensure that each node passes in tensors whose shapes match across nodes.
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     # We only check basic compatibility with C++ params here, C++ code will
     # do shape and type checking.
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
     _check_tensor_list(input_tensor_list, "tensor_list")
     if not isinstance(output_tensor_lists, list):
@@ -1207,7 +1206,7 @@ def all_gather_coalesced(output_tensor_lists,
                          for t in input_tensor_list]
 
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.allgather_coalesced(
             output_tensor_lists, input_tensor_list)
     else:
@@ -1225,7 +1224,7 @@ def gather(tensor,
            dst=0,
            group=None,
            async_op=False,
-           federated_world=None):
+           country=None):
     """
     Gathers a list of tensors in a single process.
 
@@ -1244,8 +1243,8 @@ def gather(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
 
     # Parameter ``gather_list`` may be left unspecified on non-dst ranks.
@@ -1254,22 +1253,22 @@ def gather(tensor,
     else:
         gather_list = []
 
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
-    my_rank = federated_world.get_rank()
-    federated_world._validate_output_list_for_rank(my_rank, dst, gather_list)
+    my_rank = country.get_rank()
+    country._validate_output_list_for_rank(my_rank, dst, gather_list)
     output_tensors = [gather_list] if dst == my_rank else []
     input_tensors = [tensor]
 
     opts = GatherOptions()
     opts.rootRank = dst
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
-        group_dst_rank = federated_world._get_group_rank(group, dst)
+        group_dst_rank = country._get_group_rank(group, dst)
         opts.rootRank = group_dst_rank
         work = group.gather(output_tensors, input_tensors, opts)
 
@@ -1284,7 +1283,7 @@ def scatter(tensor,
             src=0,
             group=None,
             async_op=False,
-            federated_world=None):
+            country=None):
     """
     Scatters a list of tensors to all processes in a group.
 
@@ -1305,8 +1304,8 @@ def scatter(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(tensor, "tensor")
 
     # Parameter ``scatter_list`` may be left unspecified on non-src ranks.
@@ -1315,10 +1314,10 @@ def scatter(tensor,
     else:
         scatter_list = []
 
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
-    my_rank = federated_world.get_rank()
+    my_rank = country.get_rank()
     if src == my_rank:
         if not scatter_list:
             raise ValueError("Argument ``scatter_list`` must be specified "
@@ -1335,11 +1334,11 @@ def scatter(tensor,
     opts = ScatterOptions()
     opts.rootRank = src
 
-    if group is None or group is federated_world.WORLD:
-        default_pg = federated_world._get_default_group()
+    if group is None or group is country.WORLD:
+        default_pg = country._get_default_group()
         work = default_pg.scatter(output_tensors, input_tensors, opts)
     else:
-        group_src_rank = federated_world._get_group_rank(group, src)
+        group_src_rank = country._get_group_rank(group, src)
         opts.rootRank = group_src_rank
         work = group.scatter(output_tensors, input_tensors, opts)
 
@@ -1354,7 +1353,7 @@ def reduce_scatter_multigpu(output_tensor_list,
                             op=ReduceOp.SUM,
                             group=None,
                             async_op=False,
-                            federated_world=None):
+                            country=None):
     """
     Reduce and scatter a list of tensors to the whole group.  Only nccl backend
     is currently supported.
@@ -1396,16 +1395,16 @@ def reduce_scatter_multigpu(output_tensor_list,
         None, if not async_op or if not part of the group.
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     opts = ReduceScatterOptions()
     opts.reduceOp = op
 
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.reduce_scatter(
             output_tensor_list,
             input_tensor_lists,
@@ -1429,7 +1428,7 @@ def reduce_scatter(output,
                    op=ReduceOp.SUM,
                    group=None,
                    async_op=False,
-                   federated_world=None):
+                   country=None):
     """
     Reduces, then scatters a list of tensors to all processes in a group.
 
@@ -1445,18 +1444,18 @@ def reduce_scatter(output,
         None, if not async_op or if not part of the group.
 
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
+    if country is None:
+        country = register.default_country
     _check_single_tensor(output, "output")
     _check_tensor_list(input_list, "input_list")
-    if federated_world._rank_not_in_group(group):
+    if country._rank_not_in_group(group):
         return
 
     opts = ReduceScatterOptions()
     opts.reduceOp = op
 
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.reduce_scatter([output], [input_list], opts)
     else:
         work = group.reduce_scatter([output], [input_list], opts)
@@ -1473,7 +1472,7 @@ def all_to_all_single(output,
                       input_split_sizes=None,
                       group=None,
                       async_op=False,
-                      federated_world=None):
+                      country=None):
     """
     Each process splits input tensor and then scatters the split list
     to all processes in a group. Then concatenate the received tensors from all
@@ -1544,9 +1543,9 @@ def all_to_all_single(output,
         tensor([ 4, 15, 16, 23, 34, 35])                                 # Rank 2
         tensor([ 5, 17, 18, 24, 36])                                     # Rank 3
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     opts = AllToAllOptions()
@@ -1556,7 +1555,7 @@ def all_to_all_single(output,
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
 
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.alltoall_base(
             output, input, output_split_sizes, input_split_sizes, opts)
     else:
@@ -1573,7 +1572,7 @@ def all_to_all(output_tensor_list,
                input_tensor_list,
                group=None,
                async_op=False,
-               federated_world=None):
+               country=None):
     """
     Each process scatters list of input tensors to all processes in a group and
     return gathered list of tensors in output list.
@@ -1644,9 +1643,9 @@ def all_to_all(output_tensor_list,
         [tensor([4]), tensor([15, 16]), tensor([23]), tensor([34, 35])]              # Rank 2
         [tensor([5]), tensor([17, 18]), tensor([24]), tensor([36])]                  # Rank 3
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    if federated_world._rank_not_in_group(group):
+    if country is None:
+        country = register.default_country
+    if country._rank_not_in_group(group):
         return
 
     opts = AllToAllOptions()
@@ -1654,7 +1653,7 @@ def all_to_all(output_tensor_list,
     _check_tensor_list(input_tensor_list, "input_tensor_list")
 
     if group is None:
-        default_pg = federated_world._get_default_group()
+        default_pg = country._get_default_group()
         work = default_pg.alltoall(output_tensor_list, input_tensor_list, opts)
     else:
         work = group.alltoall(output_tensor_list, input_tensor_list, opts)
@@ -1666,7 +1665,7 @@ def all_to_all(output_tensor_list,
 
 
 def batch_isend_irecv(p2p_op_list,
-                      federated_world=None):
+                      country=None):
     """
     Send or Receive a batch of tensors asynchronously and return a list of requests.
 
@@ -1699,10 +1698,10 @@ def batch_isend_irecv(p2p_op_list,
         the current GPU device with `torch.cuda.set_device`, otherwise it will
         lead to unexpected hang issues.
     """
-    if federated_world is None:
-        federated_world = register.default_federated_world
-    federated_world._check_p2p_op_list(p2p_op_list)
-    backend = federated_world.get_backend(p2p_op_list[0].group)
+    if country is None:
+        country = register.default_country
+    country._check_p2p_op_list(p2p_op_list)
+    backend = country.get_backend(p2p_op_list[0].group)
     reqs = []
     with _batch_p2p_manager(backend):
         for p2p_op in p2p_op_list:

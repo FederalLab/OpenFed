@@ -1,10 +1,9 @@
 import openfed
-
-from ..common import logger
-from .federated_world import ProcessGroup
-from .register import register
-from .reign import Reign
-from .world import World
+from openfed.common import logger
+from openfed.federated.country import ProcessGroup
+from openfed.federated.register import register
+from openfed.federated.reign import Reign
+from openfed.federated.world import World
 
 
 class Destroy(object):
@@ -22,13 +21,13 @@ class Destroy(object):
         reign.offline()
         del world._pg_mapping[pg]
 
-        federated_world = reign.federated_world
-        federated_world.destroy_process_group(pg)
+        country = reign.country
+        country.destroy_process_group(pg)
 
-        if not federated_world.is_initialized() or federated_world._group_count == 1:
+        if not country.is_initialized() or country._group_count == 1:
             if openfed.DEBUG.is_debug:
-                logger.info(f"Destroy {federated_world}")
-            register.deleted_federated_world(federated_world)
+                logger.info(f"Destroy {country}")
+            register.deleted_country(country)
         else:
             ...
 
@@ -48,7 +47,7 @@ class Destroy(object):
 
     @classmethod
     def destroy_all_in_all_world(cls):
-        """A safe way to destroy all federated world which has been registered.
+        """A safe way to destroy all country which has been registered.
         """
         for _, world in register:
             if world is not None:

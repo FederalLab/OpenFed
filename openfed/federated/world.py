@@ -3,10 +3,9 @@ from collections import OrderedDict
 from enum import Enum, unique
 from typing import Any, Dict, List, TypeVar
 
+from openfed.common import Array
+from openfed.utils import openfed_class_fmt
 from torch._C._distributed_c10d import ProcessGroup
-
-from ..common import Array
-from ..utils import openfed_class_fmt
 
 
 @unique
@@ -27,13 +26,13 @@ class Reign():
 
 
 class World(Array):
-    """Relation map between World, FederatedWorld and ProcessGroup:
+    """Relation map between World, Country and Reign:
         World
-        ├── FederatedWorld-a
-        │   └── ProcessGroup-1
-        └── FederatedWorld-b
-            ├── ProcessGroup-1
-            └── ProcessGroup-2
+        ├── Country-a
+        │   └── Reign-1
+        └── Country-b
+            ├── Reign-1
+            └── Reign-2
     """
     # If you want to exist current World, set it False
     ALIVE: bool
@@ -48,7 +47,7 @@ class World(Array):
     _NULL_GP: Any = None
     _current_pg: ProcessGroup
 
-    # avoid the conflict while joint many new FederatedWorlds to current World at the some time
+    # avoid the conflict while joint many new Countrys to current World at the some time
     joint_lock = threading.Lock()
 
     def __init__(self, king: bool = False):

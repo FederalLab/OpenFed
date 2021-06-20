@@ -5,11 +5,10 @@ from typing import Any, Dict
 import openfed
 import openfed.utils as utils
 from openfed.common import Hook, logger
-
-from ...utils import openfed_class_fmt
-from ..federated_world import FederatedWorld, Store
-from ..world import World
-from .functional import Collector, SystemInfo
+from openfed.federated.country import Country, Store
+from openfed.federated.inform.functional import Collector, SystemInfo
+from openfed.federated.world import World
+from openfed.utils import openfed_class_fmt
 
 OPENFED_IDENTIFY = "OPENFED_IDENTIFY"
 OPENFED_STATUS = "OPENFED_STATUS"
@@ -63,7 +62,7 @@ class Informer(Hook):
     """
     store: Store
     world: World
-    federated_world: FederatedWorld
+    country: Country
 
     def __init__(self):
         # write self._i_key to initialize the key value store.
