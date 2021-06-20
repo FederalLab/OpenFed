@@ -5,7 +5,7 @@ import warnings
 from collections import OrderedDict
 from datetime import timedelta
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, final
 
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
@@ -26,10 +26,12 @@ from torch.distributed.distributed_c10d import (Backend, P2POp,
                                                 supports_complex)
 from torch.distributed.rendezvous import rendezvous
 
-from ..common import Array, log_debug_info, logger
+from ..common import Array, ConnectTimeout, log_debug_info, logger
 from ..common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                 DEFAULT_PG_SHORT_TIMEOUT, DEFAULT_PG_TIMEOUT)
 from ..common.vars import DEBUG, DYNAMIC_ADDRESS_LOADING
+from ..utils import openfed_class_fmt
+from .lock import acquire_all, release_all
 
 try:
     from torch.distributed.distributed_c10d import (ProcessGroupGloo,
@@ -461,7 +463,9 @@ class FederatedWorld(object):
                 except Exception as e:
                     if DEBUG.is_debug:
                         logger.error(e)
-                    raise e
+                    raise ConnectTimeout
+                finally:
+                    ...
             else:
                 store, rank, world_size = init_store(rank, world_size, timeout)
 
@@ -546,57 +550,78 @@ class FederatedWorld(object):
 
         backend = Backend(backend)
         pg: Union[ProcessGroupGloo, ProcessGroupMPI, ProcessGroupNCCL]
-        if backend == Backend.MPI:
-            if not is_mpi_available():
-                raise RuntimeError(
-                    "Distributed package doesn't have MPI built in."
-                    " MPI is only included if you build PyTorch from"
-                    " source on a host that has MPI installed.")
-            pg = ProcessGroupMPI.create(group_ranks)
-            if not pg:
-                return self.NON_GROUP_MEMBER
-            self._pg_map[pg] = (Backend.MPI, store)
-            self._pg_names[pg] = group_name
-        else:
-            # If this is a subgroup (which means group_ranks is specified),
-            # we check if the current process is a member of the new group.
-            if not is_default_group:
-                global_rank = self._get_default_group().rank()
-                if global_rank not in group_ranks:
+
+        def connect_backend():
+            if backend == Backend.MPI:
+                if not is_mpi_available():
+                    raise RuntimeError(
+                        "Distributed package doesn't have MPI built in."
+                        " MPI is only included if you build PyTorch from"
+                        " source on a host that has MPI installed.")
+                pg = ProcessGroupMPI.create(group_ranks)
+                if not pg:
                     return self.NON_GROUP_MEMBER
-
-            # Use the group name as prefix in the default store, such that
-            # a single store can be reused by multiple groups.
-            prefix_store = PrefixStore(group_name, store)
-
-            if backend == Backend.GLOO:
-                pg = ProcessGroupGloo(
-                    prefix_store,
-                    rank,
-                    world_size,
-                    timeout=timeout)
-                self._pg_map[pg] = (Backend.GLOO, store)
-                self._pg_names[pg] = group_name
-            elif backend == Backend.NCCL:
-                if not is_nccl_available():
-                    raise RuntimeError("Distributed package doesn't have NCCL "
-                                       "built in")
-                pg = ProcessGroupNCCL(
-                    prefix_store,
-                    rank,
-                    world_size,
-                    timeout)
-                self._pg_map[pg] = (Backend.NCCL, store)
+                self._pg_map[pg] = (Backend.MPI, store)
                 self._pg_names[pg] = group_name
             else:
-                pg = getattr(Backend, backend.upper())(
-                    prefix_store,
-                    rank,
-                    world_size,
-                    timeout)
-                self._pg_map[pg] = (backend, store)
-                self._pg_names[pg] = group_name
+                # If this is a subgroup (which means group_ranks is specified),
+                # we check if the current process is a member of the new group.
+                if not is_default_group:
+                    global_rank = self._get_default_group().rank()
+                    if global_rank not in group_ranks:
+                        return self.NON_GROUP_MEMBER
 
+                # Use the group name as prefix in the default store, such that
+                # a single store can be reused by multiple groups.
+                prefix_store = PrefixStore(group_name, store)
+
+                if backend == Backend.GLOO:
+                    pg = ProcessGroupGloo(
+                        prefix_store,
+                        rank,
+                        world_size,
+                        timeout=timeout)
+                    self._pg_map[pg] = (Backend.GLOO, store)
+                    self._pg_names[pg] = group_name
+                elif backend == Backend.NCCL:
+                    if not is_nccl_available():
+                        raise RuntimeError("Distributed package doesn't have NCCL "
+                                           "built in")
+                    pg = ProcessGroupNCCL(
+                        prefix_store,
+                        rank,
+                        world_size,
+                        timeout)
+                    self._pg_map[pg] = (Backend.NCCL, store)
+                    self._pg_names[pg] = group_name
+                else:
+                    pg = getattr(Backend, backend.upper())(
+                        prefix_store,
+                        rank,
+                        world_size,
+                        timeout)
+                    self._pg_map[pg] = (backend, store)
+                    self._pg_names[pg] = group_name
+
+            return pg
+
+        acquire_all()
+        try:
+            pg = connect_backend()
+        except RuntimeError as re:
+            if DEBUG.is_debug:
+                raise re
+            else:
+                raise ConnectTimeout(str(re))
+        except TimeoutError as te:
+            if DEBUG.is_debug:
+                logger.error("Timeout while building the backend.")
+            raise ConnectTimeout(str(te))
+        except Exception as e:
+            raise e
+        finally:
+            pass
+        release_all()
         return pg
 
     def destroy_process_group(self, group=None):
@@ -894,10 +919,11 @@ class _Register(Array):
     def deleted_federated_world(cls, federated_world: FederatedWorld):
         if federated_world in _federated_world:
             if federated_world.is_initialized():
-                log_debug_info(
-                    "Force to destroy all process groups in federated world.")
-            federated_world.destroy_process_group(
-                group=federated_world.WORLD)
+                if DEBUG.is_debug:
+                    logger.info(
+                        f"Forece to delete federated world: {federated_world}")
+                federated_world.destroy_process_group(
+                    group=federated_world.WORLD)
 
             del _federated_world[federated_world]
             del federated_world
@@ -917,6 +943,12 @@ class _Register(Array):
         """If not exists, return None
         """
         return self.default_values
+
+    def __repr__(self):
+        return openfed_class_fmt.format(
+            class_name="Reigster",
+            description=f"{len(self)} Federated World have been registed."
+        )
 
 
 register = _Register()

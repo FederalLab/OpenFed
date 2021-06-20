@@ -9,3 +9,4 @@ from .peeper import Peeper
 from .thread import SafeTread
 from .vars import *
 from .wrapper import Wrapper
+from .exception import ConnectTimeout

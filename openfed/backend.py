@@ -9,8 +9,7 @@ import openfed
 from .aggregate import Aggregator
 from .common import (Address, Hook, Peeper, SafeTread, default_address,
                      log_verbose_info)
-from .federated.federated import (Destroy, Maintainer, Reign, World, register,
-                                  reign_generator)
+from .federated.federated import Destroy, Maintainer, Reign, World
 
 
 class Backend(SafeTread, Peeper, Hook):
@@ -112,7 +111,7 @@ class Backend(SafeTread, Peeper, Hook):
         while not self.stopped:
             self.step_at_new_episode()
             with self.maintainer.maintainer_lock:
-                rg = reign_generator()
+                rg = Reign.reign_generator()
                 for reign in rg:
                     if not self.stopped and reign is not None:
                         self.reign = reign

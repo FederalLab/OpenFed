@@ -2,7 +2,11 @@ import json
 import platform
 from abc import abstractmethod
 from typing import Any, Dict
+
+import openfed
 from torch.optim.lr_scheduler import _LRScheduler
+
+from ...common import logger
 
 
 class Collector(object):
@@ -44,6 +48,8 @@ class SystemInfo(Collector):
     """
     bounding_name: str = "Collector.SystemInfo"
 
+    message: Any = None
+
     def collect(self) -> Dict[str, str]:
         return dict(
             system=platform.system(),
@@ -59,17 +65,21 @@ class SystemInfo(Collector):
         self.message = message
 
     def better_read(self):
-        assert self.message is not None, "Call load_message() first."
-        return (
-            f"System Information List\n"
-            f"System: {self.message['system']}\n"
-            f"Platform: {self.message['platform']}\n"
-            f"Version: {self.message['version']}\n"
-            f"Architecture: {self.message['architecture']}\n"
-            f"Machine: {self.message['machine']}\n"
-            f"Node: {self.message['node']}\n"
-            f"Processor: {self.message['processor']}\n"
-        )
+        if self.message is None:
+            if openfed.DEBUG.is_debug:
+                logger.error("Empty message received.")
+            return ""
+        else:
+            return (
+                f"System Information List\n"
+                f"System: {self.message['system']}\n"
+                f"Platform: {self.message['platform']}\n"
+                f"Version: {self.message['version']}\n"
+                f"Architecture: {self.message['architecture']}\n"
+                f"Machine: {self.message['machine']}\n"
+                f"Node: {self.message['node']}\n"
+                f"Processor: {self.message['processor']}\n"
+            )
 
 
 class LRTracker(Collector):
