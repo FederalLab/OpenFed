@@ -5,32 +5,31 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import openfed
-from openfed.common.constants import SLEEP_SHORT_TIME
-
-from .common import Address, Peeper, default_address, logger
-from .federated import Destroy, Maintainer, Reign, World
+from openfed.common import Address, Peeper, default_address, logger
+from openfed.common.constants import SLEEP_LONG_TIME
+from openfed.federated import Destroy, Maintainer, Reign, World
+from openfed.utils import openfed_class_fmt
 
 
 class Frontend(Peeper):
-    """为客户端提供一个统一简洁的接口！
-    对于常规训练，用户只需要接触这个类，就可以解决所有的通讯问题。
+    """An unified API for users.
     """
-    # 一个maintainer用于处理所有连接
     maintainer: Maintainer
 
-    # 一个用于和服务器通信的模块
     reign: Reign
 
     @overload
     def __init__(self):
-        """所有的参数都使用默认的设置。
+        """
+            Build a default frontend for fast testing.
         """
 
     @overload
     def __init__(self,
                  world: World,
                  address: Address):
-        """指定不同的参数，进行初始化的同时，完成连接。
+        """
+            Build a frontend with world and address.
         """
 
     def __init__(self, **kwargs):
@@ -53,7 +52,7 @@ class Frontend(Peeper):
         while not Reign.default_reign():
             if openfed.VERBOSE.is_verbose:
                 logger.info("Wait for generating a valid reign")
-            time.sleep(SLEEP_SHORT_TIME)
+            time.sleep(SLEEP_LONG_TIME)
         self.reign = Reign.default_reign()
 
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
@@ -92,11 +91,13 @@ class Frontend(Peeper):
         return self.reign.get(key)
 
     def finish(self):
-        # 已经完成了训练，退出联邦学习。
         if self.reign is not None:
             Destroy.destroy_reign(self.reign)
 
         self.maintainer.manual_stop()
 
     def __repr__(self):
-        return "Frontend"
+        return openfed_class_fmt.format(
+            class_name="Frontend",
+            description=str(self.maintainer)
+        )
