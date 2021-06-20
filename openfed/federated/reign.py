@@ -130,7 +130,7 @@ class Reign(Informer, Delivery):
             class_name="Reign",
             description=(
                 f"Version: {self.version}\n"
-                f"Status: {self._get_state()}\n"
+                f"Status: {self._get_state().value}"
             )
         )
 

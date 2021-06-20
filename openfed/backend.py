@@ -178,8 +178,8 @@ class Backend(SafeTread, Peeper, Hook):
         self.received_numbers += 1
 
         if openfed.VERBOSE.is_verbose:
-            logger.info(f"New Model"
-                        f"@{self.received_numbers}"
+            logger.info(f"Recieve Model\n"
+                        f"@{self.received_numbers}\n"
                         f"From {self.reign}"
                         )
 
