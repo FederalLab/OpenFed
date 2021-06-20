@@ -6,6 +6,7 @@ from typing import Any, Dict, List, TypeVar
 from torch._C._distributed_c10d import ProcessGroup
 
 from ..common import Array
+from ..utils import openfed_class_fmt
 
 
 @unique
@@ -100,3 +101,12 @@ class World(Array):
 
     def is_valid_process_group(self, pg: ProcessGroup) -> bool:
         return pg is not self._NULL_GP and pg in self._pg_mapping
+
+    def __repr__(self):
+        return openfed_class_fmt.format(
+            class_name="World",
+            description=(
+                f"ROLE: {self.ROLE.value}\n"
+                f"{len(self)} Process Group Alive.\n"
+            )
+        )
