@@ -7,7 +7,7 @@ from torch.optim import Optimizer
 import openfed
 from openfed.common.constants import SLEEP_SHORT_TIME
 
-from .common import Address, Peeper, default_address, log_info, logger
+from .common import Address, Peeper, default_address, logger
 from .federated import Destroy, Maintainer, Reign, World
 
 
@@ -69,14 +69,14 @@ class Frontend(Peeper):
         state = self.reign.upload()
         if not state:
             msg = "Failed to upload data, the server may have shut down."
-            log_info(msg)
+            logger.info(msg)
         return state
 
     def download(self) -> bool:
         state = self.reign.download()
         if not state:
             msg = "Failed to upload data, the server may have shut down."
-            log_info(msg)
+            logger.info(msg)
         return state
 
     def set_task_info(self, task_info: Dict) -> None:

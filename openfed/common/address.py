@@ -1,6 +1,7 @@
 import json
 from typing import List, TypeVar
-from ..utils import openfed_class_fmt
+
+from openfed.utils import openfed_class_fmt
 from prettytable import PrettyTable
 
 _A = TypeVar("_A", bound='Address')
@@ -90,8 +91,6 @@ class Address(object):
 
     @classmethod
     def load_from_file(cls, file: str) -> List[_A]:
-        """从文件加载的方式，创建的fedworld，不支持store的初始化方式！
-        """
         with open(file, 'r') as f:
             address_dict_list = json.load(f)
         address_list = [Address(**address) for address in address_dict_list]
@@ -99,22 +98,19 @@ class Address(object):
 
     @classmethod
     def dump_to_file(cls, file: str, address_list: List[_A]):
-        """
-            address_list中的store不会被保存下来。因为不支持从这种方式初始化。
-        """
         address_dict_list = [address.as_dict for address in address_list]
         with open(file, "w") as f:
             json.dump(address_dict_list, f)
 
     def __repr__(self):
-        # 调用repr方法，输出一个简介
+        # Return a short description
         return openfed_class_fmt.format(
             class_name="Address",
             description=f"@ {self.group_name}",
         )
 
     def __str__(self):
-        # 调用str方法，输出一个详细内容
+        # return a long description
         table = PrettyTable(
             ['Backend', 'Init Method', 'World Size', 'Rank', 'Store', 'Group Name']
         )
@@ -129,7 +125,6 @@ class Address(object):
 
     @property
     def as_dict(self):
-        # 这个函数主要是为了让fedaddr支持解包操作，方便将其作为参数传入底层的方法。
         return dict(
             backend=self.backend,
             init_method=self.init_method,
@@ -140,14 +135,11 @@ class Address(object):
         )
 
 
-# 给定一个默认的fed addr地址，方便做实验验证的时候，不需要每次都指定地址。
-
 default_address = Address(backend="gloo",
                           init_method='tcp://localhost:1993',
                           group_name="OpenFed"
                           )
 
-# 设置四个默认地址，用于实验
 default_address_lists = [
     Address(
         backend="gloo",

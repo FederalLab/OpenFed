@@ -2,6 +2,31 @@ from typing import List
 
 
 class Wrapper(object):
-    # 用来明确的指出当前的类当中，有哪些数据是用于打包的。
-    package_key_list: List = None
-    unpackage_key_list: List = None
+    """Provide some method to wrap a class with support of Package.
+    """
+    pack_key_list: List = None
+    unpack_key_list: List = None
+
+    def add_pack_key(self, key: str):
+        assert isinstance(key, str), "Only string format keys are supported."
+        if self.pack_key_list is None:
+            self.pack_key_list = []
+        if key in self.pack_key_list:
+            raise KeyError(f"Duplicate key: {key}.")
+        self.pack_key_list.append(key)
+
+    def add_unpack_key(self, key: str):
+        assert isinstance(key, str), "Only string format keys are supported."
+        if self.unpack_key_list is None:
+            self.unpack_key_list = []
+        if key in self.unpack_key_list:
+            raise KeyError(f"Duplicate key: {key}.")
+        self.unpack_key_list.append(key)
+
+    def add_pack_key_list(self, keys: List[str]):
+        for key in keys:
+            self.add_pack_key(key)
+
+    def add_unpack_key_list(self, keys: List[str]):
+        for key in keys:
+            self.add_unpack_key(key)

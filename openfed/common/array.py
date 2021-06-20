@@ -2,25 +2,24 @@ from typing import Any, List, Mapping
 
 
 class Array(object):
-    """
-    提供一些方法，使得一个类能够实现一些数组的基本功能，以及高级功能。
-    提供了迭代过程中对象被修改而影响程序运行的能力。
-    注意：当迭代对象被修改以后，可能会乱序迭代。你不应当期待它会提供有序的迭代的能力。虽然有时候他看起来可以。
-    在需要对一些共享的全局mapping变量进行迭代时，显得非常有用。
+    """Make the class enable to iterate over a dict like list, 
+    even though the dict has been motified while iteration.
     """
 
-    # 下划线开头，这个类本身不会对mapping做出任何修改
+    # Array will never modify the _default_mapping.
     _default_mapping: Mapping[Any, Any] = None
 
     def __init__(self, default_mapping: Mapping[Any, Any]):
-        assert default_mapping is not None, "default_mapping can not be None, deliver an empty dict if you wanted."
+        assert default_mapping is not None,\
+            "default_mapping can not be None, deliver an empty dict if you wanted."
         self._default_mapping = default_mapping
 
         self.tmp_index = -1
 
     def _check_initialized_called(func):
         def wrapper(self, *args, **kwargs):
-            assert self._default_mapping is not None, "Call Array.__init__ to initialized Array first"
+            assert self._default_mapping is not None,\
+                "Call Array.__init__() to initialize Array first"
             return func(self, *args, **kwargs)
         return wrapper
 
@@ -45,7 +44,8 @@ class Array(object):
         if index < 0:
             return None, None
         else:
-            return list(self._default_mapping.keys())[index], list(self._default_mapping.values())[index]
+            return list(self._default_mapping.keys())[index],\
+                list(self._default_mapping.values())[index]
 
     @_check_initialized_called
     def __iter__(self):

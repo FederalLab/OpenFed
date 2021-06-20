@@ -1,5 +1,6 @@
 import time
 from typing import Dict, List, Union, overload
+from loguru import logger
 
 from torch import Tensor
 from torch.optim import Optimizer
@@ -7,8 +8,7 @@ from torch.optim import Optimizer
 import openfed
 
 from .aggregate import Aggregator
-from .common import (Address, Hook, Peeper, SafeTread, default_address,
-                     log_verbose_info)
+from .common import (Address, Hook, Peeper, SafeTread, default_address)
 from .federated import Destroy, Maintainer, Reign, World, openfed_lock
 
 
@@ -191,7 +191,7 @@ class Backend(SafeTread, Peeper, Hook):
 
         self.received_numbers += 1
 
-        log_verbose_info(f"Receive model @{self.received_numbers}")
+        logger.info(f"Receive model @{self.received_numbers}")
 
     def step_before_upload(self) -> bool:
         """当客户端要求返回一个新的模型时，我们可能会面临不同的情况，这个申请可能无法满足。

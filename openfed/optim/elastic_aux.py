@@ -72,7 +72,7 @@ class ElasticAux(Optimizer, Wrapper):
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
 
-        self.package_key_list = ['importance']
+        self.add_pack_key('importance')
 
         defaults = dict(momentum=momentum)
         super().__init__(params, defaults)

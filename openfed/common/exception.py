@@ -1,11 +1,15 @@
+from openfed.utils import openfed_class_fmt
 
 
 class ConnectTimeout(Exception):
-    """When we try to connect the other hand but the time has been timeout.
+    """Timeout while building a new connection.
     """
 
     def __init__(self, msg=""):
         self.msg = msg
 
     def __str__(self):
-        return self.msg
+        return openfed_class_fmt.format(
+            class_name="ConnectTimeout",
+            description=self.msg
+        )

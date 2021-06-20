@@ -410,3 +410,8 @@ class Aggregator(Package, Wrapper, Hook):
 
     def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
+
+    def unpack(self, key: Tensor, rdict: Dict[str, Any]) -> Dict[str, Tensor]:
+        state = self.state[key]
+
+        return {key: state[key] for key in rdict}

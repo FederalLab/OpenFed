@@ -1,4 +1,4 @@
-from ..utils import openfed_class_fmt
+from openfed.utils import openfed_class_fmt
 
 
 class _DEBUG(object):
@@ -6,10 +6,19 @@ class _DEBUG(object):
         self.debug = False
 
     def set_debug(self):
+        """Will auto enable verbose.
+        """
+        self._old_flag = VERBOSE.is_verbose
         self.debug = True
+        VERBOSE.set_verbose()
 
     def unset_debug(self):
         self.debug = False
+        if hasattr(self, '_old_flag'):
+            if self._old_flag:
+                VERBOSE.set_verbose()
+            else:
+                VERBOSE.unset_verbose()
 
     @property
     def is_debug(self) -> bool:

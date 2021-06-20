@@ -1,61 +1,60 @@
 from abc import abstractmethod
 from threading import Thread
-from typing import Dict, final
+from typing import Any, Dict, final
 
 import openfed
 import openfed.utils as utils
-
-from .logging import logger
+from openfed.common.logging import logger
 
 
 class SafeTread(Thread):
-    # 用来控制整个线程是否退出。
     stopped: bool
 
-    def __init__(self):
+    def __init__(self, daemon: bool = True):
         super().__init__(name="OpenFed SafeTread")
         self.stopped = False
+        self.setDaemon(daemon)
 
-        # 为了不影响主程序退出，设置为True
-        # 因此，任何关键的动作，都不允许在Thread里面实现
-        # 比如保存模型等。
-        # Thread只是拿来做一些轻量级的辅助任务！
-        self.setDaemon(True)
-
-        # 自动注册到全局的pool中
+        # register to global pool
         _thread_pool[self] = utils.time_string()
 
-        if openfed.VERBOSE or openfed.DEBUG:
-            logger.info(f"Create a new thread\n{self}")
+        if openfed.DEBUG.is_debug:
+            logger.info(f"Create Thread: {self}")
 
     @final
     def run(self):
         """
-            子类通过实现safe_run方法来实现相关的函数功能。
+            Implement safe_run() instead.
         """
         self.safe_exit(self.safe_run())
 
         self.stopped = True
 
     def safe_exit(self, msg: str):
-        if openfed.VERBOSE.is_verbose or openfed.DEBUG.is_debug:
+        if openfed.DEBUG.is_debug:
             time_string = _thread_pool[self]
-            logger.info(
-                f"Exited a thread\n{self}, {msg if msg else ''}, {time_string}")
+            logger.info((
+                f"Exited Thread"
+                f"{self}"
+                f"{msg if msg else ''}"
+                f"Created Time: {time_string}"
+                f"Exited Time: {utils.time_string()}")
+            )
         del _thread_pool[self]
 
     def __repr__(self) -> str:
         return "SafeTread"
 
     @abstractmethod
-    def safe_run(self):
-        """实现你的相关代码
+    def safe_run(self) -> Any:
+        """Implement your method here.
         """
-        ...
 
     def manual_stop(self):
+        """Set stopped to True.
+        """
         self.stopped = True
 
 
-# 记录了这个线程创建的时间。
+# Record global thread
 _thread_pool:  Dict[SafeTread, str] = {}
