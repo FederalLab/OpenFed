@@ -1272,6 +1272,7 @@ def gather(tensor,
     if country._rank_not_in_group(group):
         return
 
+    # https://github.com/pytorch/pytorch/issues/60356
     # my_rank = country.get_rank(group)
     if group is None:
         my_rank = country.get_rank(group)
@@ -1288,6 +1289,7 @@ def gather(tensor,
         default_pg = country._get_default_group()
         work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
+        # https://github.com/pytorch/pytorch/issues/60356
         # group_dst_rank = country._get_group_rank(group, dst)
         # opts.rootRank = group_dst_rank
         work = group.gather(output_tensors, input_tensors, opts)
