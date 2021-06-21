@@ -137,13 +137,13 @@ will not pass ``--local_rank`` when you specify this flag.
 """
 
 
-import time
-import signal
-import sys
-import subprocess
 import os
-from argparse import ArgumentParser, REMAINDER
-from typing import Optional, IO, List, Any
+import signal
+import subprocess
+import sys
+import time
+from argparse import REMAINDER, ArgumentParser
+from typing import IO, Any, List, Optional
 
 node_local_rank_stdout_filename = "node_{}_local_rank_{}_stdout"
 node_local_rank_stderr_filename = "node_{}_local_rank_{}_stderr"
@@ -191,6 +191,10 @@ def parse_args():
     parser.add_argument("--no_python", default=False, action="store_true",
                         help="Do not prepend the training script with \"python\" - just exec "
                              "it directly. Useful when the script is not a Python script.")
+    parser.add_argument("--server_output", default=False, action='store_true',
+                        help="exclude the server node, such that you can keep a better visiualize of"
+                             "training progress. If set Ture, the log information of server will directly"
+                             "shown in command line.")
     parser.add_argument(
         "--logdir",
         default=None,
@@ -216,6 +220,9 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    if args.logdir is None:
+        print("We highly recommended set --logdir and --server_output for a better visualization while federated training.")
 
     # world size in terms of number of processes
     dist_world_size = args.nproc_per_node * args.nnodes
@@ -249,7 +256,7 @@ def main():
 
     subprocess_file_handles = []
 
-    for local_rank in range(0, args.nproc_per_node):
+    for local_rank in range(args.nproc_per_node):
         # each process's rank
         dist_rank = args.nproc_per_node * args.node_rank + local_rank
         current_env["RANK"] = str(dist_rank)
@@ -274,27 +281,31 @@ def main():
 
         if not args.use_env:
             cmd.append("--local_rank={}".format(local_rank))
+            cmd.append("--world_size={}".format(dist_world_size))
 
         cmd.extend(args.training_script_args)
 
         stdout_handle: Optional[IO]
         stderr_handle: Optional[IO]
         if args.logdir:
-            directory_path = os.path.join(os.getcwd(), args.logdir)
-            node_rank = args.node_rank
-            stdout_file_name = node_local_rank_stdout_filename.format(
-                node_rank, local_rank)
-            stderr_file_name = node_local_rank_stderr_filename.format(
-                node_rank, local_rank)
-            stdout_handle = open(os.path.join(
-                directory_path, stdout_file_name), "w")
-            stderr_handle = open(os.path.join(
-                directory_path, stderr_file_name), "w")
-            subprocess_file_handles.append((stdout_handle, stderr_handle))
-            stdout_name = stdout_handle.name
-            stderr_name = stderr_handle.name
-            print(f"""Note: Stdout and stderr for node {node_rank} rank {local_rank} will
-            be written to {stdout_name}, {stderr_name} respectively.""")
+            if dist_rank == 0 and args.server_output:
+                subprocess_file_handles.append((None, None))
+            else:
+                directory_path = os.path.join(os.getcwd(), args.logdir)
+                node_rank = args.node_rank
+                stdout_file_name = node_local_rank_stdout_filename.format(
+                    node_rank, local_rank)
+                stderr_file_name = node_local_rank_stderr_filename.format(
+                    node_rank, local_rank)
+                stdout_handle = open(os.path.join(
+                    directory_path, stdout_file_name), "w")
+                stderr_handle = open(os.path.join(
+                    directory_path, stderr_file_name), "w")
+                subprocess_file_handles.append((stdout_handle, stderr_handle))
+                stdout_name = stdout_handle.name
+                stderr_name = stderr_handle.name
+                print(f"""Note: Stdout and stderr for node {node_rank} rank {local_rank} will
+                be written to {stdout_name}, {stderr_name} respectively.""")
 
         sig_names = {2: "SIGINT", 15: "SIGTERM"}
         last_return_code = None
@@ -347,8 +358,10 @@ def main():
     finally:
         # close open file descriptors
         for (stdout_handle, stderr_handle) in subprocess_file_handles:
-            stdout_handle.close()
-            stderr_handle.close()
+            if stdout_handle is not None:
+                stdout_handle.close()
+            if stderr_handle is not None:
+                stderr_handle.close()
 
 
 if __name__ == "__main__":

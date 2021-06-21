@@ -24,6 +24,7 @@ parser.add_argument(
     help="If set with 2, the rank can be ignored.")
 parser.add_argument(
     "--rank",
+    "--local_rank",
     default=-1,
     type=int,
     help="If the world is 2, rank can be ignored.")
