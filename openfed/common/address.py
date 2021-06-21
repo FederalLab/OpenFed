@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List, TypeVar
 
 from openfed.utils import openfed_class_fmt
@@ -88,6 +89,8 @@ class Address(object):
 
     @classmethod
     def load_from_file(cls, file: str) -> List[_A]:
+        if not os.path.isfile(file):
+            return []
         with open(file, 'r') as f:
             address_dict_list = json.load(f)
         address_list = [Address(**address) for address in address_dict_list]
