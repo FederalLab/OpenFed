@@ -1,5 +1,9 @@
 # OpenFed
 
+## Bugs
+
+1. It seems that when communicate with progress in different GPU devices, upload and download operations will get stuck.
+
 ## Install
 
 Python=3.9, PyTorch=1.9.0 are required.
