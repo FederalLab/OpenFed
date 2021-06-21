@@ -12,6 +12,7 @@ class Peeper(object):
     @classmethod
     def openfed_digest(cls):
         return (
+            f"OpenFed Digest\n"
             f"World: {len(_world_list)}\n"
             f"Country: {len(_country)}\n"
             f"Maintainer: {len(_maintainer_lock_dict)}\n"

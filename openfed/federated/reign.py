@@ -62,7 +62,7 @@ class Reign(Informer, Delivery):
                     if openfed.VERBOSE.is_verbose:
                         logger.error("Server Offline")
                     return False
-                time.sleep(openfed.SLEEP_SHORT_TIME)
+                time.sleep(openfed.DEFAULT_PG_TIMEOUT.seconds)
             else:
                 self.push()
 
@@ -107,7 +107,7 @@ class Reign(Informer, Delivery):
                     if openfed.VERBOSE.is_verbose:
                         logger.error("Server Offline")
                     return False
-                time.sleep(openfed.SLEEP_SHORT_TIME)
+                time.sleep(openfed.DEFAULT_PG_TIMEOUT.seconds)
             else:
                 self.pull()
         else:
