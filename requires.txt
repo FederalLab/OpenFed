@@ -1,4 +1,0 @@
-bidict
-psutil
-prettytable
-loguru
