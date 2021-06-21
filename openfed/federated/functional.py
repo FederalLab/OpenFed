@@ -811,7 +811,10 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, country=None)
 
     # Ensure object_gather_list is specified appopriately.
     # my_rank = country.get_rank(group)
-    my_rank = group.rank()
+    if group is None:
+        my_rank = country.get_rank(group)
+    else:
+        my_rank = group.rank()
     country._validate_output_list_for_rank(
         my_rank, dst, object_gather_list)
     input_tensor, local_size = _object_to_tensor(obj)
@@ -919,7 +922,10 @@ def broadcast_object_list(object_list, src=0, group=None, country=None):
         return
 
     # my_rank = country.get_rank(group)
-    my_rank = group.rank()
+    if group is None:
+        my_rank = country.get_rank(group)
+    else:
+        my_rank = group.rank()
     # Serialize object_list elements to tensors on src rank.
     if my_rank == src:
         tensor_list, size_list = zip(
@@ -1030,7 +1036,10 @@ def scatter_object_list(scatter_object_output_list,
         )
 
     # my_rank = country.get_rank(group)
-    my_rank = group.rank()
+    if group is None:
+        my_rank = country.get_rank(group)
+    else:
+        my_rank = group.rank()
     if my_rank == src:
         tensor_list, tensor_sizes = zip(
             *[_object_to_tensor(obj) for obj in scatter_object_input_list]
@@ -1264,7 +1273,10 @@ def gather(tensor,
         return
 
     # my_rank = country.get_rank(group)
-    my_rank = group.rank()
+    if group is None:
+        my_rank = country.get_rank(group)
+    else:
+        my_rank = group.rank()
     country._validate_output_list_for_rank(my_rank, dst, gather_list)
     output_tensors = [gather_list] if dst == my_rank else []
     input_tensors = [tensor]
@@ -1326,7 +1338,10 @@ def scatter(tensor,
         return
 
     # my_rank = country.get_rank(group)
-    my_rank = group.rank()
+    if group is None:
+        my_rank = country.get_rank(group)
+    else:
+        my_rank = group.rank()
     if src == my_rank:
         if not scatter_list:
             raise ValueError("Argument ``scatter_list`` must be specified "
