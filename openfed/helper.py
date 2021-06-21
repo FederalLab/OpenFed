@@ -55,8 +55,8 @@ class Helper(cmd.Cmd):
     def do_exit(self, arg):
         """Write file and exit.
         """
-        self.do_save()
         if self.config_file is not None:
+            self.do_save()
             self.config_file = None
             self.address_list = []
         else:
@@ -106,7 +106,7 @@ class Helper(cmd.Cmd):
         parser.add_argument("--port", default=None, type=int)
         parser.add_argument("--world_size", default=2, type=int)
         parser.add_argument("--rank", default=-1, type=int)
-        parser.add_argument("--group_name", default="OpenFed", type=str)
+        parser.add_argument("--group_name", default="Admirable", type=str)
         parser.parse_known_args(arg)
 
         args = parser.parse_args()
