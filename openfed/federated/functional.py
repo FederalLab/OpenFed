@@ -44,8 +44,9 @@ def isend(tensor,
         default_pg = country._get_default_group()
         return default_pg.send([tensor], dst, tag)
     else:
-        group_dst_rank = country._get_group_rank(group, dst)
-        return group.send([tensor], group_dst_rank, tag)
+        # group_dst_rank = country._get_group_rank(group, dst)
+        # return group.send([tensor], group_dst_rank, tag)
+        return group.send([tensor], dst, tag)
 
 
 def irecv(tensor,
@@ -87,8 +88,9 @@ def irecv(tensor,
         if pg is country.WORLD:
             return pg.recv([tensor], src, tag)
         else:
-            group_src_rank = country._get_group_rank(pg, src)
-            return pg.recv([tensor], group_src_rank, tag)
+            # group_src_rank = country._get_group_rank(pg, src)
+            # return pg.recv([tensor], group_src_rank, tag)
+            return pg.recv([tensor], src, tag)
 
 
 def send(tensor,
@@ -118,8 +120,9 @@ def send(tensor,
         default_pg = country._get_default_group()
         default_pg.send([tensor], dst, tag).wait()
     else:
-        group_dst_rank = country._get_group_rank(group, dst)
-        group.send([tensor], group_dst_rank, tag).wait()
+        # group_dst_rank = country._get_group_rank(group, dst)
+        # group.send([tensor], group_dst_rank, tag).wait()
+        group.send([tensor], dst, tag).wait()
 
 
 def recv(tensor,
@@ -167,8 +170,9 @@ def recv(tensor,
         if group is None or group is country.WORLD:
             pg.recv([tensor], src, tag).wait()
         else:
-            group_src_rank = country._get_group_rank(pg, src)
-            pg.recv([tensor], group_src_rank, tag).wait()
+            # group_src_rank = country._get_group_rank(pg, src)
+            # pg.recv([tensor], group_src_rank, tag).wait()
+            pg.recv([tensor], src, tag).wait()
         return src
 
 
@@ -222,8 +226,8 @@ def broadcast_multigpu(tensor_list,
         default_pg = country._get_default_group()
         work = default_pg.broadcast(tensor_list, opts)
     else:
-        group_src_rank = country._get_group_rank(group, src)
-        opts.rootRank = group_src_rank
+        # group_src_rank = country._get_group_rank(group, src)
+        # opts.rootRank = group_src_rank
         work = group.broadcast(tensor_list, opts)
     if async_op:
         return work
@@ -269,8 +273,8 @@ def broadcast(tensor,
         default_pg = country._get_default_group()
         work = default_pg.broadcast([tensor], opts)
     else:
-        group_src_rank = country._get_group_rank(group, src)
-        opts.rootRank = group_src_rank
+        # group_src_rank = country._get_group_rank(group, src)
+        # opts.rootRank = group_src_rank
         work = group.broadcast([tensor], opts)
     if async_op:
         return work
@@ -530,8 +534,8 @@ def reduce_multigpu(tensor_list,
         default_pg = country._get_default_group()
         work = default_pg.reduce(tensor_list, opts)
     else:
-        group_dst_rank = country._get_group_rank(group, dst)
-        opts.rootRank = group_dst_rank
+        # group_dst_rank = country._get_group_rank(group, dst)
+        # opts.rootRank = group_dst_rank
         work = group.reduce(tensor_list, opts)
 
     if async_op:
@@ -581,8 +585,8 @@ def reduce(tensor,
         default_pg = country._get_default_group()
         work = default_pg.reduce([tensor], opts)
     else:
-        group_dst_rank = country._get_group_rank(group, dst)
-        opts.rootRank = group_dst_rank
+        # group_dst_rank = country._get_group_rank(group, dst)
+        # opts.rootRank = group_dst_rank
         work = group.reduce([tensor], opts)
 
     if async_op:
@@ -702,7 +706,7 @@ def all_gather_object(object_list, obj, group=None, country=None):
         >>> # Assumes world_size of 3.
         >>> gather_objects = ["foo", 12, {1: 2}] # any picklable object
         >>> output = [None for _ in gather_objects]
-        >>> dist.all_gather_object(output, gather_objects[dist.get_rank()])
+        >>> dist.all_gather_object(output, gather_objects[dist.get_rank(group)])
         >>> output
         ['foo', 12, {1: 2}]
     """
@@ -792,8 +796,8 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, country=None)
         >>> gather_objects = ["foo", 12, {1: 2}] # any picklable object
         >>> output = [None for _ in gather_objects]
         >>> dist.gather_object(
-                gather_objects[dist.get_rank()],
-                output if dist.get_rank() == 0 else None,
+                gather_objects[dist.get_rank(group)],
+                output if dist.get_rank(group) == 0 else None,
                 dst=0
             )
         >>> # On rank 0
@@ -806,7 +810,8 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, country=None)
         return
 
     # Ensure object_gather_list is specified appopriately.
-    my_rank = country.get_rank(group)
+    # my_rank = country.get_rank(group)
+    my_rank = group.rank()
     country._validate_output_list_for_rank(
         my_rank, dst, object_gather_list)
     input_tensor, local_size = _object_to_tensor(obj)
@@ -899,7 +904,7 @@ def broadcast_object_list(object_list, src=0, group=None, country=None):
     Example::
         >>> # Note: Process group initialization omitted on each rank.
         >>> import torch.distributed as dist
-        >>> if dist.get_rank() == 0:
+        >>> if dist.get_rank(group) == 0:
         >>>     # Assumes world_size of 3.
         >>>     objects = ["foo", 12, {1: 2}] # any picklable object
         >>> else:
@@ -913,7 +918,8 @@ def broadcast_object_list(object_list, src=0, group=None, country=None):
     if country._rank_not_in_group(group):
         return
 
-    my_rank = country.get_rank()
+    # my_rank = country.get_rank(group)
+    my_rank = group.rank()
     # Serialize object_list elements to tensors on src rank.
     if my_rank == src:
         tensor_list, size_list = zip(
@@ -998,7 +1004,7 @@ def scatter_object_list(scatter_object_output_list,
     Example::
         >>> # Note: Process group initialization omitted on each rank.
         >>> import torch.distributed as dist
-        >>> if dist.get_rank() == 0:
+        >>> if dist.get_rank(group) == 0:
         >>>     # Assumes world_size of 3.
         >>>     objects = ["foo", 12, {1: 2}] # any picklable object
         >>> else:
@@ -1023,7 +1029,8 @@ def scatter_object_list(scatter_object_output_list,
             "Expected argument scatter_object_output_list to be a list of size at least 1."
         )
 
-    my_rank = country.get_rank(group)
+    # my_rank = country.get_rank(group)
+    my_rank = group.rank()
     if my_rank == src:
         tensor_list, tensor_sizes = zip(
             *[_object_to_tensor(obj) for obj in scatter_object_input_list]
@@ -1256,7 +1263,8 @@ def gather(tensor,
     if country._rank_not_in_group(group):
         return
 
-    my_rank = country.get_rank()
+    # my_rank = country.get_rank(group)
+    my_rank = group.rank()
     country._validate_output_list_for_rank(my_rank, dst, gather_list)
     output_tensors = [gather_list] if dst == my_rank else []
     input_tensors = [tensor]
@@ -1268,8 +1276,8 @@ def gather(tensor,
         default_pg = country._get_default_group()
         work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
-        group_dst_rank = country._get_group_rank(group, dst)
-        opts.rootRank = group_dst_rank
+        # group_dst_rank = country._get_group_rank(group, dst)
+        # opts.rootRank = group_dst_rank
         work = group.gather(output_tensors, input_tensors, opts)
 
     if async_op:
@@ -1317,7 +1325,8 @@ def scatter(tensor,
     if country._rank_not_in_group(group):
         return
 
-    my_rank = country.get_rank()
+    # my_rank = country.get_rank(group)
+    my_rank = group.rank()
     if src == my_rank:
         if not scatter_list:
             raise ValueError("Argument ``scatter_list`` must be specified "
@@ -1338,8 +1347,8 @@ def scatter(tensor,
         default_pg = country._get_default_group()
         work = default_pg.scatter(output_tensors, input_tensors, opts)
     else:
-        group_src_rank = country._get_group_rank(group, src)
-        opts.rootRank = group_src_rank
+        # group_src_rank = country._get_group_rank(group, src)
+        # opts.rootRank = group_src_rank
         work = group.scatter(output_tensors, input_tensors, opts)
 
     if async_op:

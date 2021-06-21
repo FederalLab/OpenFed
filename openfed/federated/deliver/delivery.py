@@ -27,6 +27,22 @@ class Delivery(Package, Hook):
         self.packages = defaultdict(dict)
         self.register_cypher(FormotCheck())
 
+    @property
+    def king_rank(self) -> int:
+        return 0
+        # if self.pg == self.country.WORLD:
+        #     return self.country.get_rank(self.pg)
+        # else:
+        #     return self.country._get_global_rank(self.pg, 0)
+
+    @property
+    def queen_rank(self) -> int:
+        return 1
+        # if self.pg == self.country.WORLD:
+        #     return self.country.get_rank(self.pg)
+        # else:
+        #     return self.country._get_global_rank(self.pg, 1)
+
     def register_cypher(self, cypher: Cypher) -> None:
         """Register a cypher to encrypt/decrypt the Tensor.
         """
@@ -100,8 +116,9 @@ class Delivery(Package, Hook):
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         received = [None, None]
-        rank = 0 if self.world.king else 1
-        other_rank = 1 if self.world.king else 0
+
+        rank = self.king_rank if self.world.king else self.queen_rank
+        other_rank = self.queen_rank if self.world.king else self.king_rank
 
         gather_object(None, received, dst=rank, group=self.pg,
                       country=self.country)
@@ -126,7 +143,7 @@ class Delivery(Package, Hook):
         assert self.country._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
-        rank = 1 if self.world.king else 0
+        rank = self.queen_rank if self.world.king else self.king_rank
 
         # encrypt data
         for hook in self.hook_list:

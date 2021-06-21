@@ -12,18 +12,12 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python: server",
+            "name": "Python: unified",
             "type": "python",
             "request": "launch",
-            "program": "server.py",
-            "console": "externalTerminal"
-        },
-        {
-            "name": "Python: client",
-            "type": "python",
-            "request": "launch",
-            "program": "client.py",
-            "console": "externalTerminal"
+            "program": "unified.py",
+            "console": "externalTerminal",
+            "args": ["--rank", "0", "--world_size", "3"]
         }
     ]
 }

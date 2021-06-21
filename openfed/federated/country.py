@@ -442,6 +442,10 @@ class Country(object):
         backend = Backend(backend)
         pg: Union[ProcessGroupGloo, ProcessGroupMPI, ProcessGroupNCCL]
 
+        # Use the group name as prefix in the default store, such that
+        # a single store can be reused by multiple groups.
+        prefix_store = PrefixStore(group_name, store)
+
         def connect_backend():
             if backend == Backend.MPI:
                 if not is_mpi_available():
@@ -452,7 +456,7 @@ class Country(object):
                 pg = ProcessGroupMPI.create(group_ranks)
                 if not pg:
                     return self.NON_GROUP_MEMBER
-                self._pg_map[pg] = (Backend.MPI, store)
+                self._pg_map[pg] = (Backend.MPI, prefix_store)
                 self._pg_names[pg] = group_name
             else:
                 # If this is a subgroup (which means group_ranks is specified),
@@ -462,17 +466,13 @@ class Country(object):
                     if global_rank not in group_ranks:
                         return self.NON_GROUP_MEMBER
 
-                # Use the group name as prefix in the default store, such that
-                # a single store can be reused by multiple groups.
-                prefix_store = PrefixStore(group_name, store)
-
                 if backend == Backend.GLOO:
                     pg = ProcessGroupGloo(
                         prefix_store,
                         rank,
                         world_size,
                         timeout=timeout)
-                    self._pg_map[pg] = (Backend.GLOO, store)
+                    self._pg_map[pg] = (Backend.GLOO, prefix_store)
                     self._pg_names[pg] = group_name
                 elif backend == Backend.NCCL:
                     if not is_nccl_available():
@@ -483,7 +483,7 @@ class Country(object):
                         rank,
                         world_size,
                         timeout)
-                    self._pg_map[pg] = (Backend.NCCL, store)
+                    self._pg_map[pg] = (Backend.NCCL, prefix_store)
                     self._pg_names[pg] = group_name
                 else:
                     pg = getattr(Backend, backend.upper())(
@@ -491,7 +491,7 @@ class Country(object):
                         rank,
                         world_size,
                         timeout)
-                    self._pg_map[pg] = (backend, store)
+                    self._pg_map[pg] = (backend, prefix_store)
                     self._pg_names[pg] = group_name
 
             return pg
@@ -668,7 +668,7 @@ class Country(object):
         else:
             work.wait()
 
-    def new_group(self, ranks=None, timeout=DEFAULT_PG_TIMEOUT, backend=None):
+    def new_group(self, ranks=None, timeout=DEFAULT_PG_TIMEOUT, backend=None, group_name=None):
         """
         Creates a new distributed group.
 
@@ -743,7 +743,8 @@ class Country(object):
                                             ranks,
                                             backend,
                                             default_store,
-                                            timeout=timeout)
+                                            timeout=timeout,
+                                            group_name=group_name,)
 
         # Create the global rank to group rank mapping
         self._pg_group_ranks[pg] = {
@@ -778,9 +779,8 @@ class Country(object):
                 continue
             else:
                 pg = self.new_group(
-                    ranks=[rank, other], timeout=timeout, backend=backend)
+                    ranks=[rank, other], timeout=timeout, backend=backend, group_name=f"point2point-{rank}-{other}",)
                 # backup
-                # 当rank不在sub pg里面的时候，会返回NON_GROUP_MEMBER。注意判断。
                 if pg is not self.NON_GROUP_MEMBER:
                     self._point2point_groups[pg] = self._pg_map[pg]
                     pg_list.append(pg)
