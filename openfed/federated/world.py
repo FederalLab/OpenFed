@@ -27,9 +27,9 @@ class Reign():
 
 class World(Array):
     """Relation map between World, Country and Reign:
-        World
-        ├── Country-a
-        │   └── Reign-1
+        World: n master, varied roles
+        ├── Country-a: singe master, n client
+        │   └── Reign-1: single master, single client.
         └── Country-b
             ├── Reign-1
             └── Reign-2

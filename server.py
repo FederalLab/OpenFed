@@ -6,8 +6,8 @@ import openfed
 
 openfed.DEBUG.set_debug()
 print("Connect to Client...")
-# backend = Backend(address=openfed.default_address_lists[:3])
-backend = Backend(address_file="tmp.json")
+backend = Backend(address=openfed.default_address_lists[:3])
+# backend = Backend(address_file="tmp.json")
 
 # 创建一个模型，
 net = nn.Linear(1, 1)
