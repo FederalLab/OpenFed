@@ -1,12 +1,10 @@
 # OpenFed
 
-## 创建一个只有单一客户端和服务器的联邦学习环境
+## Say hello to OpenFed
 
 ![Demo](doc/demo.png)
 
-# BUG: 多客户端共享地址存在bug，需要进一步调试。
-
-## 文件结构
+## Project Structure
 
 ```bash
 openfed
