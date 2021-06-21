@@ -7,6 +7,11 @@ from openfed import Frontend
 from openfed.optim.elastic_aux import ElasticAux
 import time
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.parse_args()
+
+
 print("Connect to Server...")
 frontend = Frontend(address=openfed.default_address_lists[0])
 frontend.openfed_digest()

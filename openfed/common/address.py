@@ -1,6 +1,7 @@
 import json
 import os
-from typing import List, TypeVar
+from argparse import Namespace
+from typing import List, TypeVar, overload
 
 from openfed.utils import openfed_class_fmt
 from prettytable import PrettyTable
@@ -16,6 +17,12 @@ class Address(object):
     store = None
     group_name: str = ''
 
+    @overload
+    def __init__(self, args: Namespace):
+        """Load adress from parser.
+        """
+
+    @overload
     def __init__(self,
                  backend: str,
                  init_method: str = None,
@@ -80,12 +87,28 @@ class Address(object):
         To enable ``backend == Backend.MPI``, PyTorch needs to be built from source
         on a system that supports MPI.
         """
-        self.backend = backend
-        self.init_method = init_method
-        self.world_size = world_size
-        self.rank = rank
-        self.store = store
-        self.group_name = group_name
+
+    def __init__(self, **kwargs):
+        if kwargs.get('args', None):
+            args = kwargs.get('args')
+            if args.port is not None:
+                if args.init_method.startswith("tcp"):
+                    args.init_method = ":".join(
+                        args.init_method.split(":")[:2] + [str(args.port)])
+
+            self.backend = args.backend
+            self.init_method = args.init_method
+            self.world_size = args.world_size
+            self.rank = args.rank
+            self.store = None
+            self.group_name = args.group_name
+        else:
+            self.backend = kwargs['backend']
+            self.init_method = kwargs.get('init_method', None)
+            self.world_size = kwargs.get('world_size', 2)
+            self.rank = kwargs.get('rank', -1)
+            self.store = kwargs.get('store', None)
+            self.group_name = kwargs.get('group_name', "")
 
     @classmethod
     def load_from_file(cls, file: str) -> List[_A]:

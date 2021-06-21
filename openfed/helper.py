@@ -1,9 +1,9 @@
-import argparse
 import cmd
 import glob
 import os
 
-from openfed.common import Address
+from openfed.common.address import Address
+from openfed.common.parser import parser
 
 
 class Helper(cmd.Cmd):
@@ -98,33 +98,19 @@ class Helper(cmd.Cmd):
         If port is specified, then init_method will be replaced with new port.
         """
         arg = self.parseline(arg)[1]
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--backend", default="gloo",
-                            type=str, choices=["gloo", "mpi", "nccl"])
-        parser.add_argument(
-            "--init_method", default="tcp://localhost:1994", type=str)
-        parser.add_argument("--port", default=None, type=int)
-        parser.add_argument("--world_size", default=2, type=int)
-        parser.add_argument("--rank", default=-1, type=int)
-        parser.add_argument("--group_name", default="Admirable", type=str)
-        parser.parse_known_args(arg)
-
-        args = parser.parse_args()
-        if args.port is not None:
-            if args.init_method.startswith("tcp"):
-                args.init_method = args.init_method.replace(
-                    "1994", str(args.port))
-        address = Address(args.backend, args.init_method,
-                          args.world_size, args.rank, group_name=args.group_name)
+        if arg:
+            namespace = parser.parse_known_args(arg.split(" "))[0]
+        else:
+            namespace = parser.parse_args()
+        address = Address(args=namespace)
+        print(str(address))
 
         # check conflict
         for add in self.address_list:
-            if add.init_method == add.init_method:
+            if str(add) == str(address):
                 print("Already exists.")
                 return
-
-        print("Add a new address")
-        print(str(address))
+        print("Add a new address.")
 
         self.address_list.append(address)
 
