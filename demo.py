@@ -12,6 +12,10 @@ from openfed.optim.elastic_aux import ElasticAux
 parser = openfed.parser
 args = parser.parse_args()
 
+# set cuda device
+# torch.cuda.set_device(args.rank % (torch.cuda.device_count()))
+torch.cuda.set_device(0)
+
 # specify a api type.
 openfed_api = openfed.API(frontend=args.rank > 0)
 
@@ -23,6 +27,7 @@ print(openfed_api.openfed_digest())
 
 # build a network
 net = nn.Linear(1, 1)
+net.cuda()
 
 # define optimizer (use same optimizer in both server and client)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
@@ -62,7 +67,7 @@ for i in range(1, 100):
     elastic_aux.clear_buffer()
 
     # training
-    net(torch.randn(128, 1, 1)).sum().backward()
+    net(torch.randn(128, 1, 1).cuda()).sum().backward()
     elastic_aux.step()
     optimizer.step()
 

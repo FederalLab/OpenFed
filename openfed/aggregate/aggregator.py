@@ -1,4 +1,5 @@
 import warnings
+from collections import abc as container_abcs
 from collections import defaultdict
 from copy import deepcopy
 from itertools import chain
@@ -7,7 +8,6 @@ from typing import Any, Callable, Dict, List
 import torch
 from openfed.common import Hook, Package, Wrapper
 from torch import Tensor
-from torch._six import container_abcs
 
 
 class _RequiredParameter(object):
