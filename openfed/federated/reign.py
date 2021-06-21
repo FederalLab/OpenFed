@@ -54,7 +54,7 @@ class Reign(Informer, Delivery):
             tic = time.time()
             while not self.is_pulling:
                 toc = time.time()
-                if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
+                if toc-tic > openfed.DEFAULT_PG_LONG_TIMEOUT.seconds:
                     if openfed.VERBOSE.is_verbose:
                         logger.error("Timeout")
                     return False
@@ -62,7 +62,7 @@ class Reign(Informer, Delivery):
                     if openfed.VERBOSE.is_verbose:
                         logger.error("Server Offline")
                     return False
-                time.sleep(openfed.DEFAULT_PG_TIMEOUT.seconds)
+                time.sleep(openfed.SLEEP_SHORT_TIME)
             else:
                 self.push()
 
@@ -99,7 +99,7 @@ class Reign(Informer, Delivery):
             tic = time.time()
             while not self.is_pushing:
                 toc = time.time()
-                if toc-tic > openfed.SLEEP_VERY_LONG_TIME:
+                if toc-tic > openfed.DEFAULT_PG_LONG_TIMEOUT.seconds:
                     if openfed.VERBOSE.is_verbose:
                         logger.error("Timeout")
                     return False
@@ -107,7 +107,7 @@ class Reign(Informer, Delivery):
                     if openfed.VERBOSE.is_verbose:
                         logger.error("Server Offline")
                     return False
-                time.sleep(openfed.DEFAULT_PG_TIMEOUT.seconds)
+                time.sleep(openfed.SLEEP_SHORT_TIME)
             else:
                 self.pull()
         else:
