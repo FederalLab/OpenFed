@@ -8,11 +8,14 @@ from torch.optim import Optimizer
 import openfed
 from openfed.aggregate import Aggregator
 from openfed.common import Address, Hook, Peeper, SafeTread, default_address
+from openfed.common.unify import Unify, _backend_access
 from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.utils import openfed_class_fmt
 
 
-class Backend(SafeTread, Peeper, Hook):
+class Backend(Unify, SafeTread, Peeper, Hook):
+    """An unified API of backend for users.
+    """
     aggregator: Aggregator
     optimizer: Optimizer
 
@@ -28,46 +31,22 @@ class Backend(SafeTread, Peeper, Hook):
 
     last_aggregate_time: float
 
-    @overload
-    def __init__(self):
-        """
-            Build a default connection.
-        """
+    frontend: bool = False
 
-    @overload
-    def __init__(self,
-                 world: World,
-                 address: Union[Address, List[Address]],
-                 address_file: str):
+    @_backend_access
+    def build_connection(self,
+                         world: World = None,
+                         address: Union[Address, List[Address]] = None,
+                         address_file: str = None):
+        """Build a World with address and address file. 
+        initialize self at the same time.
         """
-            Build connection with given world and address.
-        """
-
-    @overload
-    def __init__(self,
-                 state_dict: Dict[str, Tensor],
-                 aggregator: Aggregator,
-                 optimizer: Optimizer,
-                 world: World,
-                 address: Union[Address, List[Address]],
-                 address_file: str):
-        """
-            Build connection and initialize backend.
-        """
-
-    def __init__(self, **kwargs):
-        self.state_dict = kwargs.get('state_dict', None)
-        self.aggregator = kwargs.get('aggregator', None)
-        self.optimizer = kwargs.get('optimizer', None)
-
-        world = kwargs.get('world', None)
-        address = kwargs.get('address', None)
-        address_file = kwargs.get('address_file', None)
-
         if world is None:
             world = World(king=True)
         else:
             assert world.king, "Backend must be king."
+
+        self.world = world
 
         if address is None and address_file is None:
             address = default_address
@@ -89,15 +68,19 @@ class Backend(SafeTread, Peeper, Hook):
 
         SafeTread.__init__(self)
 
+    @_backend_access
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
         self.state_dict = state_dict
 
+    @_backend_access
     def set_optimizer(self, optimizer: Optimizer):
         self.optimizer = optimizer
 
+    @_backend_access
     def set_aggregator(self, aggregator: Aggregator):
         self.aggregator = aggregator
 
+    @_backend_access
     def safe_run(self):
         """
             Use self.run() to start this loop in the main thread.
@@ -147,24 +130,31 @@ class Backend(SafeTread, Peeper, Hook):
         self.finish()
         return "Backend exited."
 
+    @_backend_access
     def step_at_new_episode(self):
         pass
 
+    @_backend_access
     def step_at_first(self):
         pass
 
+    @_backend_access
     def step_at_zombine(self):
         pass
 
+    @_backend_access
     def step_before_destroy(self) -> bool:
         return True
 
+    @_backend_access
     def step_after_destroy(self, state=...):
         pass
 
+    @_backend_access
     def step_before_download(self) -> bool:
         return True
 
+    @_backend_access
     def step_after_download(self, state=...):
 
         assert self.aggregator is not None
@@ -185,6 +175,7 @@ class Backend(SafeTread, Peeper, Hook):
                         f"From {self.reign}"
                         )
 
+    @_backend_access
     def step_before_upload(self) -> bool:
         assert self.optimizer is not None
         assert self.aggregator is not None
@@ -202,9 +193,11 @@ class Backend(SafeTread, Peeper, Hook):
             logger.info("Send")
         return True
 
+    @_backend_access
     def step_after_upload(self, state=...):
         pass
 
+    @_backend_access
     def step_at_last(self):
         """Related funtion to control the server state.
         """
@@ -221,18 +214,17 @@ class Backend(SafeTread, Peeper, Hook):
         else:
             ...
 
+    @_backend_access
     def step_at_unvalid_state(self):
         pass
 
+    @_backend_access
     def step_at_failed(self):
         pass
 
+    @_backend_access
     def __repr__(self):
         return openfed_class_fmt.format(
             class_name="Backend",
             description=str(self.maintainer)
         )
-
-    def finish(self):
-        Destroy.destroy_all_in_all_world()
-        self.maintainer.manual_stop()
