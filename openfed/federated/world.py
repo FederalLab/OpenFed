@@ -62,7 +62,7 @@ class World(Array):
         self._pg_mapping = OrderedDict()
         self._current_pg = self._NULL_GP
 
-        super().__init__(self._pg_mapping)
+        super().__init__(self._pg_mapping, self.joint_lock)
 
     @classmethod
     def clear_world(cls):

@@ -496,8 +496,8 @@ class Country(object):
 
             return pg
 
-        acquire_all()
         try:
+            acquire_all()
             pg = connect_backend()
         except RuntimeError as re:
             if DEBUG.is_debug:
@@ -511,8 +511,7 @@ class Country(object):
         except Exception as e:
             raise e
         finally:
-            pass
-        release_all()
+            release_all()
         return pg
 
     def destroy_process_group(self, group=None):

@@ -64,6 +64,12 @@ class Informer(Hook):
     world: World
     country: Country
 
+    # Sometimes, the read operaiton will be failed for unknown reasons.
+    # Essentially when we do simulation experiments on a single node.
+    # In order to avoid this error, we always backup the last info
+    # if failed, return this instead.
+    _backup_info: Dict[str, Any]
+
     def __init__(self):
         # write self._i_key to initialize the key value store.
         safe_store_set(self.store, self._i_key, {
@@ -79,7 +85,7 @@ class Informer(Hook):
 
         # Fetch data at last
         # try to read _u_key from the other end to make sure it is online.
-        safe_store_get(self.store, self._u_key)
+        self._backup_info = safe_store_get(self.store, self._u_key)
 
         self.collect()
 
@@ -107,7 +113,15 @@ class Informer(Hook):
             info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBINE.value
 
         if key is not None:
-            return info[key]
+            try:
+                value = info[key]
+                self._backup_info = info
+                return value
+            except KeyError as e:
+                if openfed.DEBUG.is_debug:
+                    logger.error("Key %s not found" % key)
+            finally:
+                return self._backup_info[key]
         else:
             return info
 

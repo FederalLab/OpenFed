@@ -1,4 +1,5 @@
 from typing import Any, List, Mapping
+from threading import Lock
 
 
 class Array(object):
@@ -8,11 +9,13 @@ class Array(object):
 
     # Array will never modify the _default_mapping.
     _default_mapping: Mapping[Any, Any] = None
+    _lock_on_mapping: Lock = None
 
-    def __init__(self, default_mapping: Mapping[Any, Any]):
+    def __init__(self, default_mapping: Mapping[Any, Any], lock_on_mapping: Lock = None):
         assert default_mapping is not None,\
             "default_mapping can not be None, deliver an empty dict if you wanted."
         self._default_mapping = default_mapping
+        self._lock_on_mapping = lock_on_mapping
 
         self.tmp_index = -1
 
@@ -21,6 +24,16 @@ class Array(object):
             assert self._default_mapping is not None,\
                 "Call Array.__init__() to initialize Array first"
             return func(self, *args, **kwargs)
+        return wrapper
+
+    def _acquire_lock(func):
+        def wrapper(self, *args, **kwargs):
+            if self._lock_on_mapping:
+                with self._lock_on_mapping:
+                    output = func(self, *args, **kwargs)
+            else:
+                output = func(self, *args, **kwargs)
+            return output
         return wrapper
 
     @property
@@ -38,6 +51,7 @@ class Array(object):
         return len(self._default_mapping)
 
     @_check_initialized_called
+    @_acquire_lock  # Lock Here is Enough. DO NOT ADD IN OTHER FUNC! OTHERWISE WILL CAUSE DEAD LOCK!
     def __getitem__(self, index: int) -> List:
         if index >= len(self):
             index = len(self) - 1

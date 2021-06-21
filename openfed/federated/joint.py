@@ -1,3 +1,5 @@
+import time
+
 import openfed
 from openfed.common.address import Address
 from openfed.common.exception import ConnectTimeout
@@ -75,6 +77,10 @@ class Joint(SafeTread):
                     sub_pg), sub_pg, country, self.world)
                 with self.world.joint_lock:
                     self.world._pg_mapping[sub_pg] = reign
+                # python(5766,0x70000fe24000) malloc: can't allocate region
+                # :*** mach_vm_map(size=5639989190273028096, flags: 100) failed (error code=3)
+                # python(5766,0x70000fe24000) malloc: *** set a breakpoint in malloc_error_break to debug
+                time.sleep(openfed.SLEEP_SHORT_TIME)
         else:
             # add the world group as reign if it is already a point to point connection.
             pg = country._get_default_group()
