@@ -9,12 +9,12 @@
 Python>=3.7, PyTorch=1.9.0 are required.
 
 ```
-conda create -n openfed python=3.9 -y
+conda create -n openfed python=3.7 -y
 conda activate openfed
 pip3 install -r requirements.txt
 
 # test
-python -m openfed.launch --nproc_per_node 11 --logdir /tmp --server_output demo.py
+python3 -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.py
 ```
 
 ## Say hello to OpenFed
