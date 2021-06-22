@@ -6,7 +6,7 @@
 
 ## Install
 
-Python=3.9, PyTorch=1.9.0 are required.
+Python>=3.7, PyTorch=1.9.0 are required.
 
 ```
 conda create -n openfed python=3.9 -y
