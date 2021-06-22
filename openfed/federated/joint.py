@@ -1,5 +1,4 @@
 import time
-from logging import log
 
 import openfed
 from openfed.common.address import Address

@@ -4,7 +4,10 @@ from abc import abstractmethod
 from typing import Any, Dict
 
 import openfed
+import torch
 from openfed.common import logger
+from openfed.utils import openfed_class_fmt
+from prettytable import PrettyTable
 from torch.optim.lr_scheduler import _LRScheduler
 
 
@@ -21,10 +24,8 @@ class Collector(object):
         """Implement related functions to collect messages.
         """
 
-    @abstractmethod
     def load_message(self, message: Any):
-        """Load the received message to inner state for better visualizing.
-        """
+        self.message = message
 
     @abstractmethod
     def better_read(self) -> str:
@@ -39,11 +40,14 @@ class Collector(object):
         return output
 
     def __repr__(self) -> str:
-        return self.better_read()
+        return openfed_class_fmt.format(
+            class_name=self.bounding_name,
+            description=self.better_read()
+        )
 
 
 class SystemInfo(Collector):
-    """Collect same basic system info.
+    """Collect some basic system info.
     """
     bounding_name: str = "Collector.SystemInfo"
 
@@ -60,8 +64,49 @@ class SystemInfo(Collector):
             processor=platform.processor(),
         )
 
-    def load_message(self, message: Any):
-        self.message = message
+    def better_read(self):
+        if self.message is None:
+            if openfed.DEBUG.is_debug:
+                logger.error("Empty message received.")
+            return ""
+        else:
+
+            table = PrettyTable(
+                ["System", "Platform", "Version", "Architecture"]
+            )
+            table.add_row(
+                [self.message["system"], self.message["platform"],
+                    self.message["version"], self.message["architecture"]]
+            )
+            table.add_row(
+                ['Machine', "Node", "Processor", ""]
+            )
+            table.add_row(
+                [self.message["machine"], self.message["node"],
+                    self.message["processor"], '']
+            )
+            return str(table)
+
+
+class GPUInfo(Collector):
+    """Collect some basic GPU information if GPU is available.
+    """
+    bounding_name: str = "Collector.GPUInfo"
+
+    message: Any = None
+
+    def collect(self) -> Dict[str, str]:
+        if torch.cuda.is_available():
+            return dict(
+                device_count=torch.cuda.device_count(),
+                arch_list=torch.cuda.get_arch_list(),
+                device_capability=torch.cuda.get_device_capability(),
+                device_name=torch.cuda.get_device_name(),
+                device_properties=torch.cuda.get_device_properties(),
+                current_device=torch.cuda.current_device(),
+            )
+        else:
+            return None
 
     def better_read(self):
         if self.message is None:
@@ -69,16 +114,21 @@ class SystemInfo(Collector):
                 logger.error("Empty message received.")
             return ""
         else:
-            return (
-                f"System Information List\n"
-                f"System: {self.message['system']}\n"
-                f"Platform: {self.message['platform']}\n"
-                f"Version: {self.message['version']}\n"
-                f"Architecture: {self.message['architecture']}\n"
-                f"Machine: {self.message['machine']}\n"
-                f"Node: {self.message['node']}\n"
-                f"Processor: {self.message['processor']}\n"
+            table = PrettyTable(
+                ["Count", "arch", "capability"]
             )
+            table.add_row(
+                [self.message['device_count'], self.message['arch_list'],
+                    self.message['device_capability']]
+            )
+            table.add_row(
+                ["Name", 'Properties', "Current"]
+            )
+            table.add_row(
+                [self.message['device_name'], self.message['device_properties'],
+                    self.message['current_device']]
+            )
+            return str(table)
 
 
 class LRTracker(Collector):

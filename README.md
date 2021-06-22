@@ -8,7 +8,7 @@
 
 Python>=3.7, PyTorch=1.9.0 are required.
 
-```
+```bash
 conda create -n openfed python=3.7 -y
 conda activate openfed
 pip3 install -r requirements.txt
@@ -18,7 +18,9 @@ python3 -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.
 
 # robust: Create 101 node at the same time.
 # this is not allowed under tcp mode for long latency.
-python3 -m openfed.launch --nproc_per_node 101 --logdir /tmp --server_output demo.py --init_method file:///tmp/openfed.sharefile
+# NOTE: If you use sharefile system, before start your program, 
+# you have to remove the old sharefile first!
+python3 -m openfed.launch --nproc_per_node 11 --logdir /tmp --server_output demo.py --init_method file:///tmp/openfed.sharefile
 ```
 
 ## Say hello to OpenFed

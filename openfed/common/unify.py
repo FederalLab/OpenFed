@@ -8,6 +8,7 @@ from openfed.federated.maintainer import Maintainer
 from openfed.federated.reign import Reign
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
+from openfed.utils.keyboard_interrupt_handle import keyboard_interrupt_handle
 from torch import Tensor
 
 
@@ -46,10 +47,16 @@ class Unify(object):
 
     frontend: bool
 
-    def __init__(self, frontend: bool = True):
+    def __init__(self,
+                 frontend: bool = True,
+                 capture_keyboard_interrupt: bool = True):
         """Whether act as a frontend.
         """
         self.frontend = frontend
+        if capture_keyboard_interrupt:
+            if DEBUG.is_debug:
+                logger.info("OpenFed will capture keyboard interrupt signal.")
+            keyboard_interrupt_handle()
 
     def build_connection(self, *args, **kwargs):
         raise NotImplementedError

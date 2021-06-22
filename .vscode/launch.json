@@ -1,0 +1,53 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: client-2",
+            "type": "python",
+            "request": "launch",
+            "program": "demo.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--rank",
+                "2",
+                "--init_method",
+                "file:///tmp/openfed.sharefile",
+                "--world_size",
+                "3"
+            ]
+        },
+        {
+            "name": "Python: client-1",
+            "type": "python",
+            "request": "launch",
+            "program": "demo.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--rank",
+                "1",
+                "--init_method",
+                "file:///tmp/openfed.sharefile",
+                "--world_size",
+                "3"
+            ]
+        },
+        {
+            "name": "Python: server",
+            "type": "python",
+            "request": "launch",
+            "program": "demo.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--rank",
+                "0",
+                "--init_method",
+                "file:///tmp/openfed.sharefile",
+                "--world_size",
+                "3"
+            ]
+        }
+    ]
+}
