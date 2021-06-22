@@ -3,7 +3,8 @@ from openfed.common.logging import logger
 from openfed.federated.country import ProcessGroup
 from openfed.federated.register import register
 from openfed.federated.reign import Reign
-from openfed.federated.world import World
+from openfed.federated.world import World, _world_list
+from openfed.utils.table import tablist
 
 
 class Destroy(object):
@@ -49,6 +50,15 @@ class Destroy(object):
     def destroy_all_in_all_world(cls):
         """A safe way to destroy all country which has been registered.
         """
+        logger.warning(
+            "Destroy OpenFed\n" +
+            tablist(
+                head=["World", "Country", "Reign"],
+                data=[len(_world_list),
+                      len(register),
+                      sum([len(w) for w in _world_list])]
+            )
+        )
         for _, world in register:
             if world is not None:
                 cls.destroy_all_in_a_world(world)

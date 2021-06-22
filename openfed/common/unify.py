@@ -8,7 +8,7 @@ from openfed.federated.maintainer import Maintainer
 from openfed.federated.reign import Reign
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
-from openfed.utils.keyboard_interrupt_handle import keyboard_interrupt_handle
+from openfed.utils.keyboard import keyboard_interrupt_handle
 from torch import Tensor
 
 

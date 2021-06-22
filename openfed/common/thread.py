@@ -3,8 +3,9 @@ from threading import Thread
 from typing import Any, Dict
 
 import openfed
-import openfed.utils as utils
 from openfed.common.logging import logger
+from openfed.utils import openfed_class_fmt, time_string
+from openfed.utils.table import tablist
 from typing_extensions import final
 
 
@@ -17,7 +18,7 @@ class SafeTread(Thread):
         self.setDaemon(daemon)
 
         # register to global pool
-        _thread_pool[self] = utils.time_string()
+        _thread_pool[self] = time_string()
 
         if openfed.DEBUG.is_debug:
             logger.info(f"Create Thread: {self}")
@@ -33,18 +34,20 @@ class SafeTread(Thread):
 
     def safe_exit(self, msg: str):
         if openfed.DEBUG.is_debug:
-            time_string = _thread_pool[self]
-            logger.info((
-                f"Exited Thread\n"
-                f"{self}"
-                f"{msg if msg else ''}\n"
-                f"Created Time: {time_string}\n"
-                f"Exited Time: {utils.time_string()}")
+            create_time_string = _thread_pool[self]
+            logger.info(
+                tablist(
+                    head=["Exited Thread", "MSG",
+                          "Created Time", "Exited Time"],
+                    data=[self, msg, create_time_string, time_string()]
+                )
             )
         del _thread_pool[self]
 
     def __repr__(self) -> str:
-        return "SafeTread"
+        return openfed_class_fmt.format(
+            class_name="SafeThread",
+        )
 
     @abstractmethod
     def safe_run(self) -> Any:

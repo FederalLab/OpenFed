@@ -1,5 +1,5 @@
 import time
-from typing import Dict, List, Union, overload
+from typing import Dict, List, Union
 
 from loguru import logger
 from torch import Tensor
@@ -201,7 +201,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
     def step_at_last(self):
         """Related funtion to control the server state.
         """
-        if self.received_numbers == 500:
+        if self.received_numbers == 100:
             # the following code is just used for testing.
             # you should rewrite your logics code instead.
             task_info = self.aggregator.aggregate()

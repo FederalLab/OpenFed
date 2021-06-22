@@ -11,6 +11,7 @@ from openfed.federated.joint import Joint
 from openfed.federated.lock import add_maintainer_lock, del_maintainer_lock
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
+from openfed.utils.table import tablist
 
 
 class Maintainer(Array, SafeTread):
@@ -190,10 +191,11 @@ class Maintainer(Array, SafeTread):
     def __repr__(self):
         return openfed_class_fmt.format(
             class_name="Maintainer",
-            description=(
-                f"{len(self.pending_queue)} in pending\n"
-                f"{len(self.finished_queue)} in finished\n"
-                f"{len(self.discard_queue)} in discard\n"
+            description=tablist(
+                head=["Pending", "Finished", "Discard"],
+                data=[len(self.pending_queue),
+                      len(self.finished_queue),
+                      len(self.discard_queue)]
             )
         )
 

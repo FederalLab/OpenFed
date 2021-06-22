@@ -2,8 +2,9 @@ import json
 import os
 from argparse import Namespace
 from typing import List, TypeVar, overload
+
 from openfed.utils import openfed_class_fmt
-from prettytable import PrettyTable
+from openfed.utils.table import tablist
 
 _A = TypeVar("_A", bound='Address')
 
@@ -132,17 +133,16 @@ class Address(object):
         )
 
     def __str__(self):
-        # return a long description
-        table = PrettyTable(
-            ['Backend', 'Init Method', 'World Size', 'Rank', 'Store', 'Group Name']
-        )
-        table.add_row(
-            [self.backend, self.init_method, self.world_size,
-                self.rank, self.store, self.group_name]
+        table = tablist(
+            head=['Backend', 'Init Method', 'World Size',
+                  'Rank', 'Store', 'Group Name'],
+            data=[self.backend, self.init_method, self.world_size,
+                  self.rank, self.store, self.group_name],
+            force_in_one_row=True
         )
         return openfed_class_fmt.format(
             class_name="Address",
-            description=str(table),
+            description=table,
         )
 
     @property

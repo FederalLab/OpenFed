@@ -1,7 +1,8 @@
-from openfed.federated.world import _world_list
-from openfed.federated.register import _country
-from openfed.federated.lock import _maintainer_lock_dict
 from openfed.common.thread import _thread_pool
+from openfed.federated.lock import _maintainer_lock_dict
+from openfed.federated.register import _country
+from openfed.federated.world import _world_list
+from openfed.utils.table import tablist
 
 
 class Peeper(object):
@@ -11,10 +12,9 @@ class Peeper(object):
 
     @classmethod
     def openfed_digest(cls):
-        return (
-            f"OpenFed Digest\n"
-            f"World: {len(_world_list)}\n"
-            f"Country: {len(_country)}\n"
-            f"Maintainer: {len(_maintainer_lock_dict)}\n"
-            f"Thread: {len(_thread_pool)}\n"
+        return tablist(
+            head=['World', 'Country', 'Maintainer', 'Thread'],
+            data=[len(_world_list), len(_country), len(
+                _maintainer_lock_dict), len(_thread_pool)],
+            force_in_one_row=True
         )

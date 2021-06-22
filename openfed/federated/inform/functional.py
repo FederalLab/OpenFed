@@ -7,7 +7,7 @@ import openfed
 import torch
 from openfed.common import logger
 from openfed.utils import openfed_class_fmt
-from prettytable import PrettyTable
+from openfed.utils.table import tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
 
@@ -70,22 +70,19 @@ class SystemInfo(Collector):
                 logger.error("Empty message received.")
             return ""
         else:
-
-            table = PrettyTable(
-                ["System", "Platform", "Version", "Architecture"]
+            return tablist(
+                head=["System", "Platform", "Version",
+                      "Architecture", 'Machine', "Node",
+                      "Processor"],
+                data=[self.message["system"],
+                      self.message["platform"],
+                      self.message["version"],
+                      self.message["architecture"],
+                      self.message["machine"],
+                      self.message["node"],
+                      self.message["processor"]],
+                items_per_row=4
             )
-            table.add_row(
-                [self.message["system"], self.message["platform"],
-                    self.message["version"], self.message["architecture"]]
-            )
-            table.add_row(
-                ['Machine', "Node", "Processor", ""]
-            )
-            table.add_row(
-                [self.message["machine"], self.message["node"],
-                    self.message["processor"], '']
-            )
-            return str(table)
 
 
 class GPUInfo(Collector):
@@ -114,21 +111,17 @@ class GPUInfo(Collector):
                 logger.error("Empty message received.")
             return ""
         else:
-            table = PrettyTable(
-                ["Count", "arch", "capability"]
+            return tablist(
+                head=["Count", "Arch", "Capability",
+                      "Name", 'Properties', "Current"],
+                data=[self.message['device_count'],
+                      self.message['arch_list'],
+                      self.message['device_capability'],
+                      self.message['device_name'],
+                      self.message['device_properties'],
+                      self.message['current_device']],
+                force_in_one_row=True
             )
-            table.add_row(
-                [self.message['device_count'], self.message['arch_list'],
-                    self.message['device_capability']]
-            )
-            table.add_row(
-                ["Name", 'Properties', "Current"]
-            )
-            table.add_row(
-                [self.message['device_name'], self.message['device_properties'],
-                    self.message['current_device']]
-            )
-            return str(table)
 
 
 class LRTracker(Collector):
