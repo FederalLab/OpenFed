@@ -3,6 +3,8 @@ import os
 from argparse import Namespace
 from typing import List, TypeVar, overload
 
+from openfed.common.logging import logger
+from openfed.common.vars import DEBUG
 from openfed.utils import openfed_class_fmt
 from prettytable import PrettyTable
 
@@ -109,6 +111,13 @@ class Address(object):
             self.rank = kwargs.get('rank', -1)
             self.store = kwargs.get('store', None)
             self.group_name = kwargs.get('group_name', "")
+
+        if self.init_method.startswith("file://"):
+            share_file = self.init_method.replace("file://", "")
+            if os.path.isfile(share_file):
+                if DEBUG.is_debug:
+                    logger.info(f"Remove {share_file}")
+                os.remove(share_file)
 
     @classmethod
     def load_from_file(cls, file: str) -> List[_A]:

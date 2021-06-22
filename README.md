@@ -15,6 +15,10 @@ pip3 install -r requirements.txt
 
 # test
 python3 -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.py
+
+# robust: Create 101 node at the same time.
+# this is not allowed under tcp mode for long latency.
+python3 -m openfed.launch --nproc_per_node 101 --logdir /tmp --server_output demo.py --init_method file:///tmp/openfed.sharefile
 ```
 
 ## Say hello to OpenFed
