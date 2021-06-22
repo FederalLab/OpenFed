@@ -1,7 +1,7 @@
 from .address import Address, default_address, default_address_lists
 from .array import Array
 from .constants import *
-from .exception import ConnectTimeout
+from .exception import ConnectTimeout, InvalidStoreReading, BuildReignFailed
 from .hook import Hook
 from .logging import log_to_file, logger
 from .package import Package

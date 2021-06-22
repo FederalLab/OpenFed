@@ -1,8 +1,9 @@
 import time
+from logging import log
 
 import openfed
 from openfed.common.address import Address
-from openfed.common.exception import ConnectTimeout
+from openfed.common.exception import BuildReignFailed, ConnectTimeout
 from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
 from openfed.federated.country import Country
@@ -66,35 +67,60 @@ class Joint(SafeTread):
         with self.world.joint_lock:
             register.register_country(country, self.world)
 
-        if self.address.world_size > 2:
+        world_size = self.address.world_size
+        if world_size > 2:
+            if world_size > 10 and self.address.init_method.startswith("tcp"):
+                msg = ("TCP Overload\n"
+                       "There are too many node in tcp mode, which is not allowed.\n"
+                       f"Make the world size smaller than 10 ({world_size} is given.) to run stablely.\n"
+                       "Or use a share file system to initialize.\n"
+                       "For example: ```--init_method file:///tmp/openfed.sharefile```.\n")
+                logger.error(msg)
+                raise RuntimeError(msg)
+
             # rank is always set to 0 for that we want to build a
             # point2point connection between the master and each nodes.
             sub_pg_list = country.build_point2point_group(rank=0)
 
+            self.build_success = False
             # bound pg with the country
             for sub_pg in sub_pg_list:
-                reign = Reign(country.get_store(
-                    sub_pg), sub_pg, country, self.world)
+                try:
+                    reign = Reign(country.get_store(
+                        sub_pg), sub_pg, country, self.world)
+                    # it may failed to create connection sometimes between same subprocess.
+                    # if any is success, we take it okay.
+                    self.build_success = True
+                except BuildReignFailed as e:
+                    if openfed.DEBUG.is_debug:
+                        logger.error(str(e))
+                    continue
                 with self.world.joint_lock:
                     self.world._pg_mapping[sub_pg] = reign
+
                 # python(5766,0x70000fe24000) malloc: can't allocate region
                 # :*** mach_vm_map(size=5639989190273028096, flags: 100) failed (error code=3)
                 # python(5766,0x70000fe24000) malloc: *** set a breakpoint in malloc_error_break to debug
-                time.sleep(openfed.SLEEP_SHORT_TIME)
+                # The following will make openfed more stable under tcp mode.
+                time.sleep(0.1)
         else:
             # add the world group as reign if it is already a point to point connection.
             pg = country._get_default_group()
             store = country._get_default_store()
-            reign = Reign(store, pg, country, self.world)
-            with self.world.joint_lock:
-                self.world._pg_mapping[pg] = reign
+            try:
+                reign = Reign(store, pg, country, self.world)
+                with self.world.joint_lock:
+                    self.world._pg_mapping[pg] = reign
+                self.build_success = True
+            except BuildReignFailed as e:
+                if openfed.DEBUG.is_debug:
+                    logger.error(e)
+                self.build_success = False
 
-        self.build_success = True
-
-        if openfed.VERBOSE.is_verbose:
+        if self.build_success and openfed.VERBOSE.is_verbose:
             logger.info(
                 f"Connected\n{str(self.address)}")
-        return f"Success! {repr(self.address)}"
+        return f"Success! {repr(self.address)}" if self.build_success else f"Failed! {repr(self.address)}"
 
     def __repr__(self):
         return openfed_class_fmt.format(

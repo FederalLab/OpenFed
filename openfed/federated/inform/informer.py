@@ -1,10 +1,10 @@
 import json
 from enum import Enum, unique
 from typing import Any, Dict
-
+import time
 import openfed
 import openfed.utils as utils
-from openfed.common import Hook, logger
+from openfed.common import Hook, InvalidStoreReading, logger, BuildReignFailed
 from openfed.federated.country import Country, Store
 from openfed.federated.inform.functional import Collector, SystemInfo
 from openfed.federated.world import World
@@ -53,7 +53,7 @@ def safe_store_get(store: Store, key: str) -> Dict:
     except Exception as e:
         if openfed.DEBUG.is_debug:
             logger.warning(e)
-        return {}
+        raise InvalidStoreReading
 
 
 class Informer(Hook):
@@ -70,7 +70,14 @@ class Informer(Hook):
     # if failed, return this instead.
     _backup_info: Dict[str, Any]
 
+    # you should igonre this dict. it will make you feel confused.
+    _do_not_access_backup_info: Dict[str, Any]
+
+    # indicates whether current data is
+    fresh_read: bool
+
     def __init__(self):
+        self._do_not_access_backup_info = {}
         # write self._i_key to initialize the key value store.
         safe_store_set(self.store, self._i_key, {
                        OPENFED_STATUS: STATUS.ZOMBINE.value})
@@ -85,9 +92,14 @@ class Informer(Hook):
 
         # Fetch data at last
         # try to read _u_key from the other end to make sure it is online.
-        self._backup_info = safe_store_get(self.store, self._u_key)
+        try:
+            self._backup_info = safe_store_get(self.store, self._u_key)
+        except InvalidStoreReading as e:
+            raise BuildReignFailed(e)
 
+        # Run at the initialize state.
         self.collect()
+        self.fresh_read = True
 
     @property
     def _i_key(self) -> str:
@@ -103,35 +115,85 @@ class Informer(Hook):
         info["timestemp"] = utils.time_string()
         return safe_store_set(self.store, self._i_key, info)
 
-    def _read(self, key: str = None) -> Dict:
-        """Read message from self._u_key.
-        """
-        info = safe_store_get(self.store, self._u_key)
-
-        if OPENFED_STATUS not in info:
-            # The server is quiet stable, if read failed, we think it is offline.
-            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBINE.value
-
-        if key is not None:
-            try:
-                value = info[key]
-                self._backup_info = info
-                return value
-            except KeyError as e:
-                if openfed.DEBUG.is_debug:
-                    logger.error("Key %s not found" % key)
-            finally:
-                return self._backup_info[key]
-        else:
-            return info
-
     def _update(self, info: Dict) -> bool:
         """rewrite the old message in kv-store.
         """
         # read i_key information, then update it
-        old_info = safe_store_get(self.store, self._i_key)
-        old_info.update(info)
-        return self._write(old_info)
+        try:
+            old_info = safe_store_get(self.store, self._i_key)
+        except InvalidStoreReading as e:
+            if openfed.DEBUG.is_debug:
+                logger.error(e)
+            old_info = self._do_not_access_backup_info
+        finally:
+            old_info.update(info)
+            self._do_not_access_backup_info = old_info
+
+            return self._write(old_info)
+
+        # old_info.update(info)
+        # return self._write(old_info)
+
+    def _read(self, key: str = None) -> Dict:
+        """Read message from self._u_key.
+        """
+        try:
+            info = safe_store_get(self.store, self._u_key)
+            self.fresh_read = True
+        except InvalidStoreReading as e:
+            if openfed.DEBUG.is_debug:
+                logger.error(e)
+            info = self._backup_info
+            # use the cached one instead.
+            # but at the same time, we need to set the state as zombine
+            # otherwise the last state value may make the progress get stuck.
+            # The server is quiet stable, if read failed, we think it is offline.
+            # But client sometimes may be unstable, if read failed, we will assume it
+            # go into offline.
+            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBINE.value
+            self.fresh_read = False
+        finally:
+            self._backup_info = info
+            return info[key] if key else info
+
+        # if OPENFED_STATUS not in info:
+        #     # The server is quiet stable, if read failed, we think it is offline.
+        #     # But client sometimes may be unstable, if read failed, we will assume it
+        #     # go into offline.
+        #     info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBINE.value
+
+        # if key is not None:
+        #     try:
+        #         value = info[key]
+        #         self._backup_info = info
+        #         return value
+        #     except KeyError as e:
+        #         if openfed.DEBUG.is_debug:
+        #             logger.error("Key %s not found" % key)
+        #     finally:
+        #         return self._backup_info[key]
+        # else:
+        #     return info
+
+    def _must_fresh_read(func):
+        """A decorate function that will raise error if the data is unfresh.
+        """
+
+        def wrapper(self, *args, **kwargs):
+            output = func(self, *args, **kwargs)
+            if not self.fresh_read:
+                if openfed.DEBUG.is_debug:
+                    raise InvalidStoreReading
+                else:
+                    logger.error(
+                        "Use an cached value instead a fresh required data."
+                        "Which may cause Error."
+                        f"func: {func}"
+                        f"args: {args}"
+                        f"kwargs: {kwargs}"
+                    )
+            return output
+        return wrapper
 
     def set(self, key: str, value: Any):
         self._update({key: value})
@@ -140,6 +202,7 @@ class Informer(Hook):
         return self._read(key)
 
     @property
+    @_must_fresh_read
     def task_info(self) -> Dict:
         return self.get(OPENFED_TASK_INFO)
 

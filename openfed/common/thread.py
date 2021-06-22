@@ -1,10 +1,11 @@
 from abc import abstractmethod
 from threading import Thread
-from typing import Any, Dict #, final
+from typing import Any, Dict
 
 import openfed
 import openfed.utils as utils
 from openfed.common.logging import logger
+from typing_extensions import final
 
 
 class SafeTread(Thread):
@@ -21,7 +22,7 @@ class SafeTread(Thread):
         if openfed.DEBUG.is_debug:
             logger.info(f"Create Thread: {self}")
 
-    # @final
+    @final
     def run(self):
         """
             Implement safe_run() instead.
