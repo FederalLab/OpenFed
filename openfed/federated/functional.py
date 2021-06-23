@@ -829,36 +829,32 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, async_op=Fals
     object_size_list = [
         object_sizes_tensor[i].unsqueeze(dim=0) for i in range(group_size)
     ]
-    # Allgather tensor sizes. An all-gather is needed here despite this being a
-    # gather, since each rank needs to broadcast a tensor of the same (maximal)
-    # size.
-    all_gather(object_size_list, local_size, group=group,
-               country=country)
-    max_object_size = int(max(object_size_list).item())  # type: ignore
-    # Resize tensor to max size across all ranks.
-    input_tensor.resize_(max_object_size)
-    # Avoid populating output tensors if the result won't be gathered on this rank.
-    if my_rank == dst:
-        coalesced_output_tensor = torch.empty(
-            max_object_size * group_size, dtype=torch.uint8, device=current_device
-        )
-        # Output tensors are nonoverlapping views of coalesced_output_tensor
-        output_tensors = [
-            coalesced_output_tensor[max_object_size *
-                                    i: max_object_size * (i + 1)]
-            for i in range(group_size)
-        ]
-    # All ranks call gather with equal-sized tensors.
-    gather_handle = gather(
-        input_tensor,
-        gather_list=output_tensors if my_rank == dst else None,
-        dst=dst,
-        group=group,
-        async_op=async_op,
-        country=country,
-    )
 
-    def _op_after_gather():
+    def _step_func():
+        max_object_size = int(max(object_size_list).item())  # type: ignore
+        # Resize tensor to max size across all ranks.
+        input_tensor.resize_(max_object_size)
+        # Avoid populating output tensors if the result won't be gathered on this rank.
+        if my_rank == dst:
+            coalesced_output_tensor = torch.empty(
+                max_object_size * group_size, dtype=torch.uint8, device=current_device
+            )
+            # Output tensors are nonoverlapping views of coalesced_output_tensor
+            output_tensors = [
+                coalesced_output_tensor[max_object_size *
+                                        i: max_object_size * (i + 1)]
+                for i in range(group_size)
+            ]
+        # All ranks call gather with equal-sized tensors.
+        gather(
+            input_tensor,
+            gather_list=output_tensors if my_rank == dst else None,
+            dst=dst,
+            group=group,
+            async_op=False,
+            country=country,
+        )
+
         if my_rank != dst:
             return
         for i, tensor in enumerate(output_tensors):
@@ -866,10 +862,16 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, async_op=Fals
             tensor = tensor.type(torch.ByteTensor)
             tensor_size = object_size_list[i]
             object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
+
+    # Allgather tensor sizes. An all-gather is needed here despite this being a
+    # gather, since each rank needs to broadcast a tensor of the same (maximal)
+    # size.
+    handle = all_gather(object_size_list, local_size, group=group, async_op=async_op,
+                        country=country)
     if async_op:
-        return gather_handle, _op_after_gather
+        return handle, _step_func
     else:
-        return _op_after_gather()
+        return _step_func()
 
 
 def broadcast_object_list(object_list, src=0, group=None, country=None):

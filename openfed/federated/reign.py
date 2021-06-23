@@ -66,7 +66,7 @@ class Reign(Informer, Delivery):
         if self.upload_hang_up:
             handler, step_func, timestamp = self._upload_hang_up
             if not self.is_offline:
-                if self.world.is_queen:
+                if self.world.queen:
                     # set self state
                     self.pushing()
 
@@ -77,7 +77,7 @@ class Reign(Informer, Delivery):
                             raise DeviceOffline(str(self))
                         if timedelta(seconds=time.time() - tic) > openfed.DEFAULT_PG_TIMEOUT:
                             raise ConnectTimeout(str(self))
-                        time.sleep((openfed.SLEEP_SHORT_TIME))
+                        time.sleep(openfed.SLEEP_SHORT_TIME)
                     else:
                         # transfer
                         handler.wait()
@@ -93,7 +93,7 @@ class Reign(Informer, Delivery):
         elif self.download_hang_up:
             handler, step_func, timestamp = self._download_hang_up
             if not self.is_offline:
-                if self.world.is_queen:
+                if self.world.queen:
                     # set self state
                     self.pulling()
 
@@ -104,7 +104,7 @@ class Reign(Informer, Delivery):
                             raise DeviceOffline(str(self))
                         if timedelta(seconds=time.time() - tic) > openfed.DEFAULT_PG_TIMEOUT:
                             raise ConnectTimeout(str(self))
-                        time.sleep((openfed.SLEEP_SHORT_TIME))
+                        time.sleep(openfed.SLEEP_SHORT_TIME)
                     else:
                         # transfer
                         handler.wait()
@@ -150,7 +150,7 @@ class Reign(Informer, Delivery):
             self._upload_hang_up = [handle, step_func, time.time()]
             return False
         else:
-            if self.world.is_queen:
+            if self.world.queen:
                 # 2. set pulling
                 self.pushing()
                 # 3. check state
@@ -188,7 +188,7 @@ class Reign(Informer, Delivery):
             self._download_hang_up = [handle, step_func, time.time()]
             return False
         else:
-            if self.world.is_queen:
+            if self.world.queen:
                 # 2. set pulling
                 self.pulling()
                 # 3. check state

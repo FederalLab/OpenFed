@@ -97,23 +97,11 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                     if not self.stopped and reign is not None:
                         self.reign = reign
                         self.step_at_first()
-                        if openfed.ASYNC_OP.is_async_op:
-                            try:
-                                if reign.upload_hang_up:
-                                    self.step_after_upload(
-                                        reign.deal_with_hang_up())
-                                elif reign.download_hang_up:
-                                    self.step_after_download(
-                                        reign.deal_with_hang_up())
-                                else:
-                                    # no handler
-                                    ...
-                            except ConnectTimeout as e:
-                                logger.error(
-                                    f"Failed to transfer data between {reign}")
-                                # delete reign
-                                reign.offline()
-                        if reign.is_zombine:
+                        if reign.upload_hang_up:
+                            self.step_after_upload(reign.deal_with_hang_up())
+                        elif reign.download_hang_up:
+                            self.step_after_download(reign.deal_with_hang_up())
+                        elif reign.is_zombine:
                             self.step_at_zombine()
                         elif reign.is_offline:
                             # Destroy process
