@@ -10,4 +10,3 @@ from .thread import SafeTread
 from .vars import *
 from .wrapper import Wrapper
 from .parser import parser
-from .unify import Unify

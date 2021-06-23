@@ -1,12 +1,12 @@
 import json
 from enum import Enum, unique
 from typing import Any, Dict
-import time
+
 import openfed
 import openfed.utils as utils
-from openfed.common import Hook, InvalidStoreReading, logger, BuildReignFailed
+from openfed.common import BuildReignFailed, Hook, InvalidStoreReading, logger
 from openfed.federated.country import Country, Store
-from openfed.federated.inform.functional import Collector, SystemInfo
+from openfed.federated.inform.functional import Collector, SystemInfo, GPUInfo
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 
@@ -87,6 +87,7 @@ class Informer(Hook):
 
         # register a default collector
         self.register_collector(SystemInfo.bounding_name, SystemInfo())
+        self.register_collector(GPUInfo.bounding_name, GPUInfo())
 
         self.scatter()
 
@@ -131,9 +132,6 @@ class Informer(Hook):
 
             return self._write(old_info)
 
-        # old_info.update(info)
-        # return self._write(old_info)
-
     def _read(self, key: str = None) -> Dict:
         """Read message from self._u_key.
         """
@@ -155,25 +153,6 @@ class Informer(Hook):
         finally:
             self._backup_info = info
             return info[key] if key else info
-
-        # if OPENFED_STATUS not in info:
-        #     # The server is quiet stable, if read failed, we think it is offline.
-        #     # But client sometimes may be unstable, if read failed, we will assume it
-        #     # go into offline.
-        #     info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBINE.value
-
-        # if key is not None:
-        #     try:
-        #         value = info[key]
-        #         self._backup_info = info
-        #         return value
-        #     except KeyError as e:
-        #         if openfed.DEBUG.is_debug:
-        #             logger.error("Key %s not found" % key)
-        #     finally:
-        #         return self._backup_info[key]
-        # else:
-        #     return info
 
     def _must_fresh_read(func):
         """A decorate function that will raise error if the data is unfresh.
