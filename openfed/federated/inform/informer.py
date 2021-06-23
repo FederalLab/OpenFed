@@ -1,19 +1,24 @@
 import json
 from enum import Enum, unique
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 import openfed
 import openfed.utils as utils
 from openfed.common import BuildReignFailed, Hook, InvalidStoreReading, logger
 from openfed.federated.country import Country, Store
-from openfed.federated.inform.functional import Collector, SystemInfo, GPUInfo
+from openfed.federated.inform.functional import Collector, GPUInfo, SystemInfo
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
+from random_words import RandomWords
+
+rw = RandomWords()
+
 
 OPENFED_IDENTIFY = "OPENFED_IDENTIFY"
 OPENFED_STATUS = "OPENFED_STATUS"
 
 OPENFED_TASK_INFO = "OPENFED_TASK_INFO"
+NICK_NAME = "NICK_NAME"
 
 
 @unique
@@ -24,7 +29,7 @@ class STATUS(Enum):
     OFFLINE = "OFFLINE"  # offline.
 
 
-def to_enum(value, enum_type: Enum):
+def to_enum(value, enum_type: Enum) -> Enum:
     for enum in enum_type:
         if enum.value == value:
             return enum
@@ -82,6 +87,10 @@ class Informer(Hook):
         safe_store_set(self.store, self._i_key, {
                        OPENFED_STATUS: STATUS.ZOMBINE.value})
 
+        # set nick name if king
+        if self.world.king:
+            safe_store_set(self.store, NICK_NAME, rw.random_word())
+
         # pre-write task_info keys.
         self.set_task_info({})
 
@@ -103,6 +112,10 @@ class Informer(Hook):
         self.fresh_read = True
 
     @property
+    def nick_name(self) -> str:
+        return safe_store_get(self.store, NICK_NAME)
+
+    @property
     def _i_key(self) -> str:
         return OPENFED_IDENTIFY + "_" + ("KING" if self.world.king else "QUEEN")
 
@@ -110,13 +123,13 @@ class Informer(Hook):
     def _u_key(self) -> str:
         return OPENFED_IDENTIFY + "_" + ("KING" if not self.world.king else "QUEEN")
 
-    def _write(self, info: Dict) -> bool:
+    def _write(self, info: Dict[str, str]) -> bool:
         """Write info to self._i_key.
         """
         info["timestemp"] = utils.time_string()
         return safe_store_set(self.store, self._i_key, info)
 
-    def _update(self, info: Dict) -> bool:
+    def _update(self, info: Dict[str, str]) -> bool:
         """rewrite the old message in kv-store.
         """
         # read i_key information, then update it
@@ -154,7 +167,7 @@ class Informer(Hook):
             self._backup_info = info
             return info[key] if key else info
 
-    def _must_fresh_read(func):
+    def _must_fresh_read(func: Callable):
         """A decorate function that will raise error if the data is unfresh.
         """
 
@@ -182,10 +195,10 @@ class Informer(Hook):
 
     @property
     @_must_fresh_read
-    def task_info(self) -> Dict:
+    def task_info(self) -> Dict[str, Any]:
         return self.get(OPENFED_TASK_INFO)
 
-    def set_task_info(self, task_info: Dict):
+    def set_task_info(self, task_info: Dict[str, Any]):
         self.set(OPENFED_TASK_INFO, task_info)
 
     def _get_state(self) -> STATUS:
@@ -196,7 +209,7 @@ class Informer(Hook):
         self.set(OPENFED_STATUS, state.value)
 
     @property
-    def alive(self):
+    def alive(self) -> bool:
         """opposite to self.offline
         """
         return self.world.ALIVE and self._get_state() != STATUS.OFFLINE
@@ -234,7 +247,7 @@ class Informer(Hook):
         self._set_state(STATUS.OFFLINE)
 
     @property
-    def is_offline(self):
+    def is_offline(self) -> bool:
         return self.world.ALIVE and self._get_state() == STATUS.OFFLINE
 
     def register_collector(self, key: str, collector: Collector):

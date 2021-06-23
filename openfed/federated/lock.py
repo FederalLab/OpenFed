@@ -16,11 +16,11 @@ _maintainer_lock_dict: Dict[Maintainer, Lock] = OrderedDict()
 openfed_lock = Lock()
 
 
-def add_maintainer_lock(maintainer, lock):
+def add_maintainer_lock(maintainer: Maintainer, lock: Lock):
     _maintainer_lock_dict[maintainer] = lock
 
 
-def del_maintainer_lock(maintainer):
+def del_maintainer_lock(maintainer: Maintainer):
     if maintainer in _maintainer_lock_dict:
         del _maintainer_lock_dict[maintainer]
     else:

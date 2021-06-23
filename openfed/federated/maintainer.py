@@ -39,7 +39,7 @@ class Maintainer(Array, SafeTread):
     def __init__(self,
                  world: World,
                  address: Union[Address, List[Address]] = None,
-                 address_file: str = None):
+                 address_file: str = None) -> None:
         """
             Only a single valid address is allowed in client.
         """
@@ -116,7 +116,7 @@ class Maintainer(Array, SafeTread):
                 # add address to pending queue
                 self.pending_queue[str(add)] = [time.time(), 0, add]
 
-    def safe_run(self):
+    def safe_run(self) -> str:
         while not self.stopped and self.world.ALIVE:
             # update pending list
             self.read_address_from_file()
@@ -169,15 +169,15 @@ class Maintainer(Array, SafeTread):
                 logger.info(str(self))
         return "Force Quit XXX" + str(self)
 
-    def kill_world(self):
+    def kill_world(self) -> None:
         self.world.killed()
 
-    def manual_stop(self, kill_world: bool = True):
+    def manual_stop(self, kill_world: bool = True) -> None:
         if kill_world:
             self.kill_world()
         super().manual_stop()
 
-    def manual_joint(self, address: Address):
+    def manual_joint(self, address: Address) -> None:
         if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.king:
             raise RuntimeError("Dynamic loading is not allowed!")
 
@@ -188,7 +188,7 @@ class Maintainer(Array, SafeTread):
         else:
             Joint(address, self.world)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Maintainer",
             description=tablist(
@@ -203,8 +203,8 @@ class Maintainer(Array, SafeTread):
         del_maintainer_lock(self)
         super().__del__()
 
-    def clear_finished_queue(self):
+    def clear_finished_queue(self) -> None:
         self.finished_queue.clear()
 
-    def clear_discard_queue(self):
+    def clear_discard_queue(self) -> None:
         self.discard_queue.clear()

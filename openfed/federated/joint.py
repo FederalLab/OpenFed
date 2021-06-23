@@ -19,7 +19,7 @@ class Joint(SafeTread):
     # Indicates whether the connection is established correctly.
     build_success: bool
 
-    def __init__(self, address: Address, world: World, auto_start: bool = True):
+    def __init__(self, address: Address, world: World, auto_start: bool = True) -> None:
         if address.rank == -1:
             if address.world_size == 2:
                 address.rank = 1 if world.queen else 0
@@ -46,7 +46,7 @@ class Joint(SafeTread):
                     logger.error(msg)
                     raise RuntimeError(msg)
 
-    def safe_run(self):
+    def safe_run(self) -> str:
         if openfed.VERBOSE.is_verbose:
             logger.info(f"Waiting\n{repr(self.address)}")
 
@@ -121,7 +121,7 @@ class Joint(SafeTread):
                 f"Connected\n{str(self.address)}")
         return f"Success! {repr(self.address)}" if self.build_success else f"Failed! {repr(self.address)}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Joint",
             description=str(self.address),

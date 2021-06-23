@@ -12,6 +12,7 @@ from openfed.federated.inform import Informer
 from openfed.federated.register import register
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
+from openfed.utils.table import tablist
 from torch._C._distributed_c10d import Work
 
 _R = TypeVar("_R", bound='Reign')
@@ -37,7 +38,7 @@ class Reign(Informer, Delivery):
                  pg: ProcessGroup,
                  country: Country,
                  world: World,
-                 ):
+                 ) -> None:
         self.pg = pg
         self.store = store
         self.country = country
@@ -60,7 +61,11 @@ class Reign(Informer, Delivery):
     def download_hang_up(self) -> bool:
         return len(self._download_hang_up) > 0
 
-    def transfer(self, to: bool, handler: Work = None, tic: float = None, step_func: Callable = None):
+    def transfer(self,
+                 to: bool,
+                 handler: Work = None,
+                 tic: float = None,
+                 step_func: Callable = None) -> bool:
         """
         Args:
             to: it true, transfer data to other side.
@@ -123,26 +128,26 @@ class Reign(Informer, Delivery):
         """Dealing with the handler for hang up operations.
         """
         if self.upload_hang_up:
-            handler, step_func, timestamp = self._upload_hang_up
+            handler, step_func, tic = self._upload_hang_up
             flag = self.transfer(to=True, handler=handler,
-                                 tic=timestamp, step_func=step_func)
+                                 tic=tic, step_func=step_func)
 
         elif self.download_hang_up:
-            handler, step_func, timestamp = self._download_hang_up
+            handler, step_func, tic = self._download_hang_up
             flag = self.transfer(to=False, handler=handler,
-                                 tic=timestamp, step_func=step_func)
+                                 tic=tic, step_func=step_func)
         else:
             raise RuntimeError("No handler!")
 
         if handler.is_completed():
-            # step_func()
             if self.upload_hang_up:
                 self._upload_hang_up = []
             else:
                 self._download_hang_up = []
             return flag
         else:
-            if timedelta(seconds=time.time() - timestamp) > openfed.DEFAULT_PG_TIMEOUT:
+            toc = time.time()
+            if timedelta(seconds=toc-tic) > openfed.DEFAULT_PG_TIMEOUT:
                 raise ConnectTimeout(f"Timeout while waiting {self}")
             else:
                 # keep waiting
@@ -173,8 +178,10 @@ class Reign(Informer, Delivery):
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Reign",
-            description=f"Version: {self.version}"
-            f"Status: {self._get_state().value}"
+            description=tablist(
+                head=["Nick Name", "Version", "Status"],
+                data=[self.nick_name, self.version, self._get_state().value],
+            )
         )
 
     @classmethod

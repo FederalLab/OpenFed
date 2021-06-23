@@ -14,8 +14,8 @@ class _ROLE(Enum):
     QUEEN = False
 
 
-_World = TypeVar("_World", bound="World")
-_world_list: List[_World] = []
+_W = TypeVar("_W", bound="World")
+_world_list: List[_W] = []
 
 
 class Reign():
@@ -50,7 +50,7 @@ class World(Array):
     # avoid the conflict while joint many new Countrys to current World at the some time
     joint_lock = threading.Lock()
 
-    def __init__(self, king: bool = False):
+    def __init__(self, king: bool = False) -> None:
         """
         Args: 
             king: if True, set the world as king. Once the role is specified, you cannot change it again.
@@ -65,14 +65,14 @@ class World(Array):
         super().__init__(self._pg_mapping, self.joint_lock)
 
     @classmethod
-    def clear_world(cls):
+    def clear_world(cls) -> None:
         """Kill all world in _world_list with force.
         It is not safe to call this, but it can make you exit OpenFed env as soon as possible.
         """
         for world in _world_list:
             world.killed()
 
-    def killed(self):
+    def killed(self) -> None:
         """Shout down this world with force. 
         If any reign still uses, make them offline directly.
         """
@@ -101,7 +101,7 @@ class World(Array):
     def is_valid_process_group(self, pg: ProcessGroup) -> bool:
         return pg is not self._NULL_GP and pg in self._pg_mapping
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="World",
             description=(

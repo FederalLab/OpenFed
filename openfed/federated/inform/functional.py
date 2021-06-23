@@ -148,5 +148,6 @@ class LRTracker(Collector):
 provided_collector_dict = {
     Collector.bounding_name: Collector,
     SystemInfo.bounding_name: SystemInfo,
+    GPUInfo.bounding_name: GPUInfo,
     LRTracker.bounding_name: LRTracker,
 }

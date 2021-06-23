@@ -2,7 +2,7 @@ import logging
 import time
 import warnings
 from datetime import timedelta
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from openfed.common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                       DEFAULT_PG_SHORT_TIMEOUT,
@@ -11,6 +11,7 @@ from openfed.common.exception import ConnectTimeout
 from openfed.common.logging import logger
 from openfed.common.vars import DEBUG
 from openfed.federated.lock import acquire_all, release_all
+from openfed.utils import openfed_class_fmt
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)
 from torch.distributed.distributed_c10d import (Backend, P2POp,
@@ -34,7 +35,7 @@ class Country(object):
     """Wraper all variables as a privacy namespace.
     """
 
-    def __init__(self, world: World):
+    def __init__(self, world: World) -> None:
         """
         Args:
             world: the world this country belongs to.
@@ -65,7 +66,7 @@ class Country(object):
 
         self.STORE_BASED_BARRIER_PREFIX = "store_based_barrier_key"
 
-    def _store_based_barrier(self, rank, store, timeout):
+    def _store_based_barrier(self, rank: int, store: Store, timeout: timedelta):
         """
         Barrier based on store which is used for synchronizing processes after
         ``init_process_group`` or ``new_group``. Intended to be used only with
@@ -105,7 +106,7 @@ class Country(object):
                     "rank: {}, for key: {} (world_size={}, worker_count={}, timeout={})".format(
                         rank, store_key, world_size, worker_count, timeout))
 
-    def _rank_not_in_group(self, group: ProcessGroup):
+    def _rank_not_in_group(self, group: ProcessGroup) -> bool:
         """
         Helper that checks if the current process's rank is not in a given group.
         """
@@ -113,7 +114,7 @@ class Country(object):
             return False
         return group == self.NON_GROUP_MEMBER
 
-    def _get_group_rank(self, group: ProcessGroup, rank):
+    def _get_group_rank(self, group: ProcessGroup, rank: int) -> int:
         """
         Helper that gets a given group's local rank in the group from a given global
         rank.
@@ -130,7 +131,7 @@ class Country(object):
                 f"The global rank {rank} is not part of the group {group}") from None
         return group_rank
 
-    def _get_global_rank(self, group, group_rank):
+    def _get_global_rank(self, group: ProcessGroup, group_rank: int) -> bool:
         """
         Helper that gets a given group's global rank from a given local rank in the
         group.
@@ -144,7 +145,7 @@ class Country(object):
                 return rank
         raise RuntimeError("The group rank is not part of the group")
 
-    def _get_group_size(self, group):
+    def _get_group_size(self, group: ProcessGroup) -> int:
         """
         Helper that gets a given group's world size.
         """
@@ -155,7 +156,7 @@ class Country(object):
             raise RuntimeError("The given group does not exist")
         return len(self._pg_group_ranks[group])
 
-    def _check_p2p_op_list(self, p2p_op_list):
+    def _check_p2p_op_list(self, p2p_op_list: List) -> None:
         """
         Helper to check that the ``p2p_op_list`` is a list of P2POp instances and
         all ops use the same backend.
@@ -169,13 +170,13 @@ class Country(object):
         if not all(backend == self.get_backend(p2p_op.group) for p2p_op in p2p_op_list):
             raise RuntimeError("All groups need to use the same backend.")
 
-    def is_initialized(self):
+    def is_initialized(self) -> bool:
         """
         Checking if the default process group has been initialized
         """
         return self.WORLD is not None
 
-    def _get_default_group(self):
+    def _get_default_group(self) -> ProcessGroup:
         """
         Getting the default process group created by init_process_group
         """
@@ -184,7 +185,7 @@ class Country(object):
                                "please make sure to call init_process_group.")
         return self.WORLD
 
-    def _get_default_store(self):
+    def _get_default_store(self) -> Store:
         """
         Getting the default store created by init_process_group
         """
@@ -195,10 +196,10 @@ class Country(object):
         _, default_store = self._pg_map[default_pg]
         return default_store
 
-    def _update_default_pg(self, pg):
+    def _update_default_pg(self, pg: ProcessGroup) -> None:
         self.WORLD = pg
 
-    def get_backend(self, group=None):
+    def get_backend(self, group: ProcessGroup = None) -> Backend:
         """
         Returns the backend of the given process group.
 
@@ -221,7 +222,7 @@ class Country(object):
         assert pg_store is not None
         return pg_store[0]
 
-    def get_store(self, group=None) -> Store:
+    def get_store(self, group: ProcessGroup = None) -> Store:
         """
         Returns the store/prefix_store of the given group.
 
@@ -244,13 +245,13 @@ class Country(object):
         return pg_store[1]
 
     def init_process_group(self,
-                           backend,
-                           init_method=None,
-                           timeout=DEFAULT_PG_TIMEOUT,
-                           world_size=-1,
-                           rank=-1,
-                           store=None,
-                           group_name=''):
+                           backend: Union[str, Backend],
+                           init_method: str = None,
+                           timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                           world_size: int = -1,
+                           rank: int = -1,
+                           store: Store = None,
+                           group_name: str = '') -> None:
         """
         Initializes the default distributed process group, and this will also
         initialize the distributed package.
@@ -408,13 +409,13 @@ class Country(object):
             self._store_based_barrier(rank, store, timeout)
 
     def _new_process_group_helper(self,
-                                  world_size,
-                                  rank,
-                                  group_ranks,
-                                  backend,
-                                  store,
-                                  group_name=None,
-                                  timeout=DEFAULT_PG_TIMEOUT):
+                                  world_size: int,
+                                  rank: int,
+                                  group_ranks: int,
+                                  backend: Union[str, Backend],
+                                  store: Store,
+                                  group_name: str = None,
+                                  timeout: timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup:
         """
         Create a new distributed process group.
 
@@ -514,7 +515,7 @@ class Country(object):
             release_all()
         return pg
 
-    def destroy_process_group(self, group=None):
+    def destroy_process_group(self, group: ProcessGroup = None) -> None:
         """
         Destroy a given process group, and deinitialize the distributed package
 
@@ -563,7 +564,7 @@ class Country(object):
                 del self._point2point_groups[group]
             self._group_count -= 1
 
-    def get_rank(self, group=None):
+    def get_rank(self, group: ProcessGroup = None) -> int:
         """
         Returns the rank of current process group
 
@@ -589,7 +590,7 @@ class Country(object):
 
         return self._get_group_rank(group, default_pg.rank())
 
-    def get_world_size(self, group=None):
+    def get_world_size(self, group: ProcessGroup = None) -> int:
         """
         Returns the number of processes in the current process group
 
@@ -607,7 +608,7 @@ class Country(object):
 
         return self._get_group_size(group)
 
-    def _validate_output_list_for_rank(self, my_rank, dst, gather_list):
+    def _validate_output_list_for_rank(self, my_rank: int, dst: int, gather_list: List[Any]) -> None:
         if dst == my_rank:
             if not gather_list:
                 raise ValueError(
@@ -620,9 +621,9 @@ class Country(object):
             )
 
     def barrier(self,
-                group=None,
-                async_op=False,
-                device_ids=None):
+                group: ProcessGroup = None,
+                async_op: bool = False,
+                device_ids: int = None):
         """
         Synchronizes all processes.
 
@@ -667,7 +668,11 @@ class Country(object):
         else:
             work.wait()
 
-    def new_group(self, ranks=None, timeout=DEFAULT_PG_TIMEOUT, backend=None, group_name=None):
+    def new_group(self,
+                  ranks: int = None,
+                  timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                  backend: Union[str, Backend] = None,
+                  group_name: str = None) -> ProcessGroup:
         """
         Creates a new distributed group.
 
@@ -764,7 +769,10 @@ class Country(object):
 
         return pg
 
-    def build_point2point_group(self, rank: int = 0, timeout=DEFAULT_PG_TIMEOUT, backend=None) -> List[ProcessGroup]:
+    def build_point2point_group(self,
+                                rank: int = 0,
+                                timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                                backend: Union[str, Backend] = None) -> List[ProcessGroup]:
         """Build point2point group, :param:rank will be regarded as new rank=0 and connect to other rank in this world.
 
         .. note::
@@ -786,4 +794,7 @@ class Country(object):
         return pg_list
 
     def __repr__(self) -> str:
-        return "Country"
+        return openfed_class_fmt.format(
+            class_name="Country",
+            description=f"Belongs to\n{self.world}"
+        )

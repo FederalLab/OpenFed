@@ -11,7 +11,7 @@ class Destroy(object):
     """Automatically destroy a process group along with its world.
     """
     @classmethod
-    def destroy(cls, pg: ProcessGroup, world: World = None):
+    def destroy(cls, pg: ProcessGroup, world: World = None) -> None:
         if world is None:
             world = register.default_world
 
@@ -33,13 +33,13 @@ class Destroy(object):
             ...
 
     @classmethod
-    def destroy_current(cls, world: World = None):
+    def destroy_current(cls, world: World = None) -> None:
         if world is None:
             world = register.default_world
         cls.destroy(world._current_pg, world)
 
     @classmethod
-    def destroy_all_in_a_world(cls, world: World = None):
+    def destroy_all_in_a_world(cls, world: World = None) -> None:
         if world is None:
             world = register.default_world
         for pg, _ in world:
@@ -47,7 +47,7 @@ class Destroy(object):
                 cls.destroy(pg, world)
 
     @classmethod
-    def destroy_all_in_all_world(cls):
+    def destroy_all_in_all_world(cls) -> None:
         """A safe way to destroy all country which has been registered.
         """
         logger.warning(

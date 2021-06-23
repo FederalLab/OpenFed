@@ -10,6 +10,7 @@ from openfed.federated.functional import gather_object
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
+from torch._C._distributed_c10d import Work
 
 
 class Delivery(Package, Hook):
@@ -31,18 +32,10 @@ class Delivery(Package, Hook):
     @property
     def king_rank(self) -> int:
         return 0
-        # if self.pg == self.country.WORLD:
-        #     return self.country.get_rank(self.pg)
-        # else:
-        #     return self.country._get_global_rank(self.pg, 0)
 
     @property
     def queen_rank(self) -> int:
         return 1
-        # if self.pg == self.country.WORLD:
-        #     return self.country.get_rank(self.pg)
-        # else:
-        #     return self.country._get_global_rank(self.pg, 1)
 
     def register_cypher(self, cypher: Cypher) -> None:
         """Register a cypher to encrypt/decrypt the Tensor.
@@ -108,7 +101,7 @@ class Delivery(Package, Hook):
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
 
-    def pull(self, auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Any, Callable]]:
+    def pull(self, auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Work, Callable]]:
         """Pull data from the other end. 
         After received data, Queen will load `param` to Tensor by an in-palce operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
@@ -137,21 +130,19 @@ class Delivery(Package, Hook):
             self.packages = r_packages
             return r_packages
 
+        returns = gather_object(
+            None, received, dst=rank, group=self.pg,
+            async_op=ASYNC_OP.is_async_op,
+            country=self.country)
+
         if ASYNC_OP.is_async_op:
-            handler, step_func = gather_object(
-                None, received, dst=rank, group=self.pg,
-                async_op=True,
-                country=self.country)
+            handler, step_func = returns
             # lambda: before go into this layer's function, call step_func first.
             return handler, lambda: _op_after_gather(step_func())
         else:
-            gather_object(
-                None, received, dst=rank, group=self.pg,
-                async_op=False,
-                country=self.country)
             return _op_after_gather()
 
-    def push(self) -> Union[None, Tuple[Any, Callable]]:
+    def push(self) -> Union[None, Tuple[Work, Callable]]:
         """Push data to the other end.
         """
         assert self.country._get_group_size(
@@ -163,15 +154,10 @@ class Delivery(Package, Hook):
         for hook in self.hook_list:
             self.packages = {k: hook.encrypt(k, v)
                              for k, v in self.packages.items()}
-        if ASYNC_OP.is_async_op:
-            handler, step_func = gather_object(
-                self.packages, None, dst=rank,
-                group=self.pg, async_op=True, country=self.country)
-            return handler, step_func
-        else:
-            gather_object(
-                self.packages, None, dst=rank,
-                group=self.pg, async_op=False, country=self.country)
+
+        return gather_object(
+            self.packages, None, dst=rank,
+            group=self.pg, async_op=ASYNC_OP.is_async_op, country=self.country)
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
