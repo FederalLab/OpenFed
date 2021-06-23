@@ -84,3 +84,28 @@ class _DYNAMIC_ADDRESS_LOADING(object):
 
 
 DYNAMIC_ADDRESS_LOADING = _DYNAMIC_ADDRESS_LOADING()
+
+
+class _ASYNC_OP(object):
+    def __init__(self):
+        self.async_op = True
+
+    def set_async_op(self):
+        self.async_op = True
+
+    def unset_async_op(self):
+        self.async_op = False
+
+    @property
+    def is_async_op(self) -> bool:
+        return self.async_op
+
+    def __repr__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="ASYNC_OP",
+            description="If Ture, the download and upload operation will return an handler."
+                        "Otherwise, it will be blocked until finish."
+        )
+
+
+ASYNC_OP = _ASYNC_OP()

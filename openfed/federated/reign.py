@@ -1,14 +1,18 @@
 import time
-from typing import Generator, TypeVar
+from datetime import timedelta
+from typing import Callable, Generator, List, TypeVar, Tuple
 
 import openfed
+from openfed.common.exception import ConnectTimeout
 from openfed.common.logging import logger
+from openfed.common.vars import ASYNC_OP
 from openfed.federated.country import Country, ProcessGroup, Store
 from openfed.federated.deliver import Delivery
 from openfed.federated.inform import Informer
 from openfed.federated.register import register
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
+from torch._C._distributed_c10d import Work
 
 _R = TypeVar("_R", bound='Reign')
 
@@ -23,6 +27,10 @@ class Reign(Informer, Delivery):
 
     # the request version number
     version: int
+
+    # handler, step function, timestamp
+    _download_hang_up: Tuple[Work, Callable, int]
+    _upload_hang_up: Tuple[Work, Callable, int]
 
     def __init__(self,
                  store: Store,
@@ -41,49 +49,62 @@ class Reign(Informer, Delivery):
         self.version = 0
         self.set("version", self.version)
 
+        self._download_hang_up = []
+        self._upload_hang_up = []
+
+    @property
+    def upload_hang_up(self) -> bool:
+        return len(self._upload_hang_up) > 0
+
+    @property
+    def download_hang_up(self) -> bool:
+        return len(self._download_hang_up) > 0
+
+    def deal_with_hang_up(self) -> bool:
+        """Dealing with the handler for hang up operations.
+        """
+        if self.upload_hang_up:
+            handler, step_func, timestamp = self._upload_hang_up
+        elif self.download_hang_up:
+            handler, step_func, timestamp = self._download_hang_up
+        else:
+            raise RuntimeError("No handler!")
+
+        # state judgement
+        if handler.is_completed():
+            if not handler.is_success():
+                raise RuntimeError("Transfer data failed!")
+            step_func()
+            self.zombine()
+            if self.upload_hang_up:
+                self._upload_hang_up = []
+            else:
+                self._download_hang_up = []
+            return True
+        else:
+            if timedelta(seconds=time.time() - timestamp) > openfed.DEFAULT_PG_TIMEOUT:
+                raise ConnectTimeout(f"Timeout while waiting {self}")
+            else:
+                # keep waiting
+                return False
+
     def upload(self) -> bool:
         """Upload packages date to the other end.
         """
+        # 1. set version number
+        self.set('version', self.version)
 
-        if self.world.queen:
-            # 1. set version number
-            self.set('version', self.version)
-            # 2. set pushing
-            self.pushing()
-            # 3. waiting king to response
-            tic = time.time()
-            while not self.is_pulling:
-                toc = time.time()
-                if toc-tic > openfed.DEFAULT_PG_LONG_TIMEOUT.seconds:
-                    if openfed.VERBOSE.is_verbose:
-                        logger.error("Timeout")
-                    return False
-                if self.is_offline:
-                    if openfed.VERBOSE.is_verbose:
-                        logger.error("Server Offline")
-                    return False
-                time.sleep(openfed.SLEEP_SHORT_TIME)
-            else:
-                self.push()
+        # 2. set pushing
+        self.pushing()
 
-            # 4. set self to ZOMBINE
-            self.zombine()
-
-            return True
+        # 3. transfer
+        if ASYNC_OP.is_async_op:
+            handle, step_func = self.push()
+            # store the necessary message, and hang up begining time.
+            self._upload_hang_up = [handle, step_func, time.time()]
+            return False
         else:
-            # 1. write verion
-            self.set('version', self.version)
-            # 2. set pushing
-            self.pushing()
-            # 3. response
-            if not self.is_pulling:
-                # server will not wait for client in any time.
-                if openfed.DEBUG.is_debug:
-                    logger.error("Wrong State")
-                return False
-            else:
-                self.push()
-            # 4. set zombine
+            self.push()
             self.zombine()
             return True
 
@@ -92,46 +113,25 @@ class Reign(Informer, Delivery):
         """
         # 1. set version
         self.set('version', self.version)
-        if self.world.queen:
-            # 2. set pulling
-            self.pulling()
-            # 3. wait and download
-            tic = time.time()
-            while not self.is_pushing:
-                toc = time.time()
-                if toc-tic > openfed.DEFAULT_PG_LONG_TIMEOUT.seconds:
-                    if openfed.VERBOSE.is_verbose:
-                        logger.error("Timeout")
-                    return False
-                if self.is_offline:
-                    if openfed.VERBOSE.is_verbose:
-                        logger.error("Server Offline")
-                    return False
-                time.sleep(openfed.SLEEP_SHORT_TIME)
-            else:
-                self.pull()
+
+        # 2. set pulling
+        self.pulling()
+
+        # 3. transfer
+        if ASYNC_OP.is_async_op:
+            handle, step_func = self.pull()
+            self._download_hang_up = [handle, step_func, time.time()]
+            return False
         else:
-            # 2. set pulling
-            self.pulling()
-            # 3. download data
-            if not self.is_pushing:
-                # server will not wait for client in any time.
-                if openfed.DEBUG.is_debug:
-                    logger.error("Wrong State")
-                return False
-            else:
-                self.pull()
-        # 4. set zombine
-        self.zombine()
-        return True
+            self.pull()
+            self.zombine()
+            return True
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Reign",
-            description=(
-                f"Version: {self.version}\n"
-                f"Status: {self._get_state().value}"
-            )
+            description=f"Version: {self.version}"
+            f"Status: {self._get_state().value}"
         )
 
     @classmethod

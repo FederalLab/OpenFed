@@ -51,19 +51,31 @@ class Frontend(Unify, Peeper):
 
     @_frontend_access
     def upload(self) -> bool:
-        state = self.reign.upload()
-        if not state:
-            msg = "Upload Failed."
-            logger.info(msg)
-        return state
+        if self.reign.upload_hang_up or self.reign.download_hang_up:
+            return self.reign.deal_with_hang_up()
+        else:
+            if not self.reign.upload():
+                if not openfed.ASYNC_OP.is_async_op:
+                    logger.error("Upload Failed.")
+                    return False
+                else:
+                    return self.reign.deal_with_hang_up()
+            else:
+                return True
 
     @_frontend_access
     def download(self) -> bool:
-        state = self.reign.download()
-        if not state:
-            msg = "Download Falied."
-            logger.info(msg)
-        return state
+        if self.reign.upload_hang_up or self.reign.download_hang_up:
+            return self.reign.deal_with_hang_up()
+        else:
+            if not self.reign.download():
+                if not openfed.ASYNC_OP.is_async_op:
+                    logger.info("Download Falied.")
+                    return False
+                else:
+                    return self.reign.deal_with_hang_up()
+            else:
+                return True
 
     @_frontend_access
     def set_task_info(self, task_info: Dict) -> None:

@@ -1,8 +1,9 @@
 from collections import defaultdict
-from typing import Any, Dict, Union
+from typing import Any, Callable, Dict, Tuple, Union
 
 from bidict import bidict
 from openfed.common import Hook, Package
+from openfed.common.vars import ASYNC_OP
 from openfed.federated.country import Country, ProcessGroup
 from openfed.federated.deliver.functional import Cypher, FormotCheck
 from openfed.federated.functional import gather_object
@@ -107,7 +108,7 @@ class Delivery(Package, Hook):
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
 
-    def pull(self, auto_load_param: bool = True) -> Dict[str, Dict[str, Tensor]]:
+    def pull(self, auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Any, Callable]]:
         """Pull data from the other end. 
         After received data, Queen will load `param` to Tensor by an in-palce operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
@@ -120,24 +121,37 @@ class Delivery(Package, Hook):
         rank = self.king_rank if self.world.king else self.queen_rank
         other_rank = self.queen_rank if self.world.king else self.king_rank
 
-        gather_object(None, received, dst=rank, group=self.pg,
-                      country=self.country)
+        def _op_after_gather(*args):
+            r_packages = received[other_rank]
 
-        r_packages = received[other_rank]
+            # NOTE: decrypt data in the reverse order.
+            for hook in self.hook_list[::-1]:
+                r_packages = {k: hook.decrypt(k, v)
+                              for k, v in r_packages.items()}
 
-        # NOTE: decrypt data in the reverse order.
-        for hook in self.hook_list[::-1]:
-            r_packages = {k: hook.decrypt(k, v) for k, v in r_packages.items()}
+            # Queen will load `param` to Tensor by an in-place operation.
+            if auto_load_param and self.world.queen:
+                for k, v in r_packages.items():
+                    if 'param' in v:
+                        self.key_tensor_bidict[k].data.copy_(v['param'])
+            self.packages = r_packages
+            return r_packages
 
-        # Queen will load `param` to Tensor by an in-place operation.
-        if auto_load_param and self.world.queen:
-            for k, v in r_packages.items():
-                if 'param' in v:
-                    self.key_tensor_bidict[k].data.copy_(v['param'])
-        self.packages = r_packages
-        return r_packages
+        if ASYNC_OP.is_async_op:
+            handler, step_func = gather_object(
+                None, received, dst=rank, group=self.pg,
+                async_op=True,
+                country=self.country)
+            # lambda: before go into this layer's function, call step_func first.
+            return handler, lambda: _op_after_gather(step_func())
+        else:
+            gather_object(
+                None, received, dst=rank, group=self.pg,
+                async_op=False,
+                country=self.country)
+            return _op_after_gather()
 
-    def push(self) -> None:
+    def push(self) -> Union[None, Tuple[Any, Callable]]:
         """Push data to the other end.
         """
         assert self.country._get_group_size(
@@ -149,9 +163,15 @@ class Delivery(Package, Hook):
         for hook in self.hook_list:
             self.packages = {k: hook.encrypt(k, v)
                              for k, v in self.packages.items()}
-
-        gather_object(self.packages, None, dst=rank,
-                      group=self.pg, country=self.country)
+        if ASYNC_OP.is_async_op:
+            handler, step_func = gather_object(
+                self.packages, None, dst=rank,
+                group=self.pg, async_op=True, country=self.country)
+            return handler, step_func
+        else:
+            gather_object(
+                self.packages, None, dst=rank,
+                group=self.pg, async_op=False, country=self.country)
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(

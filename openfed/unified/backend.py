@@ -5,6 +5,7 @@ import openfed
 from loguru import logger
 from openfed.aggregate import Aggregator
 from openfed.common import Address, Hook, Peeper, SafeTread, default_address
+from openfed.common.exception import ConnectTimeout
 from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.unified.unify import Unify, _backend_access
 from openfed.utils import openfed_class_fmt
@@ -96,6 +97,22 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                     if not self.stopped and reign is not None:
                         self.reign = reign
                         self.step_at_first()
+                        if openfed.ASYNC_OP.is_async_op:
+                            try:
+                                if reign.upload_hang_up:
+                                    self.step_after_upload(
+                                        reign.deal_with_hang_up())
+                                elif reign.download_hang_up:
+                                    self.step_after_download(
+                                        reign.deal_with_hang_up())
+                                else:
+                                    # no handler
+                                    ...
+                            except ConnectTimeout as e:
+                                logger.error(
+                                    f"Failed to transfer data between {reign}")
+                                # delete reign
+                                reign.offline()
                         if reign.is_zombine:
                             self.step_at_zombine()
                         elif reign.is_offline:
@@ -157,22 +174,22 @@ class Backend(Unify, SafeTread, Peeper, Hook):
     def step_after_download(self, state=...):
 
         assert self.aggregator is not None
+        if state:
+            # fetch data from federeated core.
+            packages = self.reign.tensor_indexed_packages
+            task_info = self.reign.task_info
 
-        # fetch data from federeated core.
-        packages = self.reign.tensor_indexed_packages
-        task_info = self.reign.task_info
+            # add received data to aggregator
+            self.aggregator.step(packages, task_info)
 
-        # add received data to aggregator
-        self.aggregator.step(packages, task_info)
+            # increase the total received_numbers
+            self.received_numbers += 1
 
-        # increase the total received_numbers
-        self.received_numbers += 1
-
-        if openfed.VERBOSE.is_verbose:
-            logger.info(f"Recieve Model\n"
-                        f"@{self.received_numbers}\n"
-                        f"From {self.reign}"
-                        )
+            if openfed.VERBOSE.is_verbose:
+                logger.info(f"Recieve Model\n"
+                            f"@{self.received_numbers}\n"
+                            f"From {self.reign}"
+                            )
 
     @_backend_access
     def step_before_upload(self) -> bool:

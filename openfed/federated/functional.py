@@ -757,7 +757,7 @@ def all_gather_object(object_list, obj, group=None, country=None):
         object_list[i] = _tensor_to_object(tensor, tensor_size)
 
 
-def gather_object(obj, object_gather_list=None, dst=0, group=None, country=None):
+def gather_object(obj, object_gather_list=None, dst=0, group=None, async_op=False, country=None):
     """
     Gathers picklable objects from the whole group in a single process.
     Similar to :func:`gather`, but Python objects can be passed in. Note that the
@@ -776,10 +776,6 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, country=None)
     Returns:
         None. On the ``dst`` rank, ``object_gather_list`` will contain the
         output of the collective.
-
-    .. note:: Note that this API differs slightly from the gather collective
-        since it does not provide an async_op handle and thus will be a blocking
-        call.
 
     .. note:: Note that this API is not supported when using the NCCL backend.
 
@@ -853,19 +849,27 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, country=None)
             for i in range(group_size)
         ]
     # All ranks call gather with equal-sized tensors.
-    gather(
+    gather_handle = gather(
         input_tensor,
         gather_list=output_tensors if my_rank == dst else None,
         dst=dst,
         group=group,
+        async_op=async_op,
         country=country,
     )
-    if my_rank != dst:
-        return
-    for i, tensor in enumerate(output_tensors):
-        tensor = tensor.type(torch.ByteTensor)  # type: ignore[call-overload]
-        tensor_size = object_size_list[i]
-        object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
+
+    def _op_after_gather():
+        if my_rank != dst:
+            return
+        for i, tensor in enumerate(output_tensors):
+            # type: ignore[call-overload]
+            tensor = tensor.type(torch.ByteTensor)
+            tensor_size = object_size_list[i]
+            object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
+    if async_op:
+        return gather_handle, _op_after_gather
+    else:
+        return _op_after_gather()
 
 
 def broadcast_object_list(object_list, src=0, group=None, country=None):
