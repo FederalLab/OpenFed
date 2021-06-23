@@ -18,8 +18,8 @@ python3 -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.
 
 # robust: Create 101 nodes at the same time.
 # this is not allowed under tcp mode for long latency.
-# NOTE: If you use sharefile system, before start your program, 
-# you have to remove the old sharefile first!
+# NOTE: If you use share file system, before start your program, 
+# you have to remove the old share file first!
 python3 -m openfed.launch --nproc_per_node 11 --logdir /tmp --server_output demo.py --init_method file:///tmp/openfed.sharefile
 ```
 
@@ -30,64 +30,9 @@ Run "Python: client-2/1" and "Python: server" provided in `.vscode/launch.json`.
 
 ## Say hello to OpenFed
 
-```bash
-python -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.py --init_method file:///tmp/openfed.sharefile  
-...
-+-------+---------+------------+--------+
-| World | Country | Maintainer | Thread |
-+-------+---------+------------+--------+
-|   1   |    0    |     1      |   2    |
-+-------+---------+------------+--------+
-2021-06-22 23:38:38.533 | INFO     | openfed.federated.joint:safe_run:51 - Waiting
-<OpenFed> Address
-@ Admirable
-
-2021-06-22 23:38:38.627 | INFO     | openfed.federated.inform.informer:collect:279 - <OpenFed> Collector.SystemInfo
-+--------+----------+--------------------+---------------+
-| System | Platform |      Version       |  Architecture |
-+--------+----------+--------------------+---------------+
-| Darwin |  Darwin  | Darwin Kernel V... | ['64bit', ''] |
-+--------+----------+--------------------+---------------+
-+---------+--------------+-----------+
-| Machine |     Node     | Processor |
-+---------+--------------+-----------+
-|  x86_64 | C02DW0CQMD6R |    i386   |
-+---------+--------------+-----------+
-
-...
-
-2021-06-22 23:38:38.851 | INFO     | openfed.federated.joint:safe_run:121 - Connected
-<OpenFed> Address
-+---------+--------------------+------------+------+-------+------------+
-| Backend |    Init Method     | World Size | Rank | Store | Group Name |
-+---------+--------------------+------------+------+-------+------------+
-|   gloo  | file:///tmp/ope... |     3      |  0   |  None | Admirable  |
-+---------+--------------------+------------+------+-------+------------+
-
-2021-06-22 23:38:39.161 | INFO     | openfed.backend:step_after_download:173 - Receive Model
-@1
-From <OpenFed> Reign
-Version: 0
-Status: PULL
-
-...
-
-2021-06-22 23:39:02.359 | INFO     | openfed.backend:step_after_download:173 - Receive Model
-@100
-From <OpenFed> Reign
-Version: 0
-Status: PULL
-
-2021-06-22 23:39:02.475 | INFO     | openfed.common.unify:finish:79 - Finished.
-<OpenFed> OpenFed Unified API
-<OpenFed> Maintainer
-+---------+----------+---------+
-| Pending | Finished | Discard |
-+---------+----------+---------+
-|    0    |    1     |    0    |
-+---------+----------+---------+
-
-```
+<div align=center>
+<img src="doc/demo.png" width="600" height="400" />
+</div>
 
 ## Project Structure
 
