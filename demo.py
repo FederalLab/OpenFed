@@ -12,6 +12,11 @@ from openfed.optim.elastic_aux import ElasticAux
 parser = openfed.parser
 args = parser.parse_args()
 
+# set async: Default
+openfed.ASYNC_OP.set_async_op()
+# unset async
+# openfed.ASYNC_OP.unset_async_op()
+
 # set cuda device
 # torch.cuda.set_device(args.rank % (torch.cuda.device_count()))
 # torch.cuda.set_device(0)
