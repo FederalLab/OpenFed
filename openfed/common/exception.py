@@ -62,3 +62,17 @@ class BuildReignFailed(OpenFedException):
             class_name="BuildReignFailed",
             description=self.msg
         )
+
+
+class DeviceOffline(OpenFedException):
+    """This error is raised when client/server is offline.
+    """
+
+    def __init__(self, msg: str = ""):
+        self.msg = "Device Offline" if not msg else msg
+
+    def __str__(self):
+        return openfed_class_fmt.format(
+            class_name="DeviceOffline",
+            description=self.msg
+        )

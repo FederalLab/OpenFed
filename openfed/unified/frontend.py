@@ -51,9 +51,6 @@ class Frontend(Unify, Peeper):
 
     @_frontend_access
     def upload(self) -> bool:
-        if self.reign.is_offline:
-            raise RuntimeError("Server Offline")
-
         if self.reign.upload_hang_up or self.reign.download_hang_up:
             return self.reign.deal_with_hang_up()
         else:
@@ -67,9 +64,6 @@ class Frontend(Unify, Peeper):
 
     @_frontend_access
     def download(self) -> bool:
-        if self.reign.is_offline:
-            raise RuntimeError("Server Offline")
-
         if self.reign.upload_hang_up or self.reign.download_hang_up:
             return self.reign.deal_with_hang_up()
         else:

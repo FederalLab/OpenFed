@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Callable, Generator, List, Tuple, TypeVar
 
 import openfed
-from openfed.common.exception import ConnectTimeout
+from openfed.common.exception import ConnectTimeout, DeviceOffline
 from openfed.common.logging import logger
 from openfed.common.vars import ASYNC_OP
 from openfed.federated.country import Country, ProcessGroup, Store
@@ -65,15 +65,64 @@ class Reign(Informer, Delivery):
         """
         if self.upload_hang_up:
             handler, step_func, timestamp = self._upload_hang_up
+            if not self.is_offline:
+                if self.world.is_queen:
+                    # set self state
+                    self.pushing()
+
+                    # wait
+                    tic = time.time()
+                    while not self.is_pulling:
+                        if self.is_offline:
+                            raise DeviceOffline(str(self))
+                        if timedelta(seconds=time.time() - tic) > openfed.DEFAULT_PG_TIMEOUT:
+                            raise ConnectTimeout(str(self))
+                        time.sleep((openfed.SLEEP_SHORT_TIME))
+                    else:
+                        # transfer
+                        handler.wait()
+                else:
+                    # check state first
+                    if self.is_pulling:
+                        # set state
+                        self.pushing()
+
+                        # transfer
+                        handler.wait()
+
         elif self.download_hang_up:
             handler, step_func, timestamp = self._download_hang_up
+            if not self.is_offline:
+                if self.world.is_queen:
+                    # set self state
+                    self.pulling()
+
+                    # wait
+                    tic = time.time()
+                    while not self.is_pushing:
+                        if self.is_offline:
+                            raise DeviceOffline(str(self))
+                        if timedelta(seconds=time.time() - tic) > openfed.DEFAULT_PG_TIMEOUT:
+                            raise ConnectTimeout(str(self))
+                        time.sleep((openfed.SLEEP_SHORT_TIME))
+                    else:
+                        # transfer
+                        handler.wait()
+                else:
+                    # check state first
+                    if self.is_pushing:
+                        # set state
+                        self.pulling()
+
+                        # transfer
+                        handler.wait()
         else:
             raise RuntimeError("No handler!")
 
-        # state judgement
+        if self.is_offline:
+            raise DeviceOffline(str(self))
+
         if handler.is_completed():
-            # if not handler.is_success():
-            #     raise RuntimeError("Transfer data failed!")
             step_func()
             self.zombine()
             if self.upload_hang_up:
@@ -94,9 +143,6 @@ class Reign(Informer, Delivery):
         # 1. set version number
         self.set('version', self.version)
 
-        # 2. set pushing
-        self.pushing()
-
         # 3. transfer
         if ASYNC_OP.is_async_op:
             handle, step_func = self.push()
@@ -104,6 +150,28 @@ class Reign(Informer, Delivery):
             self._upload_hang_up = [handle, step_func, time.time()]
             return False
         else:
+            if self.world.is_queen:
+                # 2. set pulling
+                self.pushing()
+                # 3. check state
+                tic = time.time()
+                while not self.is_pulling:
+                    if self.is_offline:
+                        raise DeviceOffline(str(self))
+                    if timedelta(seconds=time.time() - tic) > openfed.DEFAULT_PG_TIMEOUT:
+                        raise ConnectTimeout(str(self))
+                    time.sleep(openfed.SLEEP_SHORT_TIME)
+            else:
+                # 2. check state
+                if not self.is_pulling:
+                    if openfed.DEBUG.is_debug:
+                        raise RuntimeError("Client state is not correct.")
+                    else:
+                        logger.error("Client state is not correct.")
+                    return False
+                # 3. set state
+                self.pushing()
+            # transfer
             self.push()
             self.zombine()
             return True
@@ -114,15 +182,34 @@ class Reign(Informer, Delivery):
         # 1. set version
         self.set('version', self.version)
 
-        # 2. set pulling
-        self.pulling()
-
         # 3. transfer
         if ASYNC_OP.is_async_op:
             handle, step_func = self.pull()
             self._download_hang_up = [handle, step_func, time.time()]
             return False
         else:
+            if self.world.is_queen:
+                # 2. set pulling
+                self.pulling()
+                # 3. check state
+                tic = time.time()
+                while not self.is_pushing:
+                    if self.is_offline:
+                        raise DeviceOffline(str(self))
+                    if timedelta(seconds=time.time() - tic) > openfed.DEFAULT_PG_TIMEOUT:
+                        raise ConnectTimeout(str(self))
+                    time.sleep(openfed.SLEEP_SHORT_TIME)
+            else:
+                # 2. check state
+                if not self.is_pushing:
+                    if openfed.DEBUG.is_debug:
+                        raise RuntimeError("Client state is not correct.")
+                    else:
+                        logger.error("Client state is not correct.")
+                    return False
+                # 3. set state
+                self.pulling()
+            # transfer
             self.pull()
             self.zombine()
             return True
