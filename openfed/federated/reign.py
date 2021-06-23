@@ -1,6 +1,6 @@
 import time
 from datetime import timedelta
-from typing import Callable, Generator, List, TypeVar, Tuple
+from typing import Callable, Generator, List, Tuple, TypeVar
 
 import openfed
 from openfed.common.exception import ConnectTimeout
@@ -72,8 +72,8 @@ class Reign(Informer, Delivery):
 
         # state judgement
         if handler.is_completed():
-            if not handler.is_success():
-                raise RuntimeError("Transfer data failed!")
+            # if not handler.is_success():
+            #     raise RuntimeError("Transfer data failed!")
             step_func()
             self.zombine()
             if self.upload_hang_up:

@@ -51,13 +51,15 @@ class Frontend(Unify, Peeper):
 
     @_frontend_access
     def upload(self) -> bool:
+        if self.reign.is_offline:
+            raise RuntimeError("Server Offline")
+
         if self.reign.upload_hang_up or self.reign.download_hang_up:
             return self.reign.deal_with_hang_up()
         else:
             if not self.reign.upload():
                 if not openfed.ASYNC_OP.is_async_op:
-                    logger.error("Upload Failed.")
-                    return False
+                    raise RuntimeError("Failed to upload")
                 else:
                     return self.reign.deal_with_hang_up()
             else:
@@ -65,13 +67,15 @@ class Frontend(Unify, Peeper):
 
     @_frontend_access
     def download(self) -> bool:
+        if self.reign.is_offline:
+            raise RuntimeError("Server Offline")
+
         if self.reign.upload_hang_up or self.reign.download_hang_up:
             return self.reign.deal_with_hang_up()
         else:
             if not self.reign.download():
                 if not openfed.ASYNC_OP.is_async_op:
-                    logger.info("Download Falied.")
-                    return False
+                    raise RuntimeError("Failed to download")
                 else:
                     return self.reign.deal_with_hang_up()
             else:

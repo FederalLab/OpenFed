@@ -88,7 +88,7 @@ DYNAMIC_ADDRESS_LOADING = _DYNAMIC_ADDRESS_LOADING()
 
 class _ASYNC_OP(object):
     def __init__(self):
-        self.async_op = True
+        self.async_op = False
 
     def set_async_op(self):
         self.async_op = True

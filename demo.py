@@ -57,10 +57,8 @@ openfed_api.run()
 for i in range(1, 100):
     print(f"Train @{i}")
     # download a new model
-    if not openfed_api.download():
-        break
-
-    time.sleep(0.1)
+    while not openfed_api.download():
+        time.sleep(1.0)
 
     # reset
     optimizer.zero_grad()
@@ -77,8 +75,8 @@ for i in range(1, 100):
 
     openfed_api.set_task_info({"train_instances": random.randint(1, 200)})
 
-    if not openfed_api.upload():
-        break
+    while not openfed_api.upload():
+        time.sleep(1.0)
 
 # finisehd
 openfed_api.finish()
