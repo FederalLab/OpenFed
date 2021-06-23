@@ -8,7 +8,7 @@ class NaiveAggregator(Aggregator):
     """widely used in FedAvg.
     """
 
-    def __init__(self, params, other_keys: Union[str, List[str]], lagecy: bool = True):
+    def __init__(self, params, other_keys: Union[str, List[str]], legacy: bool = True):
         if isinstance(other_keys, str):
             other_keys = [other_keys]
 
@@ -26,7 +26,7 @@ class NaiveAggregator(Aggregator):
             defaults,
             info_keys=info_keys,
             aux_keys=aux_keys,
-            lagecy=lagecy)
+            legacy=legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         train_instances = received_info['train_instances']

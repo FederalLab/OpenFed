@@ -9,7 +9,7 @@ each distributed process will be operating on a single GPU. This can achieve
 well-improved single-node training performance. It can also be used in
 multi-node distributed training, by spawning up multiple processes on each node
 for well-improved multi-node distributed training performance as well.
-This will especially be benefitial for systems with multiple Infiniband
+This will especially be beneficial for systems with multiple Infiniband
 interfaces that have direct-GPU support, since all of them can be utilized for
 aggregated communication bandwidth.
 
@@ -192,8 +192,8 @@ def parse_args():
                         help="Do not prepend the training script with \"python\" - just exec "
                              "it directly. Useful when the script is not a Python script.")
     parser.add_argument("--server_output", default=False, action='store_true',
-                        help="exclude the server node, such that you can keep a better visiualize of"
-                             "training progress. If set Ture, the log information of server will directly"
+                        help="exclude the server node, such that you can keep a better visualize of"
+                             "training progress. If set True, the log information of server will directly"
                              "shown in command line.")
     parser.add_argument(
         "--logdir",

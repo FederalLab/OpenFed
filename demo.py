@@ -42,7 +42,7 @@ aggregator = aggregate.ElasticAggregator(
     net.parameters(), other_keys="momentum_buffer")
 
 # define aggregator aux (actually, this is only used for client end)
-# some federated algorithoms need to do extra computation on client.
+# some federated algorithms need to do extra computation on client.
 elastic_aux = ElasticAux(net.parameters())
 
 # tell openfed_api which part of data is needed to be cared.
@@ -83,6 +83,6 @@ for i in range(1, 100):
     while not openfed_api.upload():
         time.sleep(1.0)
 
-# finisehd
+# finished
 openfed_api.finish()
 print(f"Finished. Exit Client @{args.rank}.")

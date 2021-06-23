@@ -13,7 +13,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 class Collector(object):
     """Some useful utilities to collect message.
-    What's more, Collector also provide necessary funciton to better 
+    What's more, Collector also provide necessary function to better 
     visualizing the received messages.
     """
     # used to index or retrieve the message
@@ -34,7 +34,7 @@ class Collector(object):
 
     def __call__(self) -> Any:
         output = self.collect()
-        # check ouput automatically
+        # check output automatically
         json.dumps(output)
 
         return output

@@ -6,7 +6,7 @@ class OpenFedException(Exception):
     """
 
     def __init__(self, msg: str = ""):
-        self.msg = "OpenFed Eception" if not msg else msg
+        self.msg = "OpenFed Exception" if not msg else msg
 
     def __str__(self):
         return openfed_class_fmt.format(

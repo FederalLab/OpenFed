@@ -25,7 +25,7 @@ NICK_NAME = "NICK_NAME"
 class STATUS(Enum):
     PUSH = "PUSH"  # push data to the other end.
     PULL = "PULL"  # pull data from the other end.
-    ZOMBINE = "ZOMBINE"  # when there is no request.
+    ZOMBIE = "ZOMBIE"  # when there is no request.
     OFFLINE = "OFFLINE"  # offline.
 
 
@@ -69,13 +69,13 @@ class Informer(Hook):
     world: World
     country: Country
 
-    # Sometimes, the read operaiton will be failed for unknown reasons.
+    # Sometimes, the read operation will be failed for unknown reasons.
     # Essentially when we do simulation experiments on a single node.
     # In order to avoid this error, we always backup the last info
     # if failed, return this instead.
     _backup_info: Dict[str, Any]
 
-    # you should igonre this dict. it will make you feel confused.
+    # you should ignore this dict. it will make you feel confused.
     _do_not_access_backup_info: Dict[str, Any]
 
     # indicates whether current data is
@@ -85,7 +85,7 @@ class Informer(Hook):
         self._do_not_access_backup_info = {}
         # write self._i_key to initialize the key value store.
         safe_store_set(self.store, self._i_key, {
-                       OPENFED_STATUS: STATUS.ZOMBINE.value})
+                       OPENFED_STATUS: STATUS.ZOMBIE.value})
 
         # set nick name if king
         if self.world.king:
@@ -156,19 +156,19 @@ class Informer(Hook):
                 logger.error(e)
             info = self._backup_info
             # use the cached one instead.
-            # but at the same time, we need to set the state as zombine
+            # but at the same time, we need to set the state as zombie
             # otherwise the last state value may make the progress get stuck.
             # The server is quiet stable, if read failed, we think it is offline.
             # But client sometimes may be unstable, if read failed, we will assume it
             # go into offline.
-            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBINE.value
+            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBIE.value
             self.fresh_read = False
         finally:
             self._backup_info = info
             return info[key] if key else info
 
     def _must_fresh_read(func: Callable):
-        """A decorate function that will raise error if the data is unfresh.
+        """A decorate function that will raise error if the data is refresh.
         """
 
         def wrapper(self, *args, **kwargs):
@@ -232,14 +232,14 @@ class Informer(Hook):
     def is_pushing(self) -> bool:
         return self._get_state() == STATUS.PUSH
 
-    def zombine(self):
-        """Set state to zombine
+    def zombie(self):
+        """Set state to zombie
         """
-        self._set_state(STATUS.ZOMBINE)
+        self._set_state(STATUS.ZOMBIE)
 
     @property
-    def is_zombine(self) -> bool:
-        return self._get_state() == STATUS.ZOMBINE
+    def is_zombie(self) -> bool:
+        return self._get_state() == STATUS.ZOMBIE
 
     def offline(self):
         """Set state to offline.
@@ -251,7 +251,7 @@ class Informer(Hook):
         return self.world.ALIVE and self._get_state() == STATUS.OFFLINE
 
     def register_collector(self, key: str, collector: Collector):
-        """Use collector to add new information is strongely recommanded.
+        """Use collector to add new information is strongely recommended.
         """
         assert key not in [OPENFED_STATUS, OPENFED_TASK_INFO]
 

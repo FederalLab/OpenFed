@@ -1,8 +1,8 @@
-from .shakespear import ShakespearNCP, ShakespearNWP
+from .shakespear import ShakespeareNCP, ShakespeareNWP
 from .stackoverflow import StackOverFlowNWP, StackOverFlowTP
 
-__all__ = ['ShakespearNCP',
-           'ShakespearNWP',
+__all__ = ['ShakespeareNCP',
+           'ShakespeareNWP',
            'StackOverFlowNWP',
            'StackOverFlowTP',
            ]

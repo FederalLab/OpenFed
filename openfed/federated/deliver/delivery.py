@@ -103,7 +103,7 @@ class Delivery(Package, Hook):
 
     def pull(self, auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Work, Callable]]:
         """Pull data from the other end. 
-        After received data, Queen will load `param` to Tensor by an in-palce operation automatically.
+        After received data, Queen will load `param` to Tensor by an in-place operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
         """
         assert self.country._get_group_size(

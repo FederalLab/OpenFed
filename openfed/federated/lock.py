@@ -25,7 +25,7 @@ def del_maintainer_lock(maintainer: Maintainer):
         del _maintainer_lock_dict[maintainer]
     else:
         if openfed.DEBUG.is_debug:
-            logger.error("Maintianer lock is already deleted.")
+            logger.error("Maintainer lock is already deleted.")
 
 
 def acquire_all():

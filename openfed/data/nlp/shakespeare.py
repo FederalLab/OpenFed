@@ -220,7 +220,7 @@ def preprocess(sentences, max_seq_len=SEQUENCE_LENGTH):
     return sequences
 
 
-class ShakespearNWP(FederatedDataset):
+class ShakespeareNWP(FederatedDataset):
     """Used for next word prediction.
     """
 
@@ -260,7 +260,7 @@ class ShakespearNWP(FederatedDataset):
         return sum([len(x) for x in self.parts_data_list])
 
 
-class ShakespearNCP(FederatedDataset):
+class ShakespeareNCP(FederatedDataset):
     """Used for next char prediction. FedProx version.
     """
 

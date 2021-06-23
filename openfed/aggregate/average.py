@@ -9,7 +9,7 @@ class AverageAggregator(Aggregator):
     """average all received data directly.
     """
 
-    def __init__(self, params, other_keys: Union[str, List[str]], lagecy: bool = True):
+    def __init__(self, params, other_keys: Union[str, List[str]], legacy: bool = True):
         """
         Args:
             other_keys: any keys you want to track.
@@ -31,7 +31,7 @@ class AverageAggregator(Aggregator):
             defaults,
             info_keys=info_keys,
             aux_keys=aux_keys,
-            lagecy=lagecy)
+            legacy=legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         state = self.state[p]

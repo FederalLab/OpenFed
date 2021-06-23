@@ -690,7 +690,7 @@ def all_gather_object(object_list, obj, group=None, country=None):
     .. note:: For NCCL-based processed groups, internal tensor representations
         of objects must be moved to the GPU device before communication takes
         place. In this case, the device used is given by
-        ``torch.cuda.current_device()`` and it is the user's responsiblity to
+        ``torch.cuda.current_device()`` and it is the user's responsibility to
         ensure that this is set so that each rank has an individual GPU, via
         ``torch.cuda.set_device()``.
 
@@ -805,7 +805,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, async_op=Fals
     if country._rank_not_in_group(group):
         return
 
-    # Ensure object_gather_list is specified appopriately.
+    # Ensure object_gather_list is specified appropriately.
     # my_rank = country.get_rank(group)
     if group is None:
         my_rank = country.get_rank(group)
@@ -896,7 +896,7 @@ def broadcast_object_list(object_list, src=0, group=None, country=None):
     .. note:: For NCCL-based processed groups, internal tensor representations
         of objects must be moved to the GPU device before communication takes
         place. In this case, the device used is given by
-        ``torch.cuda.current_device()`` and it is the user's responsiblity to
+        ``torch.cuda.current_device()`` and it is the user's responsibility to
         ensure that this is set so that each rank has an individual GPU, via
         ``torch.cuda.set_device()``.
 

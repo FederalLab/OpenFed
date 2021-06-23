@@ -32,7 +32,7 @@ class World():
 
 
 class Country(object):
-    """Wraper all variables as a privacy namespace.
+    """Warper all variables as a privacy namespace.
     """
 
     def __init__(self, world: World) -> None:
@@ -82,7 +82,7 @@ class Country(object):
         world_size = self.get_world_size()
         # Use 'add' instead of 'get' since for some store implementations 'add'
         # doesn't work well with 'get'. Ideally the store implementations should
-        # be fixed, but for backward compatiblity reasons it is risky to change
+        # be fixed, but for backward compatibility reasons it is risky to change
         # the store implementations. Once, we completely migrate away from these
         # legacy stores, we can use 'get' here instead.
         worker_count = store.add(store_key, 0)
@@ -517,7 +517,7 @@ class Country(object):
 
     def destroy_process_group(self, group: ProcessGroup = None) -> None:
         """
-        Destroy a given process group, and deinitialize the distributed package
+        Destroy a given process group, and reinitialize the distributed package
 
         Args:
             group (ProcessGroup, optional): The process group to be destroyed, if

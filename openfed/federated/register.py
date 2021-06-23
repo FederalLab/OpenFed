@@ -62,7 +62,7 @@ class _Register(Array):
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Reigster",
+            class_name="Register",
             description=f"{len(self)} country have been registed."
         )
 

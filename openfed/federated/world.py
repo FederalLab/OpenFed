@@ -47,7 +47,7 @@ class World(Array):
     _NULL_GP: Any = None
     _current_pg: ProcessGroup
 
-    # avoid the conflict while joint many new Countrys to current World at the some time
+    # avoid the conflict while joint many new Countries to current World at the some time
     joint_lock = threading.Lock()
 
     def __init__(self, king: bool = False) -> None:

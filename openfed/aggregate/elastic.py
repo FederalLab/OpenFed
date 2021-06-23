@@ -5,12 +5,12 @@ from torch import Tensor
 
 
 class ElasticAggregator(Aggregator):
-    """a data-awared aggregation method.
+    """a data-awarded aggregation method.
     """
 
     def __init__(self, params,
                  other_keys: Union[str, List[str]],
-                 quantile=0.5, lagecy: bool = True):
+                 quantile=0.5, legacy: bool = True):
         if not (0 < quantile < 1.0):
             raise ValueError("quantile must be between 0 and 1")
 
@@ -33,7 +33,7 @@ class ElasticAggregator(Aggregator):
             defaults,
             info_keys=info_keys,
             aux_keys=aux_keys,
-            lagecy=lagecy)
+            legacy=legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         train_instances = received_info['train_instances']

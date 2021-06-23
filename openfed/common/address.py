@@ -19,7 +19,7 @@ class Address(object):
 
     @overload
     def __init__(self, args: Namespace):
-        """Load adress from parser.
+        """Load address from parser.
         """
 
     @overload

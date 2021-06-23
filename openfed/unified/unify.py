@@ -16,7 +16,7 @@ def _frontend_access(func):
     def wrapper(self, *args, **kwargs):
         if not self.frontend:
             if DEBUG.is_debug:
-                logger.warning("frontend funciton.")
+                logger.warning("frontend function.")
             return None
         else:
             return func(self, *args, **kwargs)
@@ -27,7 +27,7 @@ def _backend_access(func):
     def wrapper(self, *args, **kwargs):
         if self.frontend:
             if DEBUG.is_debug:
-                logger.warning("backend funciton.")
+                logger.warning("backend function.")
             return None
         else:
             return func(self, *args, **kwargs)

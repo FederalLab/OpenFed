@@ -121,7 +121,7 @@ class Reign(Informer, Delivery):
                 self.push()
             else:
                 self.pull()
-        self.zombine()
+        self.zombie()
         return True
 
     def deal_with_hang_up(self) -> bool:

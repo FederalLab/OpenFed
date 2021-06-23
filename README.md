@@ -64,7 +64,7 @@ python -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.p
 |   gloo  | file:///tmp/ope... |     3      |  0   |  None | Admirable  |
 +---------+--------------------+------------+------+-------+------------+
 
-2021-06-22 23:38:39.161 | INFO     | openfed.backend:step_after_download:173 - Recieve Model
+2021-06-22 23:38:39.161 | INFO     | openfed.backend:step_after_download:173 - Receive Model
 @1
 From <OpenFed> Reign
 Version: 0
@@ -72,7 +72,7 @@ Status: PULL
 
 ...
 
-2021-06-22 23:39:02.359 | INFO     | openfed.backend:step_after_download:173 - Recieve Model
+2021-06-22 23:39:02.359 | INFO     | openfed.backend:step_after_download:173 - Receive Model
 @100
 From <OpenFed> Reign
 Version: 0
@@ -120,7 +120,7 @@ openfed
 │   ├── dataset.py
 │   ├── nlp
 │   │   ├── __init__.py
-│   │   ├── shakespear.py
+│   │   ├── shakespeare.py
 │   │   └── stackoverflow.py
 │   ├── partitioner.py
 │   └── vision
@@ -162,8 +162,8 @@ openfed
 │   │   ├── step_at_failed.py
 │   │   ├── step_at_last.py
 │   │   ├── step_at_new_episode.py
-│   │   ├── step_at_unvalid_state.py
-│   │   ├── step_at_zombine.py
+│   │   ├── step_at_invalid_state.py
+│   │   ├── step_at_zombie.py
 │   │   ├── step_before_destroy.py
 │   │   ├── step_before_download.py
 │   │   └── step_before_upload.py

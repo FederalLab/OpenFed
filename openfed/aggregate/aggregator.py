@@ -30,19 +30,19 @@ class Aggregator(Package, Wrapper, Hook):
                  defaults: Dict,
                  info_keys: List[str],
                  aux_keys: List[str],
-                 lagecy: bool = False):
+                 legacy: bool = False):
         """
         Args:
             info_keys: necessary keys saved in returned info dict.
             aux_keys: other tensor that needed to saved.
-            lagecy: if Ture, just stack received data, otherwise will merge them.
+            legacy: if True, just stack received data, otherwise will merge them.
         """
-        self.lagecy = lagecy
+        self.legacy = legacy
 
         # add info_keys to defaults
         defaults['info_keys'] = info_keys
         defaults['aux_keys'] = aux_keys
-        defaults['lagecy'] = lagecy
+        defaults['legacy'] = legacy
 
         self.defaults = defaults
 
@@ -302,9 +302,9 @@ class Aggregator(Package, Wrapper, Hook):
             clear_buffer: if True, will clear the cached data.
         """
         for group in self.param_groups:
-            lagecy = group['lagecy']
+            legacy = group['legacy']
             for p in group["params"]:
-                if lagecy:
+                if legacy:
                     self._stack_aggregate(p, group=group)
                 else:
                     self._merge_aggregate(p, group=group)
@@ -319,10 +319,10 @@ class Aggregator(Package, Wrapper, Hook):
         """
         for group in self.param_groups:
             self._check_defaults_keys(group['info_keys'], received_info)
-            lagecy = group['lagecy']
+            legacy = group['legacy']
             for p in group["params"]:
                 if p in received_params:
-                    if lagecy:
+                    if legacy:
                         self.stack(p, received_params[p],
                                    received_info=received_info, group=group)
                     else:

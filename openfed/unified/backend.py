@@ -21,7 +21,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
     state_dict: Dict[str, Tensor]
 
-    maintiner: Maintainer
+    maintainer: Maintainer
 
     reign: Reign
 
@@ -52,7 +52,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
             address = default_address
 
         # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
-        # otherwise, it may interrupte the process and cause error before you go into loop()
+        # otherwise, it may interrupt the process and cause error before you go into loop()
         if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
             openfed_lock.acquire()
 
@@ -101,8 +101,8 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                             self.step_after_upload(reign.deal_with_hang_up())
                         elif reign.download_hang_up:
                             self.step_after_download(reign.deal_with_hang_up())
-                        elif reign.is_zombine:
-                            self.step_at_zombine()
+                        elif reign.is_zombie:
+                            self.step_at_zombie()
                         elif reign.is_offline:
                             # Destroy process
                             if self.step_before_destroy():
@@ -123,7 +123,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                             else:
                                 self.step_at_failed()
                         else:
-                            self.step_at_unvalid_state()
+                            self.step_at_invalid_state()
                     # update regularly.
                     self.step_at_last()
                 else:
@@ -143,7 +143,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         pass
 
     @_backend_access
-    def step_at_zombine(self):
+    def step_at_zombie(self):
         pass
 
     @_backend_access
@@ -163,7 +163,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
         assert self.aggregator is not None
         if state:
-            # fetch data from federeated core.
+            # fetch data from federated core.
             packages = self.reign.tensor_indexed_packages
             task_info = self.reign.task_info
 
@@ -174,7 +174,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
             self.received_numbers += 1
 
             if openfed.VERBOSE.is_verbose:
-                logger.info(f"Recieve Model\n"
+                logger.info(f"Receive Model\n"
                             f"@{self.received_numbers}\n"
                             f"From {self.reign}"
                             )
@@ -203,7 +203,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
     @_backend_access
     def step_at_last(self):
-        """Related funtion to control the server state.
+        """Related function to control the server state.
         """
         if self.received_numbers == 100:
             # the following code is just used for testing.
@@ -219,7 +219,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
             ...
 
     @_backend_access
-    def step_at_unvalid_state(self):
+    def step_at_invalid_state(self):
         pass
 
     @_backend_access

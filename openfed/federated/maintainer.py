@@ -77,7 +77,7 @@ class Maintainer(Array, SafeTread):
                 if self.abnormal_exited:
                     # raise error here, but not in self.safe_run()
                     raise RuntimeError(
-                        "Errors occured while building connection to new address.")
+                        "Errors occurred while building connection to new address.")
         else:
             if len(self) > 1:
                 msg = "Too many fed addr are specified. Only allowed 1."
@@ -157,7 +157,7 @@ class Maintainer(Array, SafeTread):
                 if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                     time.sleep(openfed.SLEEP_LONG_TIME)
                 else:
-                    return f"Success: {len(self.finished_queue)} new federeated world added."
+                    return f"Success: {len(self.finished_queue)} new federated world added."
             else:
                 if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                     if len(self.discard_queue) != 0:

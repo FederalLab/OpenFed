@@ -103,7 +103,7 @@ class _ASYNC_OP(object):
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
             class_name="ASYNC_OP",
-            description="If Ture, the download and upload operation will return an handler."
+            description="If True, the download and upload operation will return an handler."
                         "Otherwise, it will be blocked until finish."
         )
 
