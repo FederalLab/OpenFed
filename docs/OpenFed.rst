@@ -10,6 +10,9 @@ Welcome to OpenFed's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   Readme <..README.md>
+
+   Copyright <copyright.rst>
 
 
 Indices and tables
