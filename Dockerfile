@@ -91,7 +91,8 @@ RUN pip3 install --no-cache-dir -U \
     tensorboard==2.4.1 \
     tensorboard-plugin-wit==1.8.0 \
     tensorboardX==2.2 \
-    torchmetrics==0.2.0
+    torchmetrics==0.2.0 \
+    random_words==0.2.1
 
 # Add Packing Dependency
 RUN SCM_NAME=toutiao.videoarch.pyiam && \
