@@ -84,6 +84,10 @@ class Unify(object):
         self.debug = debug
         self.dynamic_address_loading = dynamic_address_loading
 
+    @property
+    def nick_name(self) -> str:
+        return self.reign.nick_name
+
     def build_connection(self, *args, **kwargs):
         raise NotImplementedError
 

@@ -9,13 +9,15 @@ class ElasticAggregator(Aggregator):
     """
 
     def __init__(self, params,
-                 other_keys: Union[str, List[str]],
+                 other_keys: Union[str, List[str]] = None,
                  quantile=0.5, legacy: bool = True):
         if not (0 < quantile < 1.0):
             raise ValueError("quantile must be between 0 and 1")
 
         if isinstance(other_keys, str):
             other_keys = [other_keys]
+        if other_keys is None:
+            other_keys = []
 
         info_keys: List[str] = ['train_instances']
         aux_keys: List[str] = [

@@ -46,6 +46,7 @@
         "picklable",
         "pytorch",
         "quantile",
+        "randint",
         "randn",
         "rdict",
         "reqs",

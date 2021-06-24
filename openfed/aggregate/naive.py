@@ -8,9 +8,14 @@ class NaiveAggregator(Aggregator):
     """widely used in FedAvg.
     """
 
-    def __init__(self, params, other_keys: Union[str, List[str]], legacy: bool = True):
+    def __init__(self,
+                 params,
+                 other_keys: Union[str, List[str]] = None,
+                 legacy: bool = True):
         if isinstance(other_keys, str):
             other_keys = [other_keys]
+        if other_keys is None:
+            other_keys = []
 
         info_keys: List[str] = ['train_instances']
         aux_keys: List[str] = ["step", "received_params", "param"]

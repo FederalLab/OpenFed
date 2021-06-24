@@ -12,21 +12,6 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python: client",
-            "type": "python",
-            "request": "launch",
-            "program": "demo.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--rank",
-                "0",
-                // "--init_method",
-                // "file:///tmp/openfed.sharefile",
-                "--world_size",
-                "2"
-            ]
-        },
-        {
             "name": "Python: client-2",
             "type": "python",
             "request": "launch",
@@ -35,8 +20,6 @@
             "args": [
                 "--rank",
                 "2",
-                // "--init_method",
-                // "file:///tmp/openfed.sharefile",
                 "--world_size",
                 "3"
             ]
@@ -50,8 +33,6 @@
             "args": [
                 "--rank",
                 "1",
-                // "--init_method",
-                // "file:///tmp/openfed.sharefile",
                 "--world_size",
                 "3"
             ]
@@ -65,8 +46,6 @@
             "args": [
                 "--rank",
                 "0",
-                // "--init_method",
-                // "file:///tmp/openfed.sharefile",
                 "--world_size",
                 "3"
             ]

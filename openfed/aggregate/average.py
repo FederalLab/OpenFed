@@ -9,13 +9,18 @@ class AverageAggregator(Aggregator):
     """average all received data directly.
     """
 
-    def __init__(self, params, other_keys: Union[str, List[str]], legacy: bool = True):
+    def __init__(self,
+                 params,
+                 other_keys: Union[str, List[str]] = None,
+                 legacy: bool = True):
         """
         Args:
             other_keys: any keys you want to track.
         """
         if isinstance(other_keys, str):
             other_keys = [other_keys]
+        if other_keys is None:
+            other_keys = []
 
         info_keys: List[str] = []
         aux_keys: List[str] = ["step", "received_params", "param"]
