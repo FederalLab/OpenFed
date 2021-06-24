@@ -12,8 +12,8 @@ class Aux(Optimizer, Wrapper):
     """
 
     @torch.no_grad()
-    def clear_state(self):
-        """Clear the state cached in this round, then it can be reused.
+    def finish_round(self):
+        """Update self state after train a round. (Mostly clear the state directly.)
         """
         for group in self.param_groups:
             for p in group["params"]:
