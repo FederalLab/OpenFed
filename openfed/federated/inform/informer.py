@@ -4,9 +4,13 @@ from typing import Any, Callable, Dict
 
 import openfed
 import openfed.utils as utils
-from openfed.common import BuildReignFailed, Hook, InvalidStoreReading, logger
+from openfed.common import Hook, logger
 from openfed.federated.country import Country, Store
 from openfed.federated.inform.functional import Collector, GPUInfo, SystemInfo
+from openfed.federated.utils.exception import (BuildReignFailed,
+                                               InvalidStoreReading,
+                                               InvalidStoreWriting)
+from openfed.federated.utils.utils import _auto_filterout
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 from random_words import RandomWords
@@ -42,11 +46,10 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
 
     try:
         store.set(key, jsonstr)
-        return True
     except Exception as e:
-        if openfed.DEBUG.is_debug:
-            logger.warning(e)
-        return False
+        raise InvalidStoreWriting(e)
+    finally:
+        return True
 
 
 def safe_store_get(store: Store, key: str) -> Dict:
@@ -54,11 +57,10 @@ def safe_store_get(store: Store, key: str) -> Dict:
         jsonbytes = store.get(key)
         jsonstr = str(jsonbytes, encoding='utf-8')
         info = json.loads(jsonstr)
-        return info
     except Exception as e:
-        if openfed.DEBUG.is_debug:
-            logger.warning(e)
-        raise InvalidStoreReading
+        raise InvalidStoreReading(e)
+    finally:
+        return info
 
 
 class Informer(Hook):
@@ -257,18 +259,13 @@ class Informer(Hook):
 
         super().register_hook(key=key, func=collector)
 
+    @_auto_filterout
     def collect(self):
         """Collect message from other side.
         """
         for k, f in self.hook_dict.items():
-            try:
-                f.load_message(self.get(k))
-            except KeyError as e:
-                if openfed.DEBUG.is_debug:
-                    logger.error(e)
-            finally:
-                if openfed.VERBOSE.is_verbose:
-                    logger.info(f)
+            f.load_message(self.get(k))
+            logger.info(f)
 
     def scatter(self):
         """Scatter self.hook information to the other end.

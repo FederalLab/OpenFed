@@ -3,13 +3,15 @@ from datetime import timedelta
 from typing import Callable, Generator, Tuple, TypeVar
 
 import openfed
-from openfed.common.exception import ConnectTimeout, DeviceOffline
 from openfed.common.logging import logger
 from openfed.common.vars import ASYNC_OP
 from openfed.federated.country import Country, ProcessGroup, Store
 from openfed.federated.deliver import Delivery
 from openfed.federated.inform import Informer
 from openfed.federated.register import register
+from openfed.federated.utils.exception import (ConnectTimeout, DeviceOffline,
+                                               WrongState)
+from openfed.federated.utils.utils import _auto_offline
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 from openfed.utils.table import tablist
@@ -61,6 +63,7 @@ class Reign(Informer, Delivery):
     def download_hang_up(self) -> bool:
         return len(self._download_hang_up) > 0
 
+    @_auto_offline
     def transfer(self,
                  to: bool,
                  handler: Work = None,
@@ -73,7 +76,7 @@ class Reign(Informer, Delivery):
             tic: start counting time.
         """
         if self.is_offline:
-            raise DeviceOffline(str(self))
+            raise DeviceOffline(self)
 
         def _state():
             return self.is_pulling if to else self.is_pushing
@@ -93,20 +96,15 @@ class Reign(Informer, Delivery):
 
             while not _state():
                 if self.is_offline:
-                    raise DeviceOffline(str(self))
+                    raise DeviceOffline(self)
                 toc = time.time()
                 if timedelta(seconds=toc-tic) > openfed.DEFAULT_PG_TIMEOUT:
-                    raise ConnectTimeout(str(self))
+                    raise ConnectTimeout(self)
                 time.sleep(openfed.SLEEP_SHORT_TIME)
         else:
             # check state first
             if not _state():
-                msg = "Client state is not right."
-                if openfed.DEBUG.is_debug:
-                    raise RuntimeError(msg)
-                else:
-                    logger.error(msg)
-                return False
+                raise WrongState(self)
             # set state
             if to:
                 self.pushing()
@@ -124,6 +122,7 @@ class Reign(Informer, Delivery):
         self.zombie()
         return True
 
+    @_auto_offline
     def deal_with_hang_up(self) -> bool:
         """Dealing with the handler for hang up operations.
         """
@@ -137,7 +136,7 @@ class Reign(Informer, Delivery):
             flag = self.transfer(to=False, handler=handler,
                                  tic=tic, step_func=step_func)
         else:
-            raise RuntimeError("No handler!")
+            return False
 
         if handler.is_completed():
             if self.upload_hang_up:
@@ -153,6 +152,7 @@ class Reign(Informer, Delivery):
                 # keep waiting
                 return False
 
+    @_auto_offline
     def upload(self) -> bool:
         """Upload packages date to the other end.
         """
@@ -165,6 +165,7 @@ class Reign(Informer, Delivery):
         else:
             return self.transfer(to=True)
 
+    @_auto_offline
     def download(self) -> bool:
         """Download packages from other end.
         """

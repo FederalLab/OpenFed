@@ -1,28 +1,32 @@
 from openfed.utils import openfed_class_fmt
 
 
-class _DEBUG(object):
-    def __init__(self):
-        self.debug = False
+class Vars(object):
+    flag: bool
 
+    def __init__(self):
+        self.flag = False
+
+    def set(self, flag: bool):
+        self.flag = flag
+
+
+class _DEBUG(Vars):
     def set_debug(self):
         """Will auto enable verbose.
         """
         self._old_flag = VERBOSE.is_verbose
-        self.debug = True
+        self.flag = True
         VERBOSE.set_verbose()
 
     def unset_debug(self):
-        self.debug = False
+        self.flag = False
         if hasattr(self, '_old_flag'):
-            if self._old_flag:
-                VERBOSE.set_verbose()
-            else:
-                VERBOSE.unset_verbose()
+            VERBOSE.set(self._old_flag)
 
     @property
     def is_debug(self) -> bool:
-        return self.debug
+        return self.flag
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
@@ -34,19 +38,19 @@ class _DEBUG(object):
 DEBUG = _DEBUG()
 
 
-class _VERBOSE(object):
+class _VERBOSE(Vars):
     def __init__(self):
-        self.verbose = True
+        self.flag = True
 
     def set_verbose(self):
-        self.verbose = True
+        self.flag = True
 
     def unset_verbose(self):
-        self.verbose = False
+        self.flag = False
 
     @property
     def is_verbose(self) -> bool:
-        return self.verbose
+        return self.flag
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
@@ -60,19 +64,19 @@ class _VERBOSE(object):
 VERBOSE = _VERBOSE()
 
 
-class _DYNAMIC_ADDRESS_LOADING(object):
+class _DYNAMIC_ADDRESS_LOADING(Vars):
     def __init__(self):
-        self.dynamic_address_loading = True
+        self.flag = True
 
     def set_dynamic_address_loading(self):
-        self.dynamic_address_loading = True
+        self.flag = True
 
     def unset_dynamic_address_loading(self):
-        self.dynamic_address_loading = False
+        self.flag = False
 
     @property
     def is_dynamic_address_loading(self) -> bool:
-        return self.dynamic_address_loading
+        return self.flag
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
@@ -86,19 +90,19 @@ class _DYNAMIC_ADDRESS_LOADING(object):
 DYNAMIC_ADDRESS_LOADING = _DYNAMIC_ADDRESS_LOADING()
 
 
-class _ASYNC_OP(object):
+class _ASYNC_OP(Vars):
     def __init__(self):
-        self.async_op = True
+        self.flag = True
 
     def set_async_op(self):
-        self.async_op = True
+        self.flag = True
 
     def unset_async_op(self):
-        self.async_op = False
+        self.flag = False
 
     @property
     def is_async_op(self) -> bool:
-        return self.async_op
+        return self.flag
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(

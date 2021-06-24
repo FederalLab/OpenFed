@@ -2,12 +2,12 @@ import time
 
 import openfed
 from openfed.common.address import Address
-from openfed.common.exception import BuildReignFailed, ConnectTimeout
 from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
 from openfed.federated.country import Country
 from openfed.federated.register import register
 from openfed.federated.reign import Reign
+from openfed.federated.utils.exception import BuildReignFailed, ConnectTimeout
 from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 

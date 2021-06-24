@@ -50,30 +50,23 @@ class Frontend(Unify, Peeper):
         self.reign.unpack_state(obj, keys)
 
     @_frontend_access
+    def _wait_handler(self, flag: bool):
+        if flag:
+            return True
+        elif openfed.ASYNC_OP.is_async_op:
+            while not self.reign.deal_with_hang_up():
+                if self.reign.is_offline:
+                    return False
+                time.sleep(openfed.SLEEP_SHORT_TIME)
+            return True
+
+    @_frontend_access
     def upload(self) -> bool:
-        if self.reign.upload_hang_up or self.reign.download_hang_up:
-            return self.reign.deal_with_hang_up()
-        else:
-            if not self.reign.upload():
-                if not openfed.ASYNC_OP.is_async_op:
-                    raise RuntimeError("Failed to upload")
-                else:
-                    return self.reign.deal_with_hang_up()
-            else:
-                return True
+        return self._wait_handler(self.reign.upload())
 
     @_frontend_access
     def download(self) -> bool:
-        if self.reign.upload_hang_up or self.reign.download_hang_up:
-            return self.reign.deal_with_hang_up()
-        else:
-            if not self.reign.download():
-                if not openfed.ASYNC_OP.is_async_op:
-                    raise RuntimeError("Failed to download")
-                else:
-                    return self.reign.deal_with_hang_up()
-            else:
-                return True
+        return self._wait_handler(self.reign.download())
 
     @_frontend_access
     def set_task_info(self, task_info: Dict) -> None:

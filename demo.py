@@ -12,11 +12,6 @@ from openfed.optim.elastic_aux import ElasticAux
 parser = openfed.parser
 args = parser.parse_args()
 
-# set async: Default
-openfed.ASYNC_OP.set_async_op()
-# unset async
-# openfed.ASYNC_OP.unset_async_op()
-
 # set cuda device
 # torch.cuda.set_device(args.rank % (torch.cuda.device_count()))
 # torch.cuda.set_device(0)
@@ -62,8 +57,8 @@ openfed_api.run()
 for i in range(1, 100):
     print(f"Train @{i}")
     # download a new model
-    while not openfed_api.download():
-        time.sleep(1.0)
+    if not openfed_api.download():
+        break
 
     # reset
     optimizer.zero_grad()
@@ -80,8 +75,8 @@ for i in range(1, 100):
 
     openfed_api.set_task_info({"train_instances": random.randint(1, 200)})
 
-    while not openfed_api.upload():
-        time.sleep(1.0)
+    if not openfed_api.upload():
+        break
 
 # finished
 openfed_api.finish()

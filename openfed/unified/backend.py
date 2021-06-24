@@ -5,7 +5,6 @@ import openfed
 from loguru import logger
 from openfed.aggregate import Aggregator
 from openfed.common import Address, Hook, Peeper, SafeTread, default_address
-from openfed.common.exception import ConnectTimeout
 from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.unified.unify import Unify, _backend_access
 from openfed.utils import openfed_class_fmt
