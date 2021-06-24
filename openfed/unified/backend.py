@@ -229,7 +229,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
             self.aggregator.zero_grad()
             self.received_numbers = 0
             self.last_aggregate_time = time.time()
-            self.manual_stop()
+            self.finish()
         else:
             ...
 
