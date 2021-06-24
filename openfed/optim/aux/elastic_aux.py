@@ -1,9 +1,8 @@
 import torch
-from openfed.common import Wrapper
-from torch.optim import Optimizer
+from openfed.optim.aux.aux import Aux
 
 
-class ElasticAux(Optimizer, Wrapper):
+class ElasticAux(Aux):
     r"""Paired with ElasticAggregator.
 
     Example:
@@ -12,13 +11,13 @@ class ElasticAux(Optimizer, Wrapper):
         >>>     elastic_aux.zero_grad()
         >>>     MSE(net(input), zeros).backward()
         >>>     elastic_aux.step()
-        >>> elastic_aux.clear()
+        >>> elastic_aux.clear_state()
 
     """
 
-    def __init__(self, params, momentum=0.9):
-        if momentum < 0.0:
-            raise ValueError("Invalid momentum value: {}".format(momentum))
+    def __init__(self, params, momentum: float = 0.9):
+        if not 0.0 <= momentum <= 1.0:
+            raise ValueError(f"Invalid momentum value: {momentum}")
 
         self.add_pack_key('importance')
 
@@ -55,12 +54,3 @@ class ElasticAux(Optimizer, Wrapper):
                 state["importance"].mul_(momentum).add_(grad, alpha=1-momentum)
 
         return loss
-
-    def clear_buffer(self):
-        """Clear accumulated importance weight.
-        """
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
-                if 'importance' in state:
-                    del state['importance']
