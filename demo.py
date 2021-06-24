@@ -51,32 +51,33 @@ openfed_api.set_aggregator(aggregator)
 # if this process is backend, it will go into this function
 # and occupy this process. after finished, it will automatically exit.
 # if you want to make it as thread to run this, just call openfed_api.start()
-openfed_api.run()
+with openfed_api:
+    openfed_api.run()
 
-# do 100 simulation
-for i in range(1, 100):
-    print(f"Train @{i}")
-    # download a new model
-    if not openfed_api.download():
-        break
+    # do 100 simulation
+    for i in range(1, random.randint(10, 70)):
+        print(f"Train @{i}")
+        # download a new model
+        if not openfed_api.download():
+            break
 
-    # reset
-    optimizer.zero_grad()
-    elastic_aux.clear_buffer()
+        # reset
+        optimizer.zero_grad()
+        elastic_aux.clear_buffer()
 
-    # training
-    net(torch.randn(128, 1, 1)).sum().backward()
-    elastic_aux.step()
-    optimizer.step()
+        # training
+        net(torch.randn(128, 1, 1)).sum().backward()
+        elastic_aux.step()
+        optimizer.step()
 
-    # submit
-    openfed_api.pack_state(optimizer, keys=['momentum_buffer'])
-    openfed_api.pack_state(elastic_aux)
+        # submit
+        openfed_api.pack_state(optimizer, keys=['momentum_buffer'])
+        openfed_api.pack_state(elastic_aux)
 
-    openfed_api.set_task_info({"train_instances": random.randint(1, 200)})
+        openfed_api.set_task_info({"train_instances": random.randint(1, 200)})
 
-    if not openfed_api.upload():
-        break
+        if not openfed_api.upload():
+            break
 
 # finished
 openfed_api.finish()

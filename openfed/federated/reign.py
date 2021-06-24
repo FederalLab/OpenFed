@@ -63,7 +63,6 @@ class Reign(Informer, Delivery):
     def download_hang_up(self) -> bool:
         return len(self._download_hang_up) > 0
 
-    @_auto_offline
     def transfer(self,
                  to: bool,
                  handler: Work = None,

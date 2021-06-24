@@ -4,7 +4,8 @@ from typing import Dict, List, Union
 import openfed
 from loguru import logger
 from openfed.aggregate import Aggregator
-from openfed.common import Address, Hook, Peeper, SafeTread, default_address
+from openfed.common import (MAX_TRY_TIMES, Address, Hook, Peeper, SafeTread,
+                            default_address)
 from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.unified.unify import Unify, _backend_access
 from openfed.utils import openfed_class_fmt
@@ -88,27 +89,31 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         # NOTE: release openfed_lock here.
         if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
             openfed_lock.release()
+
+        max_try_times = 0
         while not self.stopped:
             with self.maintainer.maintainer_lock:
                 self.step_at_new_episode()
                 rg = Reign.reign_generator()
+                cnt = 0
                 for reign in rg:
                     if not self.stopped and reign is not None:
+                        cnt += 1
                         self.reign = reign
                         self.step_at_first()
-                        if reign.upload_hang_up:
-                            self.step_after_upload(reign.deal_with_hang_up())
-                        elif reign.download_hang_up:
-                            self.step_after_download(reign.deal_with_hang_up())
-                        elif reign.is_zombie:
-                            self.step_at_zombie()
-                        elif reign.is_offline:
+                        if reign.is_offline:
                             # Destroy process
                             if self.step_before_destroy():
                                 self.step_after_destroy(
                                     Destroy.destroy_reign(reign))
                             else:
                                 self.step_at_failed()
+                        elif reign.upload_hang_up:
+                            self.step_after_upload(reign.deal_with_hang_up())
+                        elif reign.download_hang_up:
+                            self.step_after_download(reign.deal_with_hang_up())
+                        elif reign.is_zombie:
+                            self.step_at_zombie()
                         elif reign.is_pushing:
                             # Client want to push data to server, we need to download.
                             if self.step_before_download():
@@ -127,6 +132,17 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                     self.step_at_last()
                 else:
                     del rg
+            if cnt == 0:
+                max_try_times += 1
+                logger.warning(
+                    f"Max Try Times: {max_try_times}/{MAX_TRY_TIMES}")
+                logger.warning(f"Empty Reign\n{self}")
+                time.sleep(openfed.SLEEP_LONG_TIME)
+            else:
+                max_try_times = 0
+
+            if max_try_times >= MAX_TRY_TIMES:
+                self.manual_stop()
 
             # left some time to maintainer lock
             time.sleep(openfed.SLEEP_SHORT_TIME)
