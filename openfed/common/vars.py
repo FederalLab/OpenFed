@@ -10,6 +10,12 @@ class Vars(object):
     def set(self, flag: bool):
         self.flag = flag
 
+    def __repr__(self):
+        return openfed_class_fmt.format(
+            class_name="Vars",
+            description="Base class for global variables."
+        )
+
 
 class _DEBUG(Vars):
     def set_debug(self):
