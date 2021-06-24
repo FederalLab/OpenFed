@@ -21,6 +21,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../openfed'))
 
+# https://pythonhosted.org/an_example_pypi_project/sphinx.html
 import sphinx_rtd_theme
 
 # -- General configuration ------------------------------------------------

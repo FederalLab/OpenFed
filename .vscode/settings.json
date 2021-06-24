@@ -55,5 +55,6 @@
         "stackoverflow",
         "tolist",
         "unsqueeze"
-    ]
+    ],
+    "restructuredtext.confPath": "${workspaceFolder}/docs"
 }

@@ -1,4 +1,4 @@
-from .shakespear import ShakespeareNCP, ShakespeareNWP
+from .shakespeare import ShakespeareNCP, ShakespeareNWP
 from .stackoverflow import StackOverFlowNWP, StackOverFlowTP
 
 __all__ = ['ShakespeareNCP',
