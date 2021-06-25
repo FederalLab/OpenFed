@@ -44,14 +44,6 @@ openfed\.common\.hook module
     :undoc-members:
     :show-inheritance:
 
-openfed\.common\.logging module
--------------------------------
-
-.. automodule:: openfed.common.logging
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 openfed\.common\.package module
 -------------------------------
 

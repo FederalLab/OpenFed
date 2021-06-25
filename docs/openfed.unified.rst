@@ -6,7 +6,7 @@ Subpackages
 
 .. toctree::
 
-    openfed.unified.step_hooks
+    openfed.unified.step
 
 Submodules
 ----------
