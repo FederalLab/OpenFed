@@ -4,11 +4,10 @@ import warnings
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from loguru import logger
 from openfed.common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                       DEFAULT_PG_SHORT_TIMEOUT,
                                       DEFAULT_PG_TIMEOUT)
-import openfed.common.logging as logger
-from openfed.common.vars import DEBUG
 from openfed.federated.lock import acquire_all, release_all
 from openfed.federated.utils.exception import ConnectTimeout
 from openfed.utils import openfed_class_fmt
@@ -500,13 +499,11 @@ class Country(object):
             acquire_all()
             pg = connect_backend()
         except RuntimeError as re:
-            if DEBUG.is_debug:
-                raise re
-            else:
-                raise ConnectTimeout(str(re))
+            logger.exception(re)
+            raise ConnectTimeout(re)
         except TimeoutError as te:
             logger.exception(te)
-            raise ConnectTimeout(str(te))
+            raise ConnectTimeout(te)
         except Exception as e:
             raise e
         finally:

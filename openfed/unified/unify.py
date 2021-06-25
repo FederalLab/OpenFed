@@ -1,10 +1,9 @@
 from typing import Dict
 
 import openfed
-import openfed.common.logging as logger
+from loguru import logger
 from openfed.common.exception import AccessError
 from openfed.common.thread import SafeTread
-from openfed.common.vars import DEBUG, VERBOSE
 from openfed.federated.destroy import Destroy
 from openfed.federated.maintainer import Maintainer
 from openfed.federated.reign import Reign
@@ -113,21 +112,16 @@ class Unify(object):
 
     def __enter__(self):
         self.old_variable_list = [
-            openfed.DEBUG.is_debug,
-            openfed.VERBOSE.is_verbose,
             openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading,
             openfed.ASYNC_OP.is_async_op,
         ]
 
-        openfed.DEBUG.set(self.debug)
-        openfed.VERBOSE.set(self.verbose)
         openfed.DYNAMIC_ADDRESS_LOADING.set(self.dynamic_address_loading)
         openfed.ASYNC_OP.set(self.async_op)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # restore state
-        debug, verbose, dynamic_address_loading, async_op = self.old_variable_list
-        openfed.DEBUG.set(debug)
-        openfed.VERBOSE.set(verbose)
+        dynamic_address_loading, async_op = self.old_variable_list
+
         openfed.DYNAMIC_ADDRESS_LOADING.set(dynamic_address_loading)
         openfed.ASYNC_OP.set(async_op)

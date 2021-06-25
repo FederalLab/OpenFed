@@ -2,8 +2,7 @@ from collections import OrderedDict
 from typing import Dict
 
 from openfed.common.array import Array
-import openfed.common.logging as logger
-from openfed.common.vars import DEBUG
+from loguru import logger
 from openfed.utils import openfed_class_fmt
 
 

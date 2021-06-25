@@ -1,9 +1,8 @@
 from datetime import timedelta
 
 # thread
-SLEEP_SHORT_TIME = 0.1
-SLEEP_LONG_TIME = 5.0
-SLEEP_VERY_LONG_TIME = 30.0
+SLEEP_SHORT_TIME = timedelta(seconds=0.1)
+SLEEP_LONG_TIME = timedelta(seconds=5.0)
 
 # communication
 DEFAULT_PG_TIMEOUT = timedelta(minutes=30)

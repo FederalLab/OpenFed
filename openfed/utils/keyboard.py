@@ -1,6 +1,6 @@
 import sys
 
-import openfed.common.logging as logger
+from loguru import logger
 from openfed.federated.destroy import Destroy
 
 

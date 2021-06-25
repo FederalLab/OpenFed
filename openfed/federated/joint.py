@@ -1,6 +1,6 @@
 import time
 
-import openfed.common.logging as logger
+from loguru import logger
 from openfed.common.address import Address
 from openfed.common.thread import SafeTread
 from openfed.federated.country import Country

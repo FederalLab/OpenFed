@@ -3,9 +3,8 @@ import platform
 from abc import abstractmethod
 from typing import Any, Dict
 
-import openfed
 import torch
-import openfed.common.logging as logger
+from loguru import logger
 from openfed.utils import openfed_class_fmt
 from openfed.utils.table import tablist
 from torch.optim.lr_scheduler import _LRScheduler

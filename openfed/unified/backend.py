@@ -2,7 +2,7 @@ import time
 from typing import Dict, List, Union
 
 import openfed
-import openfed.common.logging as logger
+from loguru import logger
 from openfed.aggregate import Aggregator
 from openfed.common import (MAX_TRY_TIMES, Address, Hook, Peeper, SafeTread,
                             default_address)
@@ -157,7 +157,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                 logger.warning(
                     f"Max Try Times: {max_try_times}/{MAX_TRY_TIMES}")
                 logger.warning(f"Empty Reign\n{self}")
-                time.sleep(openfed.SLEEP_LONG_TIME)
+                time.sleep(openfed.SLEEP_LONG_TIME.seconds)
             else:
                 max_try_times = 0
 
@@ -165,7 +165,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                 self.manual_stop()
 
             # left some time to maintainer lock
-            time.sleep(openfed.SLEEP_SHORT_TIME)
+            time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
         self.finish()
         return "Backend exited."
 
@@ -208,7 +208,6 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         #     # increase the total received_numbers
         #     self.received_numbers += 1
 
-        #     if openfed.VERBOSE.is_verbose:
         #         logger.info(f"Receive Model\n"
         #                     f"@{self.received_numbers}\n"
         #                     f"From {self.reign}"
@@ -229,8 +228,6 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         # self.reign.pack_state(self.aggregator)
         # self.reign.pack_state(self.optimizer)
 
-        # if openfed.DEBUG.is_debug:
-        #     logger.info("Send")
         # return True
 
     @_backend_access

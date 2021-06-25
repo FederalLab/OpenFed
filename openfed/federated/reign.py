@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Callable, Generator, Tuple, TypeVar
 
 import openfed
-import openfed.common.logging as logger
+from loguru import logger
 from openfed.common.vars import ASYNC_OP
 from openfed.federated.country import Country, ProcessGroup, Store
 from openfed.federated.deliver import Delivery
@@ -99,7 +99,7 @@ class Reign(Informer, Delivery):
                 toc = time.time()
                 if timedelta(seconds=toc-tic) > openfed.DEFAULT_PG_TIMEOUT:
                     raise ConnectTimeout(self)
-                time.sleep(openfed.SLEEP_SHORT_TIME)
+                time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
         else:
             # check state first
             if not _state():

@@ -3,7 +3,7 @@ from threading import Lock
 from typing import Dict, List, Union
 
 import openfed
-import openfed.common.logging as logger
+from loguru import logger
 from openfed.common.address import Address
 from openfed.common.array import Array
 from openfed.common.thread import SafeTread
@@ -152,7 +152,7 @@ class Maintainer(Array, SafeTread):
 
             if len(self) == 0:
                 if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
-                    time.sleep(openfed.SLEEP_LONG_TIME)
+                    time.sleep(openfed.SLEEP_LONG_TIME.seconds)
                 else:
                     return f"Success: {len(self.finished_queue)} new federated world added."
             else:
@@ -161,7 +161,7 @@ class Maintainer(Array, SafeTread):
                         self.abnormal_exited = True
                         break
                 else:
-                    time.sleep(openfed.SLEEP_LONG_TIME)
+                    time.sleep(openfed.SLEEP_LONG_TIME.seconds)
             logger.info(self)
 
         return "Force Quit XXX" + str(self)

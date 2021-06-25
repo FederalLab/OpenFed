@@ -1,5 +1,5 @@
 import openfed
-import openfed.common.logging as logger
+from loguru import logger
 from typing_extensions import final
 
 

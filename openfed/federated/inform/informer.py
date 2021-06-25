@@ -3,7 +3,7 @@ from enum import Enum, unique
 from typing import Any, Callable, Dict
 
 import openfed
-import openfed.common.logging as logger
+from loguru import logger
 import openfed.utils as utils
 from openfed.common import Hook
 from openfed.federated.country import Country, Store
