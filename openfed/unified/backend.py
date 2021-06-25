@@ -19,17 +19,10 @@ from openfed.unified.step.before_destroy import BeforeDestroy
 from openfed.unified.step.before_download import BeforeDownload
 from openfed.unified.step.before_upload import BeforeUpload
 from openfed.unified.unify import Unify
-from openfed.unified.utils import _backend_access
+from openfed.unified.utils import _backend_access, _convert_to_list
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
-
-
-def _convert_to_list(x):
-    if not isinstance(x, (list, tuple)):
-        return [x]
-    else:
-        return x
 
 
 class Backend(Unify, SafeTread, Peeper, Hook):

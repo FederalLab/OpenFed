@@ -21,3 +21,9 @@ def _backend_access(func):
         else:
             return func(self, *args, **kwargs)
     return wrapper
+
+def _convert_to_list(x):
+    if not isinstance(x, (list, tuple)):
+        return [x]
+    else:
+        return x

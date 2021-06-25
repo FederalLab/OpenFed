@@ -35,6 +35,14 @@ openfed\.unified\.unify module
     :undoc-members:
     :show-inheritance:
 
+openfed\.unified\.utils module
+------------------------------
+
+.. automodule:: openfed.unified.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

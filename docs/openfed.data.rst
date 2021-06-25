@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     openfed.data.nlp
+    openfed.data.utils
     openfed.data.vision
 
 Submodules

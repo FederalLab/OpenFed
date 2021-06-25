@@ -2,7 +2,6 @@ from collections import OrderedDict
 from threading import Lock
 from typing import Dict
 
-import openfed
 from loguru import logger
 
 

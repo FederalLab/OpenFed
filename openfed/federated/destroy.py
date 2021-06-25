@@ -1,4 +1,3 @@
-import openfed
 from loguru import logger
 from openfed.federated.country import ProcessGroup
 from openfed.federated.register import register

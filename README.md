@@ -25,6 +25,26 @@ python3 -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.
 python3 -m openfed.launch --nproc_per_node 11 --logdir /tmp --server_output demo.py --init_method file:///tmp/openfed.sharefile
 ```
 
+## Docs
+
+```bash
+# install requirements
+pip install Sphinx
+pip install sphinx_rtd_theme
+
+# install openfed to your python path
+python setup.py install
+
+cd docs
+# generate rst files
+sphinx-apidoc -o . ../openfed/
+
+# make html
+make html
+
+# docs have been generated under 'docs/_build/html'
+```
+
 ## Build Federated Learning in an Unprecedented Simple Way
 
 ```python
