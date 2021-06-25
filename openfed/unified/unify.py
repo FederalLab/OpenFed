@@ -2,36 +2,15 @@ from typing import Dict
 
 import openfed
 from loguru import logger
-from openfed.common.exception import AccessError
 from openfed.common.thread import SafeTread
 from openfed.federated.destroy import Destroy
 from openfed.federated.maintainer import Maintainer
 from openfed.federated.reign import Reign
-from openfed.federated.utils.utils import _auto_filterout
 from openfed.federated.world import World
+from openfed.unified.utils import _backend_access
 from openfed.utils import openfed_class_fmt
 from openfed.utils.keyboard import keyboard_interrupt_handle
 from torch import Tensor
-
-
-def _frontend_access(func):
-    @_auto_filterout
-    def wrapper(self, *args, **kwargs):
-        if not self.frontend:
-            logger.debug(AccessError(func))
-        else:
-            return func(self, *args, **kwargs)
-    return wrapper
-
-
-def _backend_access(func):
-    @_auto_filterout
-    def wrapper(self, *args, **kwargs):
-        if self.frontend:
-            logger.debug(AccessError(func))
-        else:
-            return func(self, *args, **kwargs)
-    return wrapper
 
 
 class Unify(object):

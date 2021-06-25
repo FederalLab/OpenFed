@@ -12,14 +12,14 @@ from openfed.unified.step.after_download import AfterDownload
 from openfed.unified.step.after_upload import AfterUpload
 from openfed.unified.step.at_failed import AtFailed
 from openfed.unified.step.at_invalid_state import AtInvalidState
-from openfed.unified.step.at_last import AtLast
 from openfed.unified.step.at_new_episode import AtNewEpisode
 from openfed.unified.step.at_zombie import AtZombie
 from openfed.unified.step.base import Step
 from openfed.unified.step.before_destroy import BeforeDestroy
 from openfed.unified.step.before_download import BeforeDownload
 from openfed.unified.step.before_upload import BeforeUpload
-from openfed.unified.unify import Unify, _backend_access
+from openfed.unified.unify import Unify
+from openfed.unified.utils import _backend_access
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer

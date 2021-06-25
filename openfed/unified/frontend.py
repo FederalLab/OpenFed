@@ -6,7 +6,8 @@ from loguru import logger
 from openfed.common import Address, Peeper, default_address
 from openfed.common.constants import SLEEP_LONG_TIME
 from openfed.federated import Maintainer, Reign, World
-from openfed.unified.unify import Unify, _frontend_access
+from openfed.unified.unify import Unify
+from openfed.unified.utils import _frontend_access
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
