@@ -3,9 +3,9 @@ from threading import Lock
 from typing import Dict, List, Union
 
 import openfed
+import openfed.common.logging as logger
 from openfed.common.address import Address
 from openfed.common.array import Array
-from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
 from openfed.federated.joint import Joint
 from openfed.federated.lock import add_maintainer_lock, del_maintainer_lock
@@ -90,8 +90,7 @@ class Maintainer(Array, SafeTread):
                 self.finished_queue[str_add] = [
                     time.time(), try_cnt+1, address]
             else:
-                if openfed.VERBOSE.is_verbose:
-                    logger.info("Waiting for a valid address")
+                logger.info("Waiting for a valid address")
 
     def read_address_from_file(self) -> None:
         if self.address_file is None:
@@ -107,11 +106,10 @@ class Maintainer(Array, SafeTread):
                 # already connected
                 ...
             elif str(add) in self.discard_queue:
-                if openfed.DEBUG.is_debug:
-                    logger.error(
-                        f"Error Address"
-                        f"{str(add)}"
-                        f"Discarded.")
+                logger.error(
+                    f"Error Address"
+                    f"{str(add)}"
+                    f"Discarded.")
             else:
                 # add address to pending queue
                 self.pending_queue[str(add)] = [time.time(), 0, add]
@@ -140,11 +138,10 @@ class Maintainer(Array, SafeTread):
                         try_cnt += 1
                         if try_cnt > openfed.MAX_TRY_TIMES:
                             # move to discard queue
-                            if openfed.VERBOSE.is_verbose:
-                                logger.error(
-                                    "Error Address\n"
-                                    f"{str_add}"
-                                    f"Discarded.")
+                            logger.error(
+                                "Error Address"
+                                f"{str_add}"
+                                f"Discarded.")
                             self.discard_queue[str_add] = [
                                 time.time(), try_cnt, address]
                             del self.pending_queue[str_add]
@@ -165,8 +162,8 @@ class Maintainer(Array, SafeTread):
                         break
                 else:
                     time.sleep(openfed.SLEEP_LONG_TIME)
-            if openfed.DEBUG.is_debug:
-                logger.info(str(self))
+            logger.info(self)
+
         return "Force Quit XXX" + str(self)
 
     def kill_world(self) -> None:
@@ -179,10 +176,11 @@ class Maintainer(Array, SafeTread):
 
     def manual_joint(self, address: Address) -> None:
         if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.king:
-            raise RuntimeError("Dynamic loading is not allowed!")
+            msg = "Dynamic loading is not allowed!"
+            logger.exception(msg)
+            raise RuntimeError(msg)
+        logger.info(f"Manually add a new address: {repr(address)}")
 
-        if openfed.VERBOSE.is_verbose:
-            logger.info(f"Manually add a new address: {repr(address)}")
         if self.world.king:
             self.pending_queue[str(address)] = [time.time(), 0, address]
         else:

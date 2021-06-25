@@ -1,8 +1,7 @@
 import time
 
-import openfed
+import openfed.common.logging as logger
 from openfed.common.address import Address
-from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
 from openfed.federated.country import Country
 from openfed.federated.register import register
@@ -47,8 +46,7 @@ class Joint(SafeTread):
                     raise RuntimeError(msg)
 
     def safe_run(self) -> str:
-        if openfed.VERBOSE.is_verbose:
-            logger.info(f"Waiting\n{repr(self.address)}")
+        logger.info(f"Waiting\n{repr(self.address)}")
 
         # create a country
         country = Country(self.world)
@@ -58,8 +56,7 @@ class Joint(SafeTread):
             country.init_process_group(**self.address.as_dict)
         except ConnectTimeout as cte:
             del country
-            if openfed.DEBUG.is_debug:
-                logger.error(str(cte))
+            logger.debug(cte)
             return f"Timeout {repr(self.address)}"
 
         # register the world
@@ -91,8 +88,7 @@ class Joint(SafeTread):
                     # if any is success, we take it okay.
                     self.build_success = True
                 except BuildReignFailed as e:
-                    if openfed.DEBUG.is_debug:
-                        logger.error(str(e))
+                    logger.exception(e)
                     continue
                 with self.world.joint_lock:
                     self.world._pg_mapping[sub_pg] = reign
@@ -112,13 +108,11 @@ class Joint(SafeTread):
                     self.world._pg_mapping[pg] = reign
                 self.build_success = True
             except BuildReignFailed as e:
-                if openfed.DEBUG.is_debug:
-                    logger.error(e)
+                logger.exception(e)
                 self.build_success = False
 
-        if self.build_success and openfed.VERBOSE.is_verbose:
-            logger.info(
-                f"Connected\n{str(self.address)}")
+        if self.build_success:
+            logger.info(f"Connected\n{str(self.address)}")
         return f"Success! {repr(self.address)}" if self.build_success else f"Failed! {repr(self.address)}"
 
     def __repr__(self) -> str:

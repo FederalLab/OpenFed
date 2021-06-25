@@ -1,5 +1,5 @@
 import openfed
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 from openfed.federated.country import ProcessGroup
 from openfed.federated.register import register
 from openfed.federated.reign import Reign
@@ -26,8 +26,7 @@ class Destroy(object):
         country.destroy_process_group(pg)
 
         if not country.is_initialized() or country._group_count == 1:
-            if openfed.DEBUG.is_debug:
-                logger.info(f"Destroy {country}")
+            logger.debug(f"Destroy {country}")
             register.deleted_country(country)
         else:
             ...
@@ -70,8 +69,5 @@ class Destroy(object):
             del reign
             return True
         except Exception as e:
-            if openfed.DEBUG.is_debug:
-                raise e
-            else:
-                logger.error(e)
+            logger.exception(e)
             return False

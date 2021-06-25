@@ -1,6 +1,6 @@
 import sys
 
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 from openfed.federated.destroy import Destroy
 
 
@@ -16,6 +16,6 @@ def keyboard_interrupt_handle():
             logger.info("Keyboard Interrupt")
             logger.warning("Force Quit!")
             Destroy.destroy_all_in_all_world()
-            logger.info("Exited.")
+            logger.success("Exited.")
             old_excepthook(type, value, traceback)
     sys.excepthook = keyboard_interrupt_hook

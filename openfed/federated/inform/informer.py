@@ -3,8 +3,9 @@ from enum import Enum, unique
 from typing import Any, Callable, Dict
 
 import openfed
+import openfed.common.logging as logger
 import openfed.utils as utils
-from openfed.common import Hook, logger
+from openfed.common import Hook
 from openfed.federated.country import Country, Store
 from openfed.federated.inform.functional import Collector, GPUInfo, SystemInfo
 from openfed.federated.utils.exception import (BuildReignFailed,
@@ -138,8 +139,7 @@ class Informer(Hook):
         try:
             old_info = safe_store_get(self.store, self._i_key)
         except InvalidStoreReading as e:
-            if openfed.DEBUG.is_debug:
-                logger.error(e)
+            logger.exception(e)
             old_info = self._do_not_access_backup_info
         finally:
             old_info.update(info)
@@ -154,8 +154,7 @@ class Informer(Hook):
             info = safe_store_get(self.store, self._u_key)
             self.fresh_read = True
         except InvalidStoreReading as e:
-            if openfed.DEBUG.is_debug:
-                logger.error(e)
+            logger.exception(e)
             info = self._backup_info
             # use the cached one instead.
             # but at the same time, we need to set the state as zombie
@@ -176,16 +175,12 @@ class Informer(Hook):
         def wrapper(self, *args, **kwargs):
             output = func(self, *args, **kwargs)
             if not self.fresh_read:
-                if openfed.DEBUG.is_debug:
-                    raise InvalidStoreReading
-                else:
-                    logger.error(
-                        "Use an cached value instead a fresh required data."
-                        "Which may cause Error."
-                        f"func: {func}"
-                        f"args: {args}"
-                        f"kwargs: {kwargs}"
-                    )
+                logger.error(
+                    "Use an cached value instead a fresh required data."
+                    "Which may cause Error."
+                    f"func: {func}"
+                    f"args: {args}"
+                    f"kwargs: {kwargs}")
             return output
         return wrapper
 

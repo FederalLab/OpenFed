@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 import openfed
 import torch
-from openfed.common import logger
+import openfed.common.logging as logger
 from openfed.utils import openfed_class_fmt
 from openfed.utils.table import tablist
 from torch.optim.lr_scheduler import _LRScheduler
@@ -66,8 +66,7 @@ class SystemInfo(Collector):
 
     def better_read(self):
         if self.message is None:
-            if openfed.DEBUG.is_debug:
-                logger.error("Empty message received.")
+            logger.error("Empty message received.")
             return ""
         else:
             return tablist(
@@ -107,8 +106,7 @@ class GPUInfo(Collector):
 
     def better_read(self):
         if self.message is None:
-            if openfed.DEBUG.is_debug:
-                logger.error("Empty message received.")
+            logger.error("Empty message received.")
             return ""
         else:
             return tablist(

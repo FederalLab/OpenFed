@@ -1,8 +1,8 @@
 from typing import Dict
 
 import openfed
+import openfed.common.logging as logger
 from openfed.common.exception import AccessError
-from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
 from openfed.common.vars import DEBUG, VERBOSE
 from openfed.federated.destroy import Destroy
@@ -69,8 +69,7 @@ class Unify(object):
         """
         self.frontend = frontend
         if capture_keyboard_interrupt:
-            if DEBUG.is_debug:
-                logger.info("OpenFed will capture keyboard interrupt signal.")
+            logger.debug("OpenFed will capture keyboard interrupt signal.")
             keyboard_interrupt_handle()
 
         if self.frontend:
@@ -105,8 +104,7 @@ class Unify(object):
         self.maintainer.manual_stop()
 
         if not self.frontend:
-            if VERBOSE.is_verbose:
-                logger.info("Finished.\n"+str(self))
+            logger.info(f"Finished.\n {self}")
             exit(0)
 
     @_backend_access

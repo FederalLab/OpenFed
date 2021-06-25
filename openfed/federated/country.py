@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from openfed.common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                       DEFAULT_PG_SHORT_TIMEOUT,
                                       DEFAULT_PG_TIMEOUT)
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 from openfed.common.vars import DEBUG
 from openfed.federated.lock import acquire_all, release_all
 from openfed.federated.utils.exception import ConnectTimeout
@@ -356,8 +356,7 @@ class Country(object):
                 store, rank, world_size = attempt_init_store(
                     rank, world_size, tmp_timeout)
             except Exception as e:
-                if DEBUG.is_debug:
-                    logger.error(e)
+                logger.exception(e)
                 raise ConnectTimeout
             finally:
                 ...
@@ -506,8 +505,7 @@ class Country(object):
             else:
                 raise ConnectTimeout(str(re))
         except TimeoutError as te:
-            if DEBUG.is_debug:
-                logger.error("Timeout while building the backend.")
+            logger.exception(te)
             raise ConnectTimeout(str(te))
         except Exception as e:
             raise e

@@ -2,7 +2,7 @@ from collections import OrderedDict
 from typing import Dict
 
 from openfed.common.array import Array
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 from openfed.common.vars import DEBUG
 from openfed.utils import openfed_class_fmt
 
@@ -35,9 +35,7 @@ class _Register(Array):
     def deleted_country(cls, country: Country):
         if country in _country:
             if country.is_initialized():
-                if DEBUG.is_debug:
-                    logger.info(
-                        f"Forece to delete country: {country}")
+                logger.info(f"Force to delete country: {country}")
                 country.destroy_process_group(
                     group=country.WORLD)
 

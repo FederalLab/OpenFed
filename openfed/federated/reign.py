@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Callable, Generator, Tuple, TypeVar
 
 import openfed
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 from openfed.common.vars import ASYNC_OP
 from openfed.federated.country import Country, ProcessGroup, Store
 from openfed.federated.deliver import Delivery
@@ -204,7 +204,5 @@ class Reign(Informer, Delivery):
         if len(register) == 0:
             logger.warning("Empty world.")
         if len(register) > 1:
-            if openfed.VERBOSE.is_verbose:
-                logger.info(
-                    "More than one register world, use the earliest one.")
+            logger.info("More than one register world, use the earliest one.")
         return register.default_world.default_reign

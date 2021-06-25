@@ -3,7 +3,7 @@ from threading import Lock
 from typing import Dict
 
 import openfed
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 
 
 class Maintainer():
@@ -24,8 +24,7 @@ def del_maintainer_lock(maintainer: Maintainer):
     if maintainer in _maintainer_lock_dict:
         del _maintainer_lock_dict[maintainer]
     else:
-        if openfed.DEBUG.is_debug:
-            logger.error("Maintainer lock is already deleted.")
+        logger.debug("Maintainer lock is already deleted.")
 
 
 def acquire_all():

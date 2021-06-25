@@ -2,7 +2,8 @@ import time
 from typing import Any, Dict, List, Union
 
 import openfed
-from openfed.common import Address, Peeper, default_address, logger
+from openfed.common import Address, Peeper, default_address
+import openfed.common.logging as logger
 from openfed.common.constants import SLEEP_LONG_TIME
 from openfed.federated import Maintainer, Reign, World
 from openfed.unified.unify import Unify, _frontend_access
@@ -32,8 +33,7 @@ class Frontend(Unify, Peeper):
         self.world = world
         self.maintainer = Maintainer(self.world, address)
         while not Reign.default_reign():
-            if openfed.VERBOSE.is_verbose:
-                logger.info("Wait for generating a valid reign")
+            logger.info("Wait for generating a valid reign")
             time.sleep(SLEEP_LONG_TIME)
         self.reign = Reign.default_reign()
 

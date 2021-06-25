@@ -2,8 +2,7 @@ from abc import abstractmethod
 from threading import Thread
 from typing import Any, Dict
 
-import openfed
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 from openfed.utils import openfed_class_fmt, time_string
 from openfed.utils.table import tablist
 from typing_extensions import final
@@ -20,8 +19,7 @@ class SafeTread(Thread):
         # register to global pool
         _thread_pool[self] = time_string()
 
-        if openfed.DEBUG.is_debug:
-            logger.info(f"Create Thread: {self}")
+        logger.debug(f"Create thread: {self}")
 
     @final
     def run(self):
@@ -33,15 +31,12 @@ class SafeTread(Thread):
         self.stopped = True
 
     def safe_exit(self, msg: str):
-        if openfed.DEBUG.is_debug:
-            create_time_string = _thread_pool[self]
-            logger.info(
-                tablist(
-                    head=["Exited Thread", "MSG",
-                          "Created Time", "Exited Time"],
-                    data=[self, msg, create_time_string, time_string()]
-                )
+        logger.debug(
+            tablist(
+                head=["Exited thread", "MSG", "Create time", "Exited time"],
+                data=[self, msg, _thread_pool[self], time_string()]
             )
+        )
         del _thread_pool[self]
 
     def __repr__(self) -> str:

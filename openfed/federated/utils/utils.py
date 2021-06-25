@@ -1,5 +1,5 @@
 import openfed
-from openfed.common.logging import logger
+import openfed.common.logging as logger
 from typing_extensions import final
 
 
@@ -11,11 +11,7 @@ def _auto_offline(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as e:
-            if openfed.DEBUG.is_debug:
-                raise e
-            if openfed.VERBOSE.is_verbose:
-                logger.error(e)
-            # Set offline
+            logger.exception(e)
             self.offline()
             return False
     return wrapper
@@ -29,9 +25,6 @@ def _auto_filterout(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as e:
-            if openfed.DEBUG.is_debug:
-                raise e
-            if openfed.VERBOSE.is_verbose:
-                logger.warning(e)
+            logger.exception(e)
             return False
     return wrapper

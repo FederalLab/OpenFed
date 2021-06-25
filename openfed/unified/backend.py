@@ -2,7 +2,7 @@ import time
 from typing import Dict, List, Union
 
 import openfed
-from loguru import logger
+import openfed.common.logging as logger
 from openfed.aggregate import Aggregator
 from openfed.common import (MAX_TRY_TIMES, Address, Hook, Peeper, SafeTread,
                             default_address)
@@ -13,13 +13,20 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 
+def _convert_to_list(x):
+    if not isinstance(x, (list, tuple)):
+        return [x]
+    else:
+        return x
+
+
 class Backend(Unify, SafeTread, Peeper, Hook):
     """An unified API of backend for users.
     """
-    aggregator: Aggregator
-    optimizer: Optimizer
+    aggregator: List[Aggregator]
+    optimizer: List[Optimizer]
 
-    state_dict: Dict[str, Tensor]
+    state_dict: List[Dict[str, Tensor]]
 
     maintainer: Maintainer
 
@@ -68,17 +75,30 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
         SafeTread.__init__(self)
 
-    @_backend_access
-    def set_state_dict(self, state_dict: Dict[str, Tensor]):
-        self.state_dict = state_dict
+        # Initialize properties
+        self.aggregator = None
+        self.optimizer = None
+        self.state_dict = None
+        self.maintainer = None
+        self.reign = None
 
     @_backend_access
-    def set_optimizer(self, optimizer: Optimizer):
-        self.optimizer = optimizer
+    def set_state_dict(self, state_dict: Union[List[Dict[str, Tensor]], Dict[str, Tensor]]):
+        logger.info(
+            f"{'Set' if not self.state_dict else 'Unset'} state dict.")
+        self.state_dict = _convert_to_list(state_dict)
 
     @_backend_access
-    def set_aggregator(self, aggregator: Aggregator):
-        self.aggregator = aggregator
+    def set_optimizer(self, optimizer: Union[List[Optimizer], Optimizer]):
+        logger.info(
+            f"{'Set' if not self.state_dict else 'Unset'} optimizer.")
+        self.optimizer = _convert_to_list(optimizer)
+
+    @_backend_access
+    def set_aggregator(self, aggregator: Union[List[Aggregator], Aggregator]):
+        logger.info(
+            f"{'Set' if not self.state_dict else 'Unset'} aggregator.")
+        self.aggregator = _convert_to_list(aggregator)
 
     @_backend_access
     def safe_run(self):
@@ -175,42 +195,43 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
     @_backend_access
     def step_after_download(self, state=...):
+        pass
+        # assert self.aggregator is not None
+        # if state:
+        #     # fetch data from federated core.
+        #     packages = self.reign.tensor_indexed_packages
+        #     task_info = self.reign.task_info
 
-        assert self.aggregator is not None
-        if state:
-            # fetch data from federated core.
-            packages = self.reign.tensor_indexed_packages
-            task_info = self.reign.task_info
+        #     # add received data to aggregator
+        #     self.aggregator.step(packages, task_info)
 
-            # add received data to aggregator
-            self.aggregator.step(packages, task_info)
+        #     # increase the total received_numbers
+        #     self.received_numbers += 1
 
-            # increase the total received_numbers
-            self.received_numbers += 1
-
-            if openfed.VERBOSE.is_verbose:
-                logger.info(f"Receive Model\n"
-                            f"@{self.received_numbers}\n"
-                            f"From {self.reign}"
-                            )
+        #     if openfed.VERBOSE.is_verbose:
+        #         logger.info(f"Receive Model\n"
+        #                     f"@{self.received_numbers}\n"
+        #                     f"From {self.reign}"
+        #                     )
 
     @_backend_access
     def step_before_upload(self) -> bool:
-        assert self.optimizer is not None
-        assert self.aggregator is not None
-        assert self.state_dict is not None
+        pass
+        # assert self.optimizer is not None
+        # assert self.aggregator is not None
+        # assert self.state_dict is not None
 
-        # reset old data
-        self.reign.reset()
+        # # reset old data
+        # self.reign.reset()
 
-        # pack new data
-        self.reign.set_state_dict(self.state_dict)
-        self.reign.pack_state(self.aggregator)
-        self.reign.pack_state(self.optimizer)
+        # # pack new data
+        # self.reign.set_state_dict(self.state_dict)
+        # self.reign.pack_state(self.aggregator)
+        # self.reign.pack_state(self.optimizer)
 
-        if openfed.DEBUG.is_debug:
-            logger.info("Send")
-        return True
+        # if openfed.DEBUG.is_debug:
+        #     logger.info("Send")
+        # return True
 
     @_backend_access
     def step_after_upload(self, state=...):
@@ -220,18 +241,19 @@ class Backend(Unify, SafeTread, Peeper, Hook):
     def step_at_last(self):
         """Related function to control the server state.
         """
-        if self.received_numbers == 100:
-            # the following code is just used for testing.
-            # you should rewrite your logics code instead.
-            task_info = self.aggregator.aggregate()
-            self.aggregator.unpack_state(self.optimizer)
-            self.optimizer.step()
-            self.aggregator.zero_grad()
-            self.received_numbers = 0
-            self.last_aggregate_time = time.time()
-            self.finish()
-        else:
-            ...
+        pass
+        # if self.received_numbers == 100:
+        #     # the following code is just used for testing.
+        #     # you should rewrite your logics code instead.
+        #     task_info = self.aggregator.aggregate()
+        #     self.aggregator.unpack_state(self.optimizer)
+        #     self.optimizer.step()
+        #     self.aggregator.zero_grad()
+        #     self.received_numbers = 0
+        #     self.last_aggregate_time = time.time()
+        #     self.finish()
+        # else:
+        #     ...
 
     @_backend_access
     def step_at_invalid_state(self):
