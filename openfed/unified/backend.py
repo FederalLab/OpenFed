@@ -29,6 +29,8 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
     state_dict: List[Dict[str, Tensor]]
 
+    task_info_list: List[Dict]
+
     maintainer: Maintainer
 
     reign: Reign
@@ -36,8 +38,6 @@ class Backend(Unify, SafeTread, Peeper, Hook):
     version: int
 
     received_numbers: int
-
-    last_aggregate_time: float
 
     frontend: bool = False
 
@@ -90,16 +90,12 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         self.state_dict = _convert_to_list(state_dict)
 
     @_backend_access
-    def set_optimizer(self, optimizer: Union[List[Optimizer], Optimizer]):
-        logger.info(
-            f"{'Set' if not self.state_dict else 'Unset'} optimizer.")
-        self.optimizer = _convert_to_list(optimizer)
-
-    @_backend_access
-    def set_aggregator(self, aggregator: Union[List[Aggregator], Aggregator]):
-        logger.info(
-            f"{'Set' if not self.state_dict else 'Unset'} aggregator.")
-        self.aggregator = _convert_to_list(aggregator)
+    def set_aggregator_and_optimizer(self, aggregator: Union[Aggregator, List[Aggregator]], optimizer: Union[Optimizer, List[Optimizer]]):
+        aggregator = _convert_to_list(aggregator)
+        optimizer = _convert_to_list(optimizer)
+        assert len(aggregator) == len(optimizer)
+        self.aggregator = aggregator
+        self.optimizer = optimizer
 
     @_backend_access
     def safe_run(self):
