@@ -45,6 +45,14 @@ args = openfed.parser.parse_args()
 # >>> Specify an API for building federated learning
 openfed_api = openfed.API(frontend=args.rank > 0)
 
+# >>> Specify a aggregate trigger
+# It means that every 10 received models will make an aggregate operation.
+aggregate_trigger = openfed.AggregateCount(
+    count=2, checkpoint="/tmp/openfed-model")
+
+# >>> Set the aggregate trigger
+openfed_api.set_aggregate_triggers(aggregate_trigger)
+
 # >>> Connect to Address.
 openfed_api.build_connection(address=openfed.Address(args=args))
 
@@ -58,8 +66,7 @@ optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 aggregator = aggregate.AverageAggregator(net.parameters())
 
 # >>> Set optimizer and aggregator for federated learning.
-openfed_api.set_optimizer(optimizer)
-openfed_api.set_aggregator(aggregator)
+openfed_api.set_aggregator_and_optimizer(aggregator, optimizer)
 
 # >>> Tell OpenFed API which data should be transferred.
 openfed_api.set_state_dict(net.state_dict(keep_vars=True))
@@ -82,7 +89,7 @@ with openfed_api:
         if not openfed_api.download():
             print(f"Downloading failed.")
             break
-        
+
         # Downloaded
         print(f"{time_string()}: Downloaded!")
 
@@ -97,6 +104,9 @@ with openfed_api:
             print("Uploading failed.")
             break
         print(f"{time_string()}: Uploaded!")
+
+        # >>> Update inner model version
+        openfed_api.update_version()
 
 # >>> Finished
 openfed_api.finish()
@@ -135,7 +145,6 @@ openfed
 │   ├── constants.py
 │   ├── exception.py
 │   ├── hook.py
-│   ├── logging.py
 │   ├── package.py
 │   ├── parser.py
 │   ├── peeper.py
@@ -180,24 +189,30 @@ openfed
 ├── launch.py
 ├── optim
 │   ├── __init__.py
-│   └── elastic_aux.py
+│   ├── aux
+│   │   ├── __init__.py
+│   │   ├── aux.py
+│   │   ├── elastic_aux.py
+│   │   └── prox_aux.py
+│   └── scaffold.py
 ├── unified
 │   ├── __init__.py
 │   ├── backend.py
 │   ├── frontend.py
-│   ├── step_hooks
+│   ├── step
 │   │   ├── __init__.py
-│   │   ├── step_after_destroy.py
-│   │   ├── step_after_download.py
-│   │   ├── step_after_upload.py
-│   │   ├── step_at_failed.py
-│   │   ├── step_at_invalid_state.py
-│   │   ├── step_at_last.py
-│   │   ├── step_at_new_episode.py
-│   │   ├── step_at_zombie.py
-│   │   ├── step_before_destroy.py
-│   │   ├── step_before_download.py
-│   │   └── step_before_upload.py
+│   │   ├── after_destroy.py
+│   │   ├── after_download.py
+│   │   ├── after_upload.py
+│   │   ├── at_failed.py
+│   │   ├── at_invalid_state.py
+│   │   ├── at_last.py
+│   │   ├── at_new_episode.py
+│   │   ├── at_zombie.py
+│   │   ├── base.py
+│   │   ├── before_destroy.py
+│   │   ├── before_download.py
+│   │   └── before_upload.py
 │   └── unify.py
 └── utils
     ├── __init__.py
@@ -205,5 +220,5 @@ openfed
     ├── table.py
     └── utils.py
 
-13 directories, 71 files
+14 directories, 75 files
 ```
