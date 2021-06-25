@@ -7,9 +7,10 @@ class AfterDownload(Step):
 
     def __call__(self, backend: Backend, flag: bool) -> None:
         if flag:  # Download success
-            if backend.reign.version != backend.version:
+            # download is to check others upload version
+            if backend.reign.upload_version != backend.version:
                 logger.warning(
-                    f"Excepted @{backend.version}, received @{backend.reign.version}, discard.")
+                    f"Excepted @{backend.version}, received @{backend.reign.upload_version}, discard.")
                 return
             # Fetch data from federated core
             packages = backend.reign.tensor_indexed_packages

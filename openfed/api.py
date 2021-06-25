@@ -21,11 +21,23 @@ class API(Frontend, Backend):
                  dynamic_address_loading: bool = True,
                  register_default_step_for_backend: bool = True):
         if frontend:
-            Frontend.__init__(self, frontend, capture_keyboard_interrupt, async_op_beckend,
-                              dynamic_address_loading, register_default_step_for_backend)
+            Frontend.__init__(
+                self,
+                frontend=frontend,
+                capture_keyboard_interrupt=capture_keyboard_interrupt,
+                async_op_beckend=async_op_beckend,
+                dynamic_address_loading=dynamic_address_loading,
+                register_default_step_for_backend=register_default_step_for_backend,
+            )
         else:
-            Backend.__init__(self, frontend, capture_keyboard_interrupt, async_op_beckend,
-                             dynamic_address_loading, register_default_step_for_backend)
+            Backend.__init__(
+                self,
+                frontend=frontend,
+                capture_keyboard_interrupt=capture_keyboard_interrupt,
+                async_op_beckend=async_op_beckend,
+                dynamic_address_loading=dynamic_address_loading,
+                register_default_step_for_backend=register_default_step_for_backend,
+            )
 
     def build_connection(self,
                          world: World = None,

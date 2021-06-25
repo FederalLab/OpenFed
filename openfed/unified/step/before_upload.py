@@ -8,9 +8,10 @@ class BeforeUpload(Step):
     def __call__(self, backend: Backend, *args, **kwargs) -> bool:
 
         # Check version requirements
-        if backend.reign.version > backend.version:
+        # upload is to check other download version.
+        if backend.reign.download_version > backend.version:
             logger.warning(
-                f"Version not aligned. (request @{backend.reign.version}, but @{backend.reign.version}).")
+                f"Version not aligned. (request @{backend.reign.download_version}, but @{backend.version}).")
             # Version is not satisfied.
             return False
 

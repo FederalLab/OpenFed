@@ -58,6 +58,20 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         SafeTread.__init__(self)
         register_default_step_for_backend = kwargs['register_default_step_for_backend']
 
+        # Set default value.
+        self.stopped = False
+        self.version = 0
+        self.reign = None
+        self.received_numbers = 0
+        self.last_aggregate_time = time.time()
+
+        # Initialize properties
+        self.aggregator = None
+        self.optimizer = None
+        self.state_dict = None
+        self.maintainer = None
+        self.reign = None
+
         if register_default_step_for_backend:
             self.register_step(AfterDestroy())
             self.register_step(AfterDownload())
@@ -99,31 +113,16 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         self.maintainer = Maintainer(
             world, address=address, address_file=address_file)
 
-        # Set default value.
-        self.stopped = False
-        self.version = 0
-        self.reign = None
-        self.received_numbers = 0
-        self.last_aggregate_time = time.time()
-
-        # Initialize properties
-        self.aggregator = None
-        self.optimizer = None
-        self.state_dict = None
-        self.maintainer = None
-        self.reign = None
-        self.aggregate_triggers = False
-
     @_backend_access
     def set_aggregate_triggers(self, trigger: Step):
         self.register_step(trigger)
         self.aggregate_triggers = True
 
     @_backend_access
-    def set_state_dict(self, state_dict: Union[List[Dict[str, Tensor]], Dict[str, Tensor]]):
+    def set_state_dict(self, state_dict: Dict[str, Tensor]):
         logger.info(
             f"{'Set' if not self.state_dict else 'Unset'} state dict.")
-        self.state_dict = _convert_to_list(state_dict)
+        self.state_dict = state_dict
 
     @_backend_access
     def set_aggregator_and_optimizer(self, aggregator: Union[Aggregator, List[Aggregator]], optimizer: Union[Optimizer, List[Optimizer]]):
@@ -174,14 +173,16 @@ class Backend(Unify, SafeTread, Peeper, Hook):
                         elif reign.is_pushing:
                             # Client want to push data to server, we need to download.
                             if self.step("before_download"):
-                                self.step("after_download", reign.download())
+                                self.step("after_download",
+                                          reign.download(self.version))
                             else:
                                 self.step("at_failed")
                         elif reign.is_pulling:
                             # Client want to pull data from server, we need to upload
                             # if self.step_before_upload():
                             if self.step("before_upload"):
-                                self.step("after_upload", reign.upload())
+                                self.step("after_upload",
+                                          reign.upload(self.version))
                             else:
                                 self.step("at_failed")
                         else:
@@ -211,7 +212,7 @@ class Backend(Unify, SafeTread, Peeper, Hook):
     def register_step(self, step: Step):
         name = step.step_name
         name = f"{name}.{len(self.hook_dict)}"
-        Hook.register_hook(name, step)
+        self.register_hook(key=name, func=step)
 
     @_backend_access
     def step(self, step_name: str, *args, **kwargs) -> Union[None, bool]:

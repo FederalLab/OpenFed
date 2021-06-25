@@ -50,8 +50,12 @@ class Reign(Informer, Delivery):
         self._upload_hang_up = []
 
     @property
-    def version(self) -> int:
-        return self.get("version")
+    def upload_version(self) -> int:
+        return self.get("upload_version")
+
+    @property
+    def download_version(self) -> int:
+        return self.get("download_version")
 
     @property
     def upload_hang_up(self) -> bool:
@@ -151,8 +155,8 @@ class Reign(Informer, Delivery):
         """Upload packages date to the other end.
         """
 
-        # set version
-        self.set("version", version)
+        # set version on task info
+        self.set("upload_version", version)
 
         if ASYNC_OP.is_async_op:
             handle, step_func = self.push()
@@ -168,7 +172,7 @@ class Reign(Informer, Delivery):
         """
 
         # set version
-        self.set("version", version)
+        self.set("download_version", version)
 
         if ASYNC_OP.is_async_op:
             handle, step_func = self.pull()

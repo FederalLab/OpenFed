@@ -162,7 +162,6 @@ class Maintainer(Array, SafeTread):
                         break
                 else:
                     time.sleep(openfed.SLEEP_LONG_TIME.seconds)
-            logger.info(self)
 
         return "Force Quit XXX" + str(self)
 

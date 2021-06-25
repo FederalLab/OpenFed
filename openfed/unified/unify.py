@@ -18,7 +18,7 @@ def _frontend_access(func):
     @_auto_filterout
     def wrapper(self, *args, **kwargs):
         if not self.frontend:
-            raise AccessError(func)
+            logger.debug(AccessError(func))
         else:
             return func(self, *args, **kwargs)
     return wrapper
@@ -28,7 +28,7 @@ def _backend_access(func):
     @_auto_filterout
     def wrapper(self, *args, **kwargs):
         if self.frontend:
-            raise AccessError(func)
+            logger.debug(AccessError(func))
         else:
             return func(self, *args, **kwargs)
     return wrapper
@@ -101,7 +101,8 @@ class Unify(object):
 
     def finish(self):
         Destroy.destroy_all_in_a_world(self.world)
-        self.maintainer.manual_stop()
+        if self.maintainer:
+            self.maintainer.manual_stop()
 
         if not self.frontend:
             logger.info(f"Finished.\n {self}")

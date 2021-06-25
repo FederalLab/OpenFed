@@ -19,8 +19,6 @@ class SafeTread(Thread):
         # register to global pool
         _thread_pool[self] = time_string()
 
-        logger.debug(f"Create thread: {self}")
-
     @final
     def run(self):
         """
@@ -31,7 +29,7 @@ class SafeTread(Thread):
         self.stopped = True
 
     def safe_exit(self, msg: str):
-        logger.debug(
+        logger.debug("\n"+
             tablist(
                 head=["Exited thread", "MSG", "Create time", "Exited time"],
                 data=[self, msg, _thread_pool[self], time_string()]

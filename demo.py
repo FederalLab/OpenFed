@@ -18,7 +18,7 @@ openfed_api = openfed.API(frontend=args.rank > 0)
 # >>> Specify a aggregate trigger
 # It means that every 10 received models will make an aggregate operation.
 aggregate_trigger = openfed.AggregateCount(
-    count=10, checkpoint="/tmp/openfed-model")
+    count=2, checkpoint="/tmp/openfed-model")
 
 # >>> Set the aggregate trigger
 openfed_api.set_aggregate_triggers(aggregate_trigger)
@@ -74,6 +74,9 @@ with openfed_api:
             print("Uploading failed.")
             break
         print(f"{time_string()}: Uploaded!")
+
+        # >>> Update inner model version
+        openfed_api.update_version()
 
 # >>> Finished
 openfed_api.finish()

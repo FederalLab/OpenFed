@@ -66,9 +66,16 @@ class Frontend(Unify, Peeper):
         A download and upload is build a version updating.
         So increase version number here.
         """
-        flag = self._wait_handler(self.reign.upload(self.version))
-        self.version += 1
-        return flag
+        return self._wait_handler(self.reign.upload(self.version))
+
+    @_frontend_access
+    def update_version(self, version: int = None):
+        """Update inner model version.
+        """
+        if version:
+            self.version = version
+        else:
+            self.version += 1
 
     @_frontend_access
     def download(self) -> bool:

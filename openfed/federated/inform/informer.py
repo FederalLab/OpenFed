@@ -47,22 +47,17 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
 
     try:
         store.set(key, jsonstr)
+        return True
     except Exception as e:
         raise InvalidStoreWriting(e)
-    finally:
-        return True
-
 
 def safe_store_get(store: Store, key: str) -> Dict:
     try:
         jsonbytes = store.get(key)
         jsonstr = str(jsonbytes, encoding='utf-8')
-        info = json.loads(jsonstr)
+        return json.loads(jsonstr)
     except Exception as e:
         raise InvalidStoreReading(e)
-    finally:
-        return info
-
 
 class Informer(Hook):
     """Informer: keep the real time communication between each other via string.
@@ -140,6 +135,8 @@ class Informer(Hook):
             old_info = safe_store_get(self.store, self._i_key)
         except InvalidStoreReading as e:
             logger.exception(e)
+            old_info = self._do_not_access_backup_info
+        except Exception as e:
             old_info = self._do_not_access_backup_info
         finally:
             old_info.update(info)
@@ -259,8 +256,11 @@ class Informer(Hook):
         """Collect message from other side.
         """
         for k, f in self.hook_dict.items():
-            f.load_message(self.get(k))
-            logger.info(f)
+            try:
+                f.load_message(self.get(k))
+                logger.info(f)
+            except KeyError:
+                pass
 
     def scatter(self):
         """Scatter self.hook information to the other end.
