@@ -14,6 +14,19 @@ class API(Frontend, Backend):
     """Provide a unified API for users on backend and frontend.
     """
 
+    def __init__(self,
+                 frontend: bool = True,
+                 capture_keyboard_interrupt: bool = True,
+                 async_op_beckend: bool = True,
+                 dynamic_address_loading: bool = True,
+                 register_default_step_for_backend: bool = True):
+        if frontend:
+            Frontend.__init__(self, frontend, capture_keyboard_interrupt, async_op_beckend,
+                              dynamic_address_loading, register_default_step_for_backend)
+        else:
+            Backend.__init__(self, frontend, capture_keyboard_interrupt, async_op_beckend,
+                             dynamic_address_loading, register_default_step_for_backend)
+
     def build_connection(self,
                          world: World = None,
                          address: Union[Address, List[Address]] = None,

@@ -7,7 +7,18 @@ from openfed.aggregate import Aggregator
 from openfed.common import (MAX_TRY_TIMES, Address, Hook, Peeper, SafeTread,
                             default_address)
 from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
+from openfed.unified.step.after_destroy import AfterDestroy
+from openfed.unified.step.after_download import AfterDownload
+from openfed.unified.step.after_upload import AfterUpload
+from openfed.unified.step.at_failed import AtFailed
+from openfed.unified.step.at_invalid_state import AtInvalidState
+from openfed.unified.step.at_last import AtLast
+from openfed.unified.step.at_new_episode import AtNewEpisode
+from openfed.unified.step.at_zombie import AtZombie
 from openfed.unified.step.base import Step
+from openfed.unified.step.before_destroy import BeforeDestroy
+from openfed.unified.step.before_download import BeforeDownload
+from openfed.unified.step.before_upload import BeforeUpload
 from openfed.unified.unify import Unify, _backend_access
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
@@ -39,7 +50,28 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
     received_numbers: int
 
-    frontend: bool = False
+    # A flag to indicate whether set the triggered step for backend.
+    aggregate_triggers: bool
+
+    def __init__(self, *args,  **kwargs):
+        Unify.__init__(self, *args, **kwargs)
+        SafeTread.__init__(self)
+        register_default_step_for_backend = kwargs['register_default_step_for_backend']
+
+        if register_default_step_for_backend:
+            self.register_step(AfterDestroy())
+            self.register_step(AfterDownload())
+            self.register_step(AfterUpload())
+            self.register_step(AtFailed())
+            self.register_step(AtInvalidState())
+            # There may be some different operations on at last operations.
+            # Do not register it as a default operation.
+            # self.register_step(AtLast())
+            self.register_step(AtNewEpisode())
+            self.register_step(AtZombie())
+            self.register_step(BeforeDestroy())
+            self.register_step(BeforeDownload())
+            self.register_step(BeforeUpload())
 
     @_backend_access
     def build_connection(self,
@@ -74,14 +106,18 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         self.received_numbers = 0
         self.last_aggregate_time = time.time()
 
-        SafeTread.__init__(self)
-
         # Initialize properties
         self.aggregator = None
         self.optimizer = None
         self.state_dict = None
         self.maintainer = None
         self.reign = None
+        self.aggregate_triggers = False
+
+    @_backend_access
+    def set_aggregate_triggers(self, trigger: Step):
+        self.register_step(trigger)
+        self.aggregate_triggers = True
 
     @_backend_access
     def set_state_dict(self, state_dict: Union[List[Dict[str, Tensor]], Dict[str, Tensor]]):
@@ -106,6 +142,8 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         # NOTE: release openfed_lock here.
         if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
             openfed_lock.release()
+
+        assert self.aggregate_triggers, "Call `self.set_aggregate_triggers()` first."
 
         max_try_times = 0
         while not self.stopped:

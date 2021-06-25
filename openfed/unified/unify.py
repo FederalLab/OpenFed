@@ -46,12 +46,10 @@ class Unify(object):
     version: int
 
     frontend: bool
+    # fontend xor backward == True
+    backend: bool
 
     async_op: bool
-
-    verbose: bool
-
-    debug: bool
 
     dynamic_address_loading: bool
 
@@ -59,14 +57,15 @@ class Unify(object):
                  frontend: bool = True,
                  capture_keyboard_interrupt: bool = True,
                  async_op_beckend: bool = True,
-                 verbose: bool = True,
-                 debug: bool = False,
-                 dynamic_address_loading: bool = True):
+                 dynamic_address_loading: bool = True,
+                 register_default_step_for_backend: bool = True):
         """Whether act as a frontend.
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
         """
         self.frontend = frontend
+        # Set a flag for backend.
+        self.backend = not self.frontend
         if capture_keyboard_interrupt:
             logger.debug("OpenFed will capture keyboard interrupt signal.")
             keyboard_interrupt_handle()
@@ -78,9 +77,8 @@ class Unify(object):
         else:
             self.async_op = False
 
-        self.verbose = verbose
-        self.debug = debug
         self.dynamic_address_loading = dynamic_address_loading
+        self.register_default_step_for_backend = register_default_step_for_backend
 
     @property
     def nick_name(self) -> str:
