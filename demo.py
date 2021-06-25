@@ -15,6 +15,14 @@ args = openfed.parser.parse_args()
 # >>> Specify an API for building federated learning
 openfed_api = openfed.API(frontend=args.rank > 0)
 
+# >>> Specify a aggregate trigger
+# It means that every 10 received models will make an aggregate operation.
+aggregate_trigger = openfed.AggregateCount(
+    count=10, checkpoint="/tmp/openfed-model")
+
+# >>> Set the aggregate trigger
+openfed_api.set_aggregate_triggers(aggregate_trigger)
+
 # >>> Connect to Address.
 openfed_api.build_connection(address=openfed.Address(args=args))
 
@@ -28,8 +36,7 @@ optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 aggregator = aggregate.AverageAggregator(net.parameters())
 
 # >>> Set optimizer and aggregator for federated learning.
-openfed_api.set_optimizer(optimizer)
-openfed_api.set_aggregator(aggregator)
+openfed_api.set_aggregator_and_optimizer(aggregator, optimizer)
 
 # >>> Tell OpenFed API which data should be transferred.
 openfed_api.set_state_dict(net.state_dict(keep_vars=True))
@@ -52,7 +59,7 @@ with openfed_api:
         if not openfed_api.download():
             print(f"Downloading failed.")
             break
-        
+
         # Downloaded
         print(f"{time_string()}: Downloaded!")
 

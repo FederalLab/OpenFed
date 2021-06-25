@@ -62,11 +62,17 @@ class Frontend(Unify, Peeper):
 
     @_frontend_access
     def upload(self) -> bool:
-        return self._wait_handler(self.reign.upload())
+        """As for frontend, it is much easier for us to judge the new version.
+        A download and upload is build a version updating.
+        So increase version number here.
+        """
+        flag = self._wait_handler(self.reign.upload(self.version))
+        self.version += 1
+        return flag
 
     @_frontend_access
     def download(self) -> bool:
-        return self._wait_handler(self.reign.download())
+        return self._wait_handler(self.reign.download(self.version))
 
     @_frontend_access
     def set_task_info(self, task_info: Dict) -> None:

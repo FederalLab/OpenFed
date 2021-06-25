@@ -80,6 +80,9 @@ class Unify(object):
         self.dynamic_address_loading = dynamic_address_loading
         self.register_default_step_for_backend = register_default_step_for_backend
 
+        # Set default value
+        self.version = 0
+
     @property
     def nick_name(self) -> str:
         return self.reign.nick_name

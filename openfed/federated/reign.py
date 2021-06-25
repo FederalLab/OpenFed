@@ -28,9 +28,6 @@ class Reign(Informer, Delivery):
     world: World
     country: Country
 
-    # the request version number
-    version: int
-
     # handler, step function, timestamp
     _download_hang_up: Tuple[Work, Callable, int]
     _upload_hang_up: Tuple[Work, Callable, int]
@@ -49,11 +46,12 @@ class Reign(Informer, Delivery):
         Informer.__init__(self)
         Delivery.__init__(self)
 
-        self.version = 0
-        self.set("version", self.version)
-
         self._download_hang_up = []
         self._upload_hang_up = []
+
+    @property
+    def version(self) -> int:
+        return self.get("version")
 
     @property
     def upload_hang_up(self) -> bool:
@@ -80,10 +78,7 @@ class Reign(Informer, Delivery):
         def _state():
             return self.is_pulling if to else self.is_pushing
 
-        # 1. set version
-        self.set("version", self.version)
-
-        # 2. logic judge
+        # logic judge
         if self.world.queen:
             # set state first
             if to:
@@ -152,9 +147,12 @@ class Reign(Informer, Delivery):
                 return False
 
     @_auto_offline
-    def upload(self) -> bool:
+    def upload(self, version: int) -> bool:
         """Upload packages date to the other end.
         """
+
+        # set version
+        self.set("version", version)
 
         if ASYNC_OP.is_async_op:
             handle, step_func = self.push()
@@ -165,9 +163,13 @@ class Reign(Informer, Delivery):
             return self.transfer(to=True)
 
     @_auto_offline
-    def download(self) -> bool:
+    def download(self, version: int) -> bool:
         """Download packages from other end.
         """
+
+        # set version
+        self.set("version", version)
+
         if ASYNC_OP.is_async_op:
             handle, step_func = self.pull()
             self._download_hang_up = [handle, step_func, time.time()]
