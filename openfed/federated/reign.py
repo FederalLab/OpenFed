@@ -184,6 +184,12 @@ class Reign(Informer, Delivery):
             )
         )
 
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="Reign",
+            description=self.nick_name,
+        )
+
     @classmethod
     def reign_generator(cls) -> Generator[_R, None, None]:
         """Return a generator to iterate over all reigns.

@@ -2,7 +2,7 @@
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none",
     },
-    "python.pythonPath": "/Users/densechen/miniconda3/envs/openfed/bin/python",
+    "python.pythonPath": "/Users/densechen/opt/anaconda3/envs/openfed/bin/python",
     "cSpell.words": [
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
         "AEIMQUY",

@@ -1,5 +1,5 @@
 import time
-from typing import Any, Callable, Dict, List, Union
+from typing import Dict, List, Union
 
 import openfed
 from loguru import logger
@@ -199,44 +199,6 @@ class Backend(Unify, SafeTread, Peeper, Hook):
             return False
 
         return True
-
-    # @_backend_access
-    # def step_at_new_episode(self):
-    #     pass
-
-    # @_backend_access
-    # def step_at_first(self):
-    #     pass
-
-    # @_backend_access
-    # def step_at_zombie(self):
-    #     pass
-
-    # @_backend_access
-    # def step_before_destroy(self) -> bool:
-    #     return True
-
-    # @_backend_access
-    # def step_after_destroy(self, state=...):
-    #     pass
-
-    # @_backend_access
-    # def step_before_download(self) -> bool:
-    #     return True
-
-
-
-    # @_backend_access
-    # def step_after_upload(self, state=...):
-    #     pass
-
-    # @_backend_access
-    # def step_at_invalid_state(self):
-    #     pass
-
-    # @_backend_access
-    # def step_at_failed(self):
-    #     pass
 
     @_backend_access
     def __repr__(self):
