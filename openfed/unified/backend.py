@@ -224,64 +224,11 @@ class Backend(Unify, SafeTread, Peeper, Hook):
     # def step_before_download(self) -> bool:
     #     return True
 
-    # @_backend_access
-    # def step_after_download(self, state=...):
-    #     pass
-    #     # assert self.aggregator is not None
-    #     # if state:
-    #     #     # fetch data from federated core.
-    #     #     packages = self.reign.tensor_indexed_packages
-    #     #     task_info = self.reign.task_info
 
-    #     #     # add received data to aggregator
-    #     #     self.aggregator.step(packages, task_info)
-
-    #     #     # increase the total received_numbers
-    #     #     self.received_numbers += 1
-
-    #     #         logger.info(f"Receive Model\n"
-    #     #                     f"@{self.received_numbers}\n"
-    #     #                     f"From {self.reign}"
-    #     #                     )
-
-    # @_backend_access
-    # def step_before_upload(self) -> bool:
-    #     pass
-    #     # assert self.optimizer is not None
-    #     # assert self.aggregator is not None
-    #     # assert self.state_dict is not None
-
-    #     # # reset old data
-    #     # self.reign.reset()
-
-    #     # # pack new data
-    #     # self.reign.set_state_dict(self.state_dict)
-    #     # self.reign.pack_state(self.aggregator)
-    #     # self.reign.pack_state(self.optimizer)
-
-    #     # return True
 
     # @_backend_access
     # def step_after_upload(self, state=...):
     #     pass
-
-    # @_backend_access
-    # def step_at_last(self):
-    #     """Related function to control the server state.
-    #     """
-    #     pass
-    #     # if self.received_numbers == 100:
-    #     #     # the following code is just used for testing.
-    #     #     # you should rewrite your logics code instead.
-    #     #     task_info = self.aggregator.aggregate()
-    #     #     self.aggregator.unpack_state(self.optimizer)
-    #     #     self.optimizer.step()
-    #     #     self.aggregator.zero_grad()
-    #     #     self.received_numbers = 0
-    #     #     self.last_aggregate_time = time.time()
-    #     #     self.finish()
-    #     # else:
-    #     #     ...
 
     # @_backend_access
     # def step_at_invalid_state(self):
