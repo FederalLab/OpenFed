@@ -54,8 +54,10 @@ class Register(object):
     @classmethod
     def register(cls, obj: Collector):
         if obj.bounding_name not in cls.provided_collector_dict:
-            logger.info("Register collector %s", obj.bounding_name)
+            assert obj.bounding_name.startswith("Collector")
+            logger.info("Register collector %s" % obj.bounding_name)
             cls.provided_collector_dict[obj.bounding_name] = type(obj)
+        return obj
 
 
 @Register.register

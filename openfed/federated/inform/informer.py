@@ -2,12 +2,12 @@ import json
 from enum import Enum, unique
 from typing import Any, Callable, Dict
 
-import openfed
-from loguru import logger
 import openfed.utils as utils
+from loguru import logger
 from openfed.common import Hook
 from openfed.federated.country import Country, Store
-from openfed.federated.inform.functional import Collector, GPUInfo, SystemInfo
+from openfed.federated.inform.functional import (Collector, GPUInfo, Register,
+                                                 SystemInfo)
 from openfed.federated.utils.exception import (BuildReignFailed,
                                                InvalidStoreReading,
                                                InvalidStoreWriting)
@@ -51,6 +51,7 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
     except Exception as e:
         raise InvalidStoreWriting(e)
 
+
 def safe_store_get(store: Store, key: str) -> Dict:
     try:
         jsonbytes = store.get(key)
@@ -58,6 +59,7 @@ def safe_store_get(store: Store, key: str) -> Dict:
         return json.loads(jsonstr)
     except Exception as e:
         raise InvalidStoreReading(e)
+
 
 class Informer(Hook):
     """Informer: keep the real time communication between each other via string.
@@ -255,12 +257,16 @@ class Informer(Hook):
     def collect(self):
         """Collect message from other side.
         """
-        for k, f in self.hook_dict.items():
-            try:
-                f.load_message(self.get(k))
-                logger.info(f)
-            except KeyError:
-                pass
+        # read all collection information
+        # key = None will return the whole info dictionary.
+        info = self.get(key=None)
+        for key, value in info.items():
+            if key.startswith("Collector"):
+                # don't forget () operation.
+                obj = Register(key, self)()
+                if obj is not None:
+                    obj.load_message(value)
+                    logger.info(obj)
 
     def scatter(self):
         """Scatter self.hook information to the other end.
