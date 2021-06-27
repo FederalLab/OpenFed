@@ -41,6 +41,8 @@ class Backend(Unify, SafeTread, Peeper, Hook):
 
     version: int
 
+    loop_times: int
+
     received_numbers: int
 
     # A flag to indicate whether set the triggered step for backend.
@@ -138,11 +140,13 @@ class Backend(Unify, SafeTread, Peeper, Hook):
         assert self.aggregate_triggers, "Call `self.set_aggregate_triggers()` first."
 
         max_try_times = 0
+        self.loop_times = 0
         while not self.stopped:
             with self.maintainer.maintainer_lock:
                 self.step("at_new_episode")
                 rg = Reign.reign_generator()
                 cnt = 0
+                self.loop_times += 1
                 for reign in rg:
                     if not self.stopped and reign is not None:
                         cnt += 1

@@ -3,4 +3,4 @@ __version__ = "0.0.0"
 
 from .api import API
 from .common import *
-from .unified.step.at_last import AggregateCount, AggregatePeriod
+from .unified.step.at_last import AggregateCount, AggregatePeriod, StopAtLoopTimes, StopAtVersion

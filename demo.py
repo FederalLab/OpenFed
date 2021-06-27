@@ -20,6 +20,10 @@ openfed_api = openfed.API(frontend=args.rank > 0)
 aggregate_trigger = openfed.AggregateCount(
     count=2, checkpoint="/tmp/openfed-model")
 
+# >>> Specify a condition to finish this train process
+stop_at_version = openfed.StopAtVersion(max_version=10)
+openfed_api.register_step(stop_at_version)
+
 # >>> Set the aggregate trigger
 openfed_api.set_aggregate_triggers(aggregate_trigger)
 

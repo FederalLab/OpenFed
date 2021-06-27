@@ -94,3 +94,39 @@ class AggregateCount(Aggregate):
             self.aggregate(backend, *args, **kwargs)
         else:
             pass
+
+
+class StopAtVersion(AtLast):
+    max_version: int
+
+    def __init__(self, max_version: int):
+        """
+        Args:
+            max_version: when inner version number achieves this number, we will stop server.
+        """
+        super().__init__()
+        self.max_version = max_version
+
+    def __call__(self, backend: Backend, *args, **kwargs) -> None:
+        if backend.version >= self.max_version:
+            backend.manual_stop()
+        else:
+            pass
+
+
+class StopAtLoopTimes(AtLast):
+    max_loop_times: int
+
+    def __init__(self, max_loop_times: int):
+        """
+        Args:
+            max_loop_times: if loop times exceed this number, we will stop the server.
+        """
+        super().__init__()
+        self.max_loop_times = max_loop_times
+
+    def __call__(self, backend: Backend, *args, **kwargs) -> None:
+        if backend.loop_times >= self.max_loop_times:
+            backend.manual_stop()
+        else:
+            pass
