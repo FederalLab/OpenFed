@@ -1,7 +1,8 @@
 import json
 import platform
 from abc import abstractmethod
-from typing import Any, Dict
+from collections import defaultdict
+from typing import Any, Dict, List, Type, Union
 
 import torch
 from loguru import logger
@@ -10,6 +11,54 @@ from openfed.utils.table import tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
 
+class Informer():
+    ...
+
+
+class Collector():
+    ...
+
+
+class Register(object):
+    provided_collector_dict: Dict[str, Collector] = dict()
+    collector_pool: Dict[Informer, Dict[Type, Collector]] = defaultdict(dict)
+
+    def __init__(self, obj: Union[str, Collector], informer: Informer):
+        self.obj = obj
+        self.informer = informer
+
+    def __call__(self, *args, **kwargs):
+        collectors = self.collector_pool[self.informer]
+
+        if isinstance(self.obj, str):
+            # get class by name.
+            obj = self.provided_collector_dict[self.obj]
+        else:
+            obj = self.obj
+        if type(obj) in collectors:
+            logger.debug("Load already exists collector.")
+            return collectors[type(obj)]
+        else:
+            if isinstance(self.obj, str):
+                # if self.obj is str, and the str not in collector,
+                # it means that this collector is neither registered nor instantiate.
+                logger.error("Not valid collector in this end.")
+                return None
+            else:
+                logger.info("Build a new collector.")
+                ins = obj(*args, **kwargs)
+                # put it into pool
+                collectors[self.informer][type(obj)] = ins
+                return ins
+
+    @classmethod
+    def register(cls, obj: Collector):
+        if obj.bounding_name not in cls.provided_collector_dict:
+            logger.info("Register collector %s", obj.bounding_name)
+            cls.provided_collector_dict[obj.bounding_name] = type(obj)
+
+
+@Register.register
 class Collector(object):
     """Some useful utilities to collect message.
     What's more, Collector also provide necessary function to better 
@@ -45,6 +94,14 @@ class Collector(object):
         )
 
 
+# trigger the auto register.
+# NOTE: If the collector must be initialized with specified operation,
+# do not register them here.
+# Such as the lr_scheduler, which must be initialized at both ends.
+Collector()
+
+
+@Register.register
 class SystemInfo(Collector):
     """Collect some basic system info.
     """
@@ -83,6 +140,10 @@ class SystemInfo(Collector):
             )
 
 
+SystemInfo()
+
+
+@Register.register
 class GPUInfo(Collector):
     """Collect some basic GPU information if GPU is available.
     """
@@ -97,7 +158,8 @@ class GPUInfo(Collector):
                 arch_list=torch.cuda.get_arch_list(),
                 device_capability=torch.cuda.get_device_capability(),
                 device_name=torch.cuda.get_device_name(),
-                device_properties=torch.cuda.get_device_properties(torch.cuda.current_device()),
+                device_properties=torch.cuda.get_device_properties(
+                    torch.cuda.current_device()),
                 current_device=torch.cuda.current_device(),
             )
         else:
@@ -121,6 +183,10 @@ class GPUInfo(Collector):
             )
 
 
+GPUInfo()
+
+
+@Register.register
 class LRTracker(Collector):
     """Keep tack of learning rate during training.
     """
@@ -140,11 +206,3 @@ class LRTracker(Collector):
             "Lastest Learing Rate\n"
             f"{self.lr_scheduler.get_last_lr()}"
         )
-
-
-provided_collector_dict = {
-    Collector.bounding_name: Collector,
-    SystemInfo.bounding_name: SystemInfo,
-    GPUInfo.bounding_name: GPUInfo,
-    LRTracker.bounding_name: LRTracker,
-}
