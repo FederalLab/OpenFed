@@ -97,7 +97,7 @@ class GPUInfo(Collector):
                 arch_list=torch.cuda.get_arch_list(),
                 device_capability=torch.cuda.get_device_capability(),
                 device_name=torch.cuda.get_device_name(),
-                device_properties=torch.cuda.get_device_properties(),
+                device_properties=torch.cuda.get_device_properties(torch.cuda.current_device()),
                 current_device=torch.cuda.current_device(),
             )
         else:
