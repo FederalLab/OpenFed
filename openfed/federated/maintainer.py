@@ -3,7 +3,7 @@ from threading import Lock
 from typing import Dict, List, Union
 
 import openfed
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.common.address import Address
 from openfed.common.array import Array
 from openfed.common.thread import SafeTread

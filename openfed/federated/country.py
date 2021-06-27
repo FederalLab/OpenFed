@@ -4,7 +4,7 @@ import warnings
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                       DEFAULT_PG_SHORT_TIMEOUT,
                                       DEFAULT_PG_TIMEOUT)

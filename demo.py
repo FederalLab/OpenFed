@@ -7,7 +7,11 @@ import torch.optim as optim
 # >>> Import OpenFed
 import openfed
 import openfed.aggregate as aggregate
+from openfed.unified.step import StepAt
 from openfed.utils import time_string
+
+# >>> set log level
+openfed.set_logger_level(level="INFO")
 
 # >>> Get default arguments from OpenFed
 args = openfed.parser.parse_args()
@@ -20,12 +24,16 @@ openfed_api = openfed.API(frontend=args.rank > 0)
 aggregate_trigger = openfed.AggregateCount(
     count=2, checkpoint="/tmp/openfed-model")
 
-# >>> Specify a condition to finish this train process
-stop_at_version = openfed.StopAtVersion(max_version=10)
-openfed_api.register_step(stop_at_version)
-
 # >>> Set the aggregate trigger
 openfed_api.set_aggregate_triggers(aggregate_trigger)
+
+# >>> Register more step functions.
+# You can register a step function to openfed_api like following:
+# stop_at_version = openfed.StopAtVersion(max_version=10)
+# openfed_api.register_step(stop_at_version)
+# Or use the with context to add a sequence of step function to openfed_api automatically.
+with StepAt(openfed_api):
+    openfed.StopAtVersion(max_version=10)
 
 # >>> Connect to Address.
 openfed_api.build_connection(address=openfed.Address(args=args))

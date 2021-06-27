@@ -2,7 +2,7 @@ import time
 from typing import Dict, List, Union
 
 import openfed
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.aggregate import Aggregator
 from openfed.common import (MAX_TRY_TIMES, Address, Hook, Peeper, SafeTread,
                             default_address)

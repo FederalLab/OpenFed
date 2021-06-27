@@ -1,5 +1,5 @@
 from openfed.unified.step.base import Backend, Step
-from loguru import logger
+from openfed.common.logging import logger
 
 class BeforeDestroy(Step):
     step_name = 'before_destroy'

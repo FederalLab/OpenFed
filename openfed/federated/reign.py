@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Callable, Generator, Tuple, TypeVar
 
 import openfed
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.common.vars import ASYNC_OP
 from openfed.federated.country import Country, ProcessGroup, Store
 from openfed.federated.deliver import Delivery

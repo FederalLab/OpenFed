@@ -1,4 +1,4 @@
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.common.exception import AccessError
 from openfed.federated.utils.utils import _auto_filterout
 

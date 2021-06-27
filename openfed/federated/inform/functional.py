@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Type, Union
 
 import torch
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.utils import openfed_class_fmt
 from openfed.utils.table import tablist
 from torch.optim.lr_scheduler import _LRScheduler
@@ -42,7 +42,7 @@ class Register(object):
             if isinstance(self.obj, str):
                 # if self.obj is str, and the str not in collector,
                 # it means that this collector is neither registered nor instantiate.
-                logger.error("Not valid collector in this end.")
+                logger.error("Invalid collector in this end.")
                 return None
             else:
                 logger.info("Build a new collector.")

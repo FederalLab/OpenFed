@@ -1,4 +1,4 @@
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.unified.step.base import Backend, Step
 
 

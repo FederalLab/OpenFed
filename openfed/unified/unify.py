@@ -1,7 +1,7 @@
 from typing import Dict
 
 import openfed
-from loguru import logger
+from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
 from openfed.federated.destroy import Destroy
 from openfed.federated.maintainer import Maintainer
