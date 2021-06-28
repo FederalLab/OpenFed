@@ -2,7 +2,7 @@ import json
 import platform
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Callable, Dict, Type
 
 import torch
 from openfed.common.logging import logger
@@ -23,41 +23,45 @@ class Register(object):
     provided_collector_dict: Dict[str, Collector] = dict()
     collector_pool: Dict[Informer, Dict[Type, Collector]] = defaultdict(dict)
 
-    def __init__(self, obj: Union[str, Collector], informer: Informer):
+    def __init__(self, obj: str, informer: Informer):
+        assert isinstance(obj, str)
         self.obj = obj
         self.informer = informer
 
     def __call__(self, *args, **kwargs):
         collectors = self.collector_pool[self.informer]
 
-        if isinstance(self.obj, str):
+        if self.obj in self.provided_collector_dict:
             # get class by name.
             obj = self.provided_collector_dict[self.obj]
         else:
-            obj = self.obj
-        if type(obj) in collectors:
+            logger.debug("Invalid collector.")
+            return None
+        if obj.bounding_name in collectors:
             logger.debug("Load already exists collector.")
-            return collectors[type(obj)]
+            return collectors[obj.bounding_name]
         else:
-            if isinstance(self.obj, str):
-                # if self.obj is str, and the str not in collector,
-                # it means that this collector is neither registered nor instantiate.
-                logger.error("Invalid collector in this end.")
-                return None
-            else:
-                logger.info("Build a new collector.")
-                ins = obj(*args, **kwargs)
-                # put it into pool
-                collectors[self.informer][type(obj)] = ins
-                return ins
+            logger.debug("Build a new collector.")
+            ins = obj(*args, **kwargs)
+            # put it into pool
+            collectors[self.informer][obj.bounding_name] = ins
+            return ins
 
     @classmethod
     def register(cls, obj: Collector):
         if obj.bounding_name not in cls.provided_collector_dict:
             assert obj.bounding_name.startswith("Collector")
             logger.info("Register collector %s" % obj.bounding_name)
-            cls.provided_collector_dict[obj.bounding_name] = type(obj)
+            cls.provided_collector_dict[obj.bounding_name] = obj
         return obj
+
+    @classmethod
+    def add_to_pool(cls, func: Callable):
+        def _add_to_pool(self, collector):
+            # Register collector to collector pool
+            cls.collector_pool[self][collector.bounding_name] = collector
+            return func(self, collector)
+        return _add_to_pool
 
 
 @Register.register
@@ -138,7 +142,7 @@ class SystemInfo(Collector):
                       self.message["machine"],
                       self.message["node"],
                       self.message["processor"]],
-                items_per_row=4
+                force_in_one_row=True,
             )
 
 

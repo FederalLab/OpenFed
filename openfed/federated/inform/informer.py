@@ -3,8 +3,8 @@ from enum import Enum, unique
 from typing import Any, Callable, Dict
 
 import openfed.utils as utils
-from openfed.common.logging import logger
 from openfed.common import Hook
+from openfed.common.logging import logger
 from openfed.federated.country import Country, Store
 from openfed.federated.inform.functional import (Collector, GPUInfo, Register,
                                                  SystemInfo)
@@ -95,8 +95,8 @@ class Informer(Hook):
         self.set_task_info({})
 
         # register a default collector
-        self.register_collector(SystemInfo.bounding_name, SystemInfo())
-        self.register_collector(GPUInfo.bounding_name, GPUInfo())
+        self.register_collector(SystemInfo())
+        self.register_collector(GPUInfo())
 
         self.scatter()
 
@@ -246,12 +246,11 @@ class Informer(Hook):
     def is_offline(self) -> bool:
         return self.world.ALIVE and self._get_state() == STATUS.OFFLINE
 
-    def register_collector(self, key: str, collector: Collector):
+    @Register.add_to_pool
+    def register_collector(self, collector: Collector):
         """Use collector to add new information is strongely recommended.
         """
-        assert key not in [OPENFED_STATUS, OPENFED_TASK_INFO]
-
-        super().register_hook(key=key, func=collector)
+        super().register_hook(key=collector.bounding_name, func=collector)
 
     @_auto_filterout
     def collect(self):
