@@ -4,13 +4,14 @@ from typing import Any, Callable, Dict, Tuple, Union
 from bidict import bidict
 from openfed.common import Hook, Package
 from openfed.common.vars import ASYNC_OP
-from openfed.federated.country import Country, ProcessGroup
-from openfed.federated.deliver.functional import Cypher, FormotCheck
-from openfed.federated.functional import gather_object
-from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch._C._distributed_c10d import Work
+
+from ..core.functional import gather_object
+from ..space.country import Country, ProcessGroup
+from ..space.world import World
+from .functional import Cypher, FormotCheck
 
 
 class Delivery(Package, Hook):

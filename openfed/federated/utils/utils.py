@@ -1,6 +1,4 @@
-import openfed
 from openfed.common.logging import logger
-from typing_extensions import final
 
 
 def _auto_offline(func):

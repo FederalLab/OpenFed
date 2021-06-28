@@ -1,7 +1,7 @@
 from openfed.common.thread import _thread_pool
-from openfed.federated.lock import _maintainer_lock_dict
-from openfed.federated.register import _country
-from openfed.federated.world import _world_list
+from openfed.federated.space.world import _world_list
+from openfed.federated.utils.lock import _maintainer_lock_dict
+from openfed.federated.utils.register import _country
 from openfed.utils.table import tablist
 
 

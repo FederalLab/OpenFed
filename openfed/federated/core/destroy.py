@@ -1,9 +1,10 @@
 from openfed.common.logging import logger
-from openfed.federated.country import ProcessGroup
-from openfed.federated.register import register
-from openfed.federated.reign import Reign
-from openfed.federated.world import World, _world_list
 from openfed.utils.table import tablist
+
+from ..space.country import ProcessGroup
+from ..utils.register import register
+from ..space.reign import Reign
+from ..space.world import World, _world_list
 
 
 class Destroy(object):

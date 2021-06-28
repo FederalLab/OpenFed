@@ -1,14 +1,15 @@
 import time
 
-from openfed.common.logging import logger
 from openfed.common.address import Address
+from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
-from openfed.federated.country import Country
-from openfed.federated.register import register
-from openfed.federated.reign import Reign
-from openfed.federated.utils.exception import BuildReignFailed, ConnectTimeout
-from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
+
+from ..space.country import Country
+from ..utils.register import register
+from ..space.reign import Reign
+from ..space.world import World
+from ..utils.exception import BuildReignFailed, ConnectTimeout
 
 
 class Joint(SafeTread):

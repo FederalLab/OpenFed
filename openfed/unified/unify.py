@@ -3,10 +3,7 @@ from typing import Dict
 import openfed
 from openfed.common.logging import logger
 from openfed.common.thread import SafeTread
-from openfed.federated.destroy import Destroy
-from openfed.federated.maintainer import Maintainer
-from openfed.federated.reign import Reign
-from openfed.federated.world import World
+from openfed.federated import Destroy, Maintainer, Reign, World
 from openfed.unified.utils import _backend_access
 from openfed.utils import openfed_class_fmt
 from openfed.utils.keyboard import keyboard_interrupt_handle

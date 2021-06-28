@@ -5,17 +5,17 @@ from typing import Callable, Generator, Tuple, TypeVar
 import openfed
 from openfed.common.logging import logger
 from openfed.common.vars import ASYNC_OP
-from openfed.federated.country import Country, ProcessGroup, Store
-from openfed.federated.deliver import Delivery
-from openfed.federated.inform import Informer
-from openfed.federated.register import register
-from openfed.federated.utils.exception import (ConnectTimeout, DeviceOffline,
-                                               WrongState)
-from openfed.federated.utils.utils import _auto_offline
-from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 from openfed.utils.table import tablist
 from torch._C._distributed_c10d import Work
+
+from ..deliver import Delivery
+from ..inform import Informer
+from ..utils.exception import ConnectTimeout, DeviceOffline, WrongState
+from ..utils.register import register
+from ..utils.utils import _auto_offline
+from .country import Country, ProcessGroup, Store
+from .world import World
 
 _R = TypeVar("_R", bound='Reign')
 

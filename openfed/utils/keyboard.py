@@ -1,7 +1,7 @@
 import sys
 
 from openfed.common.logging import logger
-from openfed.federated.destroy import Destroy
+from openfed.federated import Destroy
 
 
 def keyboard_interrupt_handle():

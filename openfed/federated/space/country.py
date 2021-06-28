@@ -4,12 +4,10 @@ import warnings
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from openfed.common.logging import logger
 from openfed.common.constants import (DEFAULT_PG_LONG_TIMEOUT,
                                       DEFAULT_PG_SHORT_TIMEOUT,
                                       DEFAULT_PG_TIMEOUT)
-from openfed.federated.lock import acquire_all, release_all
-from openfed.federated.utils.exception import ConnectTimeout
+from openfed.common.logging import logger
 from openfed.utils import openfed_class_fmt
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)
@@ -17,6 +15,9 @@ from torch.distributed.distributed_c10d import (Backend, P2POp,
                                                 is_mpi_available,
                                                 is_nccl_available)
 from torch.distributed.rendezvous import rendezvous
+
+from ..utils.exception import ConnectTimeout
+from ..utils.lock import acquire_all, release_all
 
 try:
     from torch.distributed.distributed_c10d import (ProcessGroupGloo,

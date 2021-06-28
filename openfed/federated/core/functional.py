@@ -1,5 +1,4 @@
 import torch
-from openfed.federated.register import register
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
                                         BroadcastOptions, GatherOptions,
@@ -11,6 +10,8 @@ from torch.distributed.distributed_c10d import (Backend, _batch_p2p_manager,
                                                 _object_to_tensor,
                                                 _tensor_to_object,
                                                 supports_complex)
+
+from ..utils.register import register
 
 
 def isend(tensor,

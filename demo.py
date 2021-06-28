@@ -11,7 +11,7 @@ from openfed.unified.step import StepAt
 from openfed.utils import time_string
 
 # >>> set log level
-openfed.set_logger_level(level="INFO")
+# openfed.set_logger_level(level="ERROR")
 
 # >>> Get default arguments from OpenFed
 args = openfed.parser.parse_args()
@@ -44,7 +44,7 @@ net = nn.Linear(1, 1)
 # Define optimizer (use the same optimizer in both server and client)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 
-# Define aggregator (actually, this is only used for server end)
+# Define aggregator (actually, this is only used for server end): FedAvg, ElasticAggregator
 aggregator = aggregate.AverageAggregator(net.parameters())
 
 # >>> Set optimizer and aggregator for federated learning.

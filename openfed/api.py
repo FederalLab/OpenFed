@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 from torch import Tensor
 
 from openfed.common.address import Address
-from openfed.federated.world import World
+from openfed.federated import World
 from openfed.unified.backend import Backend
 from openfed.unified.frontend import Frontend
 from openfed.utils import openfed_class_fmt

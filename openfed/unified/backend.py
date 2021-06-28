@@ -2,11 +2,12 @@ import time
 from typing import Dict, List, Union
 
 import openfed
-from openfed.common.logging import logger
 from openfed.aggregate import Aggregator
 from openfed.common import (MAX_TRY_TIMES, Address, Hook, Peeper, SafeTread,
                             default_address)
-from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
+from openfed.common.logging import logger
+from openfed.federated import Destroy, Maintainer, Reign, World
+from openfed.federated.utils.lock import openfed_lock
 from openfed.unified.step.after_destroy import AfterDestroy
 from openfed.unified.step.after_download import AfterDownload
 from openfed.unified.step.after_upload import AfterUpload

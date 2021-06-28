@@ -5,16 +5,15 @@ from typing import Any, Callable, Dict
 import openfed.utils as utils
 from openfed.common import Hook
 from openfed.common.logging import logger
-from openfed.federated.country import Country, Store
-from openfed.federated.inform.functional import (Collector, GPUInfo, Register,
-                                                 SystemInfo)
-from openfed.federated.utils.exception import (BuildReignFailed,
-                                               InvalidStoreReading,
-                                               InvalidStoreWriting)
-from openfed.federated.utils.utils import _auto_filterout
-from openfed.federated.world import World
 from openfed.utils import openfed_class_fmt
 from random_words import RandomWords
+
+from ..space.country import Country, Store
+from ..space.world import World
+from ..utils.exception import (BuildReignFailed, InvalidStoreReading,
+                               InvalidStoreWriting)
+from ..utils.utils import _auto_filterout
+from .functional import Collector, GPUInfo, Register, SystemInfo
 
 rw = RandomWords()
 
