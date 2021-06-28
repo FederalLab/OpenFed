@@ -33,7 +33,7 @@ openfed_api.set_aggregate_triggers(aggregate_trigger)
 # openfed_api.register_step(stop_at_version)
 # Or use the with context to add a sequence of step function to openfed_api automatically.
 with StepAt(openfed_api):
-    openfed.StopAtVersion(max_version=10)
+    openfed.StopAtVersion(max_version=3)
 
 # >>> Connect to Address.
 openfed_api.build_connection(address=openfed.Address(args=args))

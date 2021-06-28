@@ -57,7 +57,11 @@ import torch.optim as optim
 # >>> Import OpenFed
 import openfed
 import openfed.aggregate as aggregate
+from openfed.unified.step import StepAt
 from openfed.utils import time_string
+
+# >>> set log level
+openfed.logger.log_level(level="INFO")
 
 # >>> Get default arguments from OpenFed
 args = openfed.parser.parse_args()
@@ -73,6 +77,14 @@ aggregate_trigger = openfed.AggregateCount(
 # >>> Set the aggregate trigger
 openfed_api.set_aggregate_triggers(aggregate_trigger)
 
+# >>> Register more step functions.
+# You can register a step function to openfed_api like following:
+# stop_at_version = openfed.StopAtVersion(max_version=10)
+# openfed_api.register_step(stop_at_version)
+# Or use the with context to add a sequence of step function to openfed_api automatically.
+with StepAt(openfed_api):
+    openfed.StopAtVersion(max_version=3)
+
 # >>> Connect to Address.
 openfed_api.build_connection(address=openfed.Address(args=args))
 
@@ -82,7 +94,7 @@ net = nn.Linear(1, 1)
 # Define optimizer (use the same optimizer in both server and client)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 
-# Define aggregator (actually, this is only used for server end)
+# Define aggregator (actually, this is only used for server end): FedAvg, ElasticAggregator
 aggregator = aggregate.AverageAggregator(net.parameters())
 
 # >>> Set optimizer and aggregator for federated learning.
@@ -134,17 +146,103 @@ openfed_api.finish()
 print(f"Finished.\nExit Client @{openfed_api.nick_name}.")
 ```
 
-**Run it as one server with two clients**:
+### Backend
 
 ```bash
-# Start server on terminal 1
-python demo.py --rank 0 --world_size 3
-# Start client 1 on terminal 2
-python demo.py --rank 1 --world_size 3
-# Start client 2 on terminal 3
-python demo.py --rank 2 --world_size 3
+(openfed) python demo.py --rank 0 --world_size 3
+[W ProcessGroupGloo.cpp:684] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
+2021-06-28 15:41:25.025 | INFO     | openfed.common.logging:info:25 - Receive @1
+From <OpenFed> Reign
+programmers
+
+2021-06-28 15:41:25.032 | WARNING  | openfed.common.logging:warning:22 - Version not aligned. (request @1, but @0).
+2021-06-28 15:41:25.039 | INFO     | openfed.common.logging:info:25 - Receive @2
+From <OpenFed> Reign
+alcohol
+
+2021-06-28 15:41:25.040 | INFO     | openfed.common.logging:info:25 - Aggregate operation triggered by count.
+2021-06-28 15:41:25.080 | INFO     | openfed.common.logging:info:25 - Receive @1
+From <OpenFed> Reign
+programmers
+
+2021-06-28 15:41:25.088 | WARNING  | openfed.common.logging:warning:22 - Version not aligned. (request @2, but @1).
+2021-06-28 15:41:25.098 | INFO     | openfed.common.logging:info:25 - Receive @2
+From <OpenFed> Reign
+alcohol
+
+2021-06-28 15:41:25.099 | INFO     | openfed.common.logging:info:25 - Aggregate operation triggered by count.
+2021-06-28 15:41:25.142 | INFO     | openfed.common.logging:info:25 - Receive @1
+From <OpenFed> Reign
+programmers
+
+2021-06-28 15:41:25.150 | INFO     | openfed.common.logging:info:25 - Receive @2
+From <OpenFed> Reign
+alcohol
+
+2021-06-28 15:41:25.151 | INFO     | openfed.common.logging:info:25 - Aggregate operation triggered by count.
+2021-06-28 15:41:25.158 | INFO     | openfed.common.logging:info:25 - Finished.
+ <OpenFed> OpenFed Unified API
+<OpenFed> Maintainer
++---------+----------+---------+
+| Pending | Finished | Discard |
++---------+----------+---------+
+|    0    |    1     |    0    |
++---------+----------+---------+
 ```
 
+### Frontend-1
+
+```bash
+(openfed) python demo.py --rank 1 --world_size 3
+[W ProcessGroupGloo.cpp:684] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
+2021-06-28 15:41:20: Simulation @1
+2021-06-28 15:41:20: Downloading latest model from server.
+2021-06-28 15:41:25: Downloaded!
+2021-06-28 15:41:25: Uploading trained model to server.
+2021-06-28 15:41:25: Uploaded!
+2021-06-28 15:41:25: Simulation @2
+2021-06-28 15:41:25: Downloading latest model from server.
+2021-06-28 15:41:25: Downloaded!
+2021-06-28 15:41:25: Uploading trained model to server.
+2021-06-28 15:41:25: Uploaded!
+2021-06-28 15:41:25: Simulation @3
+2021-06-28 15:41:25: Downloading latest model from server.
+2021-06-28 15:41:25: Downloaded!
+2021-06-28 15:41:25: Uploading trained model to server.
+2021-06-28 15:41:25: Uploaded!
+2021-06-28 15:41:25: Simulation @4
+2021-06-28 15:41:25: Downloading latest model from server.
+Downloading failed.
+Finished.
+Exit Client @alcohol.
+```
+
+### Frontend-2
+
+```bash
+(openfed) python demo.py --rank 1 --world_size 3
+[W ProcessGroupGloo.cpp:684] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
+2021-06-28 15:41:20: Simulation @1
+2021-06-28 15:41:20: Downloading latest model from server.
+2021-06-28 15:41:25: Downloaded!
+2021-06-28 15:41:25: Uploading trained model to server.
+2021-06-28 15:41:25: Uploaded!
+2021-06-28 15:41:25: Simulation @2
+2021-06-28 15:41:25: Downloading latest model from server.
+2021-06-28 15:41:25: Downloaded!
+2021-06-28 15:41:25: Uploading trained model to server.
+2021-06-28 15:41:25: Uploaded!
+2021-06-28 15:41:25: Simulation @3
+2021-06-28 15:41:25: Downloading latest model from server.
+2021-06-28 15:41:25: Downloaded!
+2021-06-28 15:41:25: Uploading trained model to server.
+2021-06-28 15:41:25: Uploaded!
+2021-06-28 15:41:25: Simulation @4
+2021-06-28 15:41:25: Downloading latest model from server.
+Downloading failed.
+Finished.
+Exit Client @programmers.
+```
 
 ## Project Structure
 
