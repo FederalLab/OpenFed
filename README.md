@@ -165,46 +165,56 @@ openfed
 │   ├── constants.py
 │   ├── exception.py
 │   ├── hook.py
+│   ├── logging.py
 │   ├── package.py
 │   ├── parser.py
-│   ├── peeper.py
 │   ├── thread.py
 │   ├── vars.py
 │   └── wrapper.py
 ├── data
 │   ├── __init__.py
+│   ├── audio
+│   │   └── __init__.py
 │   ├── dataset.py
 │   ├── nlp
 │   │   ├── __init__.py
 │   │   ├── shakespeare.py
 │   │   └── stackoverflow.py
 │   ├── partitioner.py
+│   ├── utils
+│   │   ├── __init__.py
+│   │   └── download.py
 │   └── vision
 │       ├── __init__.py
 │       └── emnist.py
 ├── federated
 │   ├── __init__.py
-│   ├── country.py
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── destroy.py
+│   │   ├── functional.py
+│   │   ├── joint.py
+│   │   ├── maintainer.py
+│   │   └── peeper.py
 │   ├── deliver
 │   │   ├── __init__.py
 │   │   ├── delivery.py
 │   │   └── functional.py
-│   ├── destroy.py
-│   ├── functional.py
 │   ├── inform
 │   │   ├── __init__.py
 │   │   ├── functional.py
 │   │   └── informer.py
-│   ├── joint.py
-│   ├── lock.py
-│   ├── maintainer.py
-│   ├── register.py
 │   ├── reign.py
-│   ├── utils
+│   ├── space
 │   │   ├── __init__.py
-│   │   ├── exception.py
-│   │   └── utils.py
-│   └── world.py
+│   │   ├── country.py
+│   │   └── world.py
+│   └── utils
+│       ├── __init__.py
+│       ├── exception.py
+│       ├── lock.py
+│       ├── register.py
+│       └── utils.py
 ├── helper.py
 ├── launch.py
 ├── optim
@@ -233,12 +243,13 @@ openfed
 │   │   ├── before_destroy.py
 │   │   ├── before_download.py
 │   │   └── before_upload.py
-│   └── unify.py
+│   ├── unify.py
+│   └── utils.py
 └── utils
     ├── __init__.py
     ├── keyboard.py
     ├── table.py
     └── utils.py
 
-14 directories, 75 files
+18 directories, 82 files
 ```
