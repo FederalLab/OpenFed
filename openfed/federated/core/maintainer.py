@@ -67,7 +67,7 @@ class Maintainer(Array, SafeTread):
         # call here
         SafeTread.__init__(self)
 
-        if self.world.king:
+        if self.world.leader:
             self.start()
             if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
                 self.join()
@@ -171,13 +171,13 @@ class Maintainer(Array, SafeTread):
         super().manual_stop()
 
     def manual_joint(self, address: Address) -> None:
-        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.king:
+        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.leader:
             msg = "Dynamic loading is not allowed!"
             logger.exception(msg)
             raise RuntimeError(msg)
         logger.info(f"Manually add a new address: {repr(address)}")
 
-        if self.world.king:
+        if self.world.leader:
             self.pending_queue[str(address)] = [time.time(), 0, address]
         else:
             Joint(address, self.world)

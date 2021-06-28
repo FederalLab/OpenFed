@@ -10,8 +10,8 @@ from torch._C._distributed_c10d import ProcessGroup
 
 @unique
 class _ROLE(Enum):
-    KING = True
-    QUEEN = False
+    LEADER = True
+    FOLLOWER = False
 
 
 _W = TypeVar("_W", bound="World")
@@ -50,15 +50,15 @@ class World(Array):
     # avoid the conflict while joint many new Countries to current World at the some time
     joint_lock = threading.Lock()
 
-    def __init__(self, king: bool = False) -> None:
+    def __init__(self, leader: bool = False) -> None:
         """
         Args: 
-            king: if True, set the world as king. Once the role is specified, you cannot change it again.
+            leader: if True, set the world as leader. Once the role is specified, you cannot change it again.
         """
         _world_list.append(self)
 
         self.ALIVE = True
-        self.ROLE = _ROLE.QUEEN if not king else _ROLE.KING
+        self.ROLE = _ROLE.FOLLOWER if not leader else _ROLE.LEADER
         self._pg_mapping = OrderedDict()
         self._current_pg = self._NULL_GP
 
@@ -82,12 +82,12 @@ class World(Array):
             self.ALIVE = False
 
     @property
-    def king(self) -> bool:
-        return self.ROLE == _ROLE.KING
+    def leader(self) -> bool:
+        return self.ROLE == _ROLE.LEADER
 
     @property
-    def queen(self) -> bool:
-        return self.ROLE == _ROLE.QUEEN
+    def follower(self) -> bool:
+        return self.ROLE == _ROLE.FOLLOWER
 
     @property
     def default_reign(self) -> Reign:

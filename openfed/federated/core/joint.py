@@ -19,7 +19,7 @@ class Joint(SafeTread):
     def __init__(self, address: Address, world: World, auto_start: bool = True) -> None:
         if address.rank == -1:
             if address.world_size == 2:
-                address.rank = 1 if world.queen else 0
+                address.rank = 1 if world.follower else 0
             else:
                 msg = "Please specify the correct rank when world size is not 2"
                 logger.error(msg)
@@ -35,8 +35,8 @@ class Joint(SafeTread):
         if auto_start:
             self.start()
 
-            if self.world.queen:
-                # if queen, wait until thread quit
+            if self.world.follower:
+                # if follower, wait until thread quit
                 self.join()
                 if not self.build_success:
                     msg = f"Connect to {str(self.address)} failed."

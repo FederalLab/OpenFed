@@ -80,7 +80,7 @@ class Reign(Informer, Delivery):
             return self.is_pulling if to else self.is_pushing
 
         # logic judge
-        if self.world.queen:
+        if self.world.follower:
             # set state first
             if to:
                 self.pushing()

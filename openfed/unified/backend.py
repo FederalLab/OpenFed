@@ -83,9 +83,9 @@ class Backend(Unify, SafeTread, Hook):
         initialize self at the same time.
         """
         if world is None:
-            world = World(king=True)
+            world = World(leader=True)
         else:
-            assert world.king, "Backend must be king."
+            assert world.leader, "Backend must be leader."
 
         self.world = world
 

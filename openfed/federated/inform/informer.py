@@ -84,8 +84,8 @@ class Informer(Hook):
         safe_store_set(self.store, self._i_key, {
                        OPENFED_STATUS: STATUS.ZOMBIE.value})
 
-        # set nick name if king
-        if self.world.king:
+        # set nick name if leader
+        if self.world.leader:
             safe_store_set(self.store, NICK_NAME, rw.random_word())
 
         # pre-write task_info keys.
@@ -114,11 +114,11 @@ class Informer(Hook):
 
     @property
     def _i_key(self) -> str:
-        return OPENFED_IDENTIFY + "_" + ("KING" if self.world.king else "QUEEN")
+        return OPENFED_IDENTIFY + "_" + ("LEADER" if self.world.leader else "FOLLOWER")
 
     @property
     def _u_key(self) -> str:
-        return OPENFED_IDENTIFY + "_" + ("KING" if not self.world.king else "QUEEN")
+        return OPENFED_IDENTIFY + "_" + ("LEADER" if not self.world.leader else "FOLLOWER")
 
     def _write(self, info: Dict[str, str]) -> bool:
         """Write info to self._i_key.
@@ -158,7 +158,7 @@ class Informer(Hook):
             # The server is quiet stable, if read failed, we think it is offline.
             # But client sometimes may be unstable, if read failed, we will assume it
             # go into offline.
-            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.queen else STATUS.ZOMBIE.value
+            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.follower else STATUS.ZOMBIE.value
             self.fresh_read = False
         finally:
             self._backup_info = info

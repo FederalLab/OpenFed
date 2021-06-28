@@ -16,16 +16,13 @@ from torch.distributed.rendezvous import rendezvous
 
 from ..utils.exception import ConnectTimeout
 from ..utils.lock import acquire_all, release_all
+from .world import World
 
 try:
     from torch.distributed.distributed_c10d import (ProcessGroupGloo,
                                                     ProcessGroupMPI,
                                                     ProcessGroupNCCL)
 except ImportError:
-    ...
-
-
-class World():
     ...
 
 

@@ -23,9 +23,9 @@ class Frontend(Unify):
     @_frontend_access
     def build_connection(self, world: World = None, address: Union[Address, List[Address]] = None, address_file: str = None):
         if world is None:
-            world = World(king=False)
+            world = World(leader=False)
         else:
-            assert world.queen, "Frontend must be queen."
+            assert world.follower, "Frontend must be follower."
 
         if address is None:
             address = default_address

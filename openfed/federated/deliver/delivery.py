@@ -110,8 +110,8 @@ class Delivery(Package, Hook):
 
         received = [None, None]
 
-        rank = self.king_rank if self.world.king else self.queen_rank
-        other_rank = self.queen_rank if self.world.king else self.king_rank
+        rank = self.king_rank if self.world.leader else self.queen_rank
+        other_rank = self.queen_rank if self.world.leader else self.king_rank
 
         def _op_after_gather(*args):
             r_packages = received[other_rank]
@@ -122,7 +122,7 @@ class Delivery(Package, Hook):
                               for k, v in r_packages.items()}
 
             # Queen will load `param` to Tensor by an in-place operation.
-            if auto_load_param and self.world.queen:
+            if auto_load_param and self.world.follower:
                 for k, v in r_packages.items():
                     if 'param' in v:
                         self.key_tensor_bidict[k].data.copy_(v['param'])
@@ -147,7 +147,7 @@ class Delivery(Package, Hook):
         assert self.country._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
-        rank = self.queen_rank if self.world.king else self.king_rank
+        rank = self.queen_rank if self.world.leader else self.king_rank
 
         # encrypt data
         for hook in self.hook_list:
