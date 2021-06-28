@@ -3,7 +3,7 @@ from .array import Array
 from .constants import *
 from .exception import OpenFedException
 from .hook import Hook
-from .logging import log_level, log_to_file, logger
+from .logging import logger
 from .package import Package
 from .parser import parser
 from .thread import SafeTread
