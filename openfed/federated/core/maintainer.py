@@ -87,7 +87,7 @@ class Maintainer(Array, SafeTread):
                 self.finished_queue[str_add] = [
                     time.time(), try_cnt+1, address]
             else:
-                logger.info("Waiting for a valid address")
+                logger.debug("Waiting for a valid address")
 
     def read_address_from_file(self) -> None:
         if self.address_file is None:
@@ -103,7 +103,7 @@ class Maintainer(Array, SafeTread):
                 # already connected
                 ...
             elif str(add) in self.discard_queue:
-                logger.error(
+                logger.debug(
                     f"Error Address"
                     f"{str(add)}"
                     f"Discarded.")
@@ -135,7 +135,7 @@ class Maintainer(Array, SafeTread):
                         try_cnt += 1
                         if try_cnt > openfed.MAX_TRY_TIMES:
                             # move to discard queue
-                            logger.error(
+                            logger.debug(
                                 "Error Address"
                                 f"{str_add}"
                                 f"Discarded.")
@@ -173,9 +173,9 @@ class Maintainer(Array, SafeTread):
     def manual_joint(self, address: Address) -> None:
         if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.leader:
             msg = "Dynamic loading is not allowed!"
-            logger.exception(msg)
+            logger.error(msg)
             raise RuntimeError(msg)
-        logger.info(f"Manually add a new address: {repr(address)}")
+        logger.debug(f"Manually add a new address: {repr(address)}")
 
         if self.world.leader:
             self.pending_queue[str(address)] = [time.time(), 0, address]

@@ -33,7 +33,7 @@ class Frontend(Unify):
         self.world = world
         self.maintainer = Maintainer(self.world, address)
         while not Reign.default_reign():
-            logger.info("Wait for generating a valid reign")
+            logger.debug("Wait for generating a valid reign")
             time.sleep(SLEEP_LONG_TIME.seconds)
         self.reign = Reign.default_reign()
 

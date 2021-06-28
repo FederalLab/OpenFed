@@ -33,7 +33,7 @@ class _Register(Array):
     def deleted_country(cls, country: Country):
         if country in _country:
             if country.is_initialized():
-                logger.info(f"Force to delete country: {country}")
+                logger.debug(f"Force to delete country: {country}")
                 country.destroy_process_group(
                     group=country.WORLD)
 

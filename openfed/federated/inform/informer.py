@@ -8,7 +8,7 @@ from openfed.utils import openfed_class_fmt
 from random_words import RandomWords
 
 from ..space import Country, Store, World
-from ..utils import _auto_filterout
+from ..utils import _auto_filterout, _auto_offline
 from ..utils.exception import (BuildReignFailed, InvalidStoreReading,
                                InvalidStoreWriting)
 from .functional import Collector, GPUInfo, Register, SystemInfo
@@ -78,6 +78,9 @@ class Informer(Hook):
     # indicates whether current data is
     fresh_read: bool
 
+    # do not set this manually!
+    _nick_name: str = None
+
     def __init__(self):
         self._do_not_access_backup_info = {}
         # write self._i_key to initialize the key value store.
@@ -107,10 +110,16 @@ class Informer(Hook):
         # Run at the initialize state.
         self.collect()
         self.fresh_read = True
+        # make a copy
+        self._nick_name = self.nick_name
 
     @property
+    @_auto_offline
     def nick_name(self) -> str:
-        return safe_store_get(self.store, NICK_NAME)
+        if self._nick_name:
+            return self._nick_name
+        else:
+            return safe_store_get(self.store, NICK_NAME)
 
     @property
     def _i_key(self) -> str:
@@ -120,6 +129,7 @@ class Informer(Hook):
     def _u_key(self) -> str:
         return OPENFED_IDENTIFY + "_" + ("LEADER" if not self.world.leader else "FOLLOWER")
 
+    @_auto_filterout
     def _write(self, info: Dict[str, str]) -> bool:
         """Write info to self._i_key.
         """
@@ -133,7 +143,7 @@ class Informer(Hook):
         try:
             old_info = safe_store_get(self.store, self._i_key)
         except InvalidStoreReading as e:
-            logger.exception(e)
+            logger.debug(e)
             old_info = self._do_not_access_backup_info
         except Exception as e:
             old_info = self._do_not_access_backup_info
@@ -150,7 +160,7 @@ class Informer(Hook):
             info = safe_store_get(self.store, self._u_key)
             self.fresh_read = True
         except InvalidStoreReading as e:
-            logger.exception(e)
+            logger.debug(e)
             info = self._backup_info
             # use the cached one instead.
             # but at the same time, we need to set the state as zombie
@@ -171,7 +181,7 @@ class Informer(Hook):
         def wrapper(self, *args, **kwargs):
             output = func(self, *args, **kwargs)
             if not self.fresh_read:
-                logger.error(
+                logger.debug(
                     "Use an cached value instead a fresh required data."
                     "Which may cause Error."
                     f"func: {func}"
@@ -262,7 +272,7 @@ class Informer(Hook):
                 obj = Register(key, self)()
                 if obj is not None:
                     obj.load_message(value)
-                    logger.info(obj)
+                    logger.debug(obj)
 
     def scatter(self):
         """Scatter self.hook information to the other end.

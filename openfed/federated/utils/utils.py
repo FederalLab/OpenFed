@@ -9,7 +9,7 @@ def _auto_offline(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as e:
-            logger.exception(e)
+            logger.debug(e)
             self.offline()
             return False
     return wrapper
@@ -23,6 +23,6 @@ def _auto_filterout(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as e:
-            logger.exception(e)
+            logger.debug(e)
             return False
     return wrapper

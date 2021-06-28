@@ -107,7 +107,7 @@ class Backend(Unify, SafeTread, Hook):
 
     @_backend_access
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
-        logger.info(
+        logger.debug(
             f"{'Set' if not self.state_dict else 'Unset'} state dict.")
         self.state_dict = state_dict
 
@@ -182,9 +182,9 @@ class Backend(Unify, SafeTread, Hook):
                     del rg
             if cnt == 0:
                 max_try_times += 1
-                logger.warning(
+                logger.debug(
                     f"Max Try Times: {max_try_times}/{MAX_TRY_TIMES}")
-                logger.warning(f"Empty Reign\n{self}")
+                logger.debug(f"Empty Reign\n{self}")
                 time.sleep(openfed.SLEEP_LONG_TIME.seconds)
             else:
                 max_try_times = 0

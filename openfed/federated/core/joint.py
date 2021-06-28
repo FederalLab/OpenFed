@@ -44,7 +44,7 @@ class Joint(SafeTread):
                     raise RuntimeError(msg)
 
     def safe_run(self) -> str:
-        logger.info(f"Waiting\n{repr(self.address)}")
+        logger.debug(f"Waiting\n{repr(self.address)}")
 
         # create a country
         country = Country(self.world)
@@ -86,7 +86,7 @@ class Joint(SafeTread):
                     # if any is success, we take it okay.
                     self.build_success = True
                 except BuildReignFailed as e:
-                    logger.exception(e)
+                    logger.debug(e)
                     continue
                 with self.world.joint_lock:
                     self.world._pg_mapping[sub_pg] = reign
@@ -106,11 +106,11 @@ class Joint(SafeTread):
                     self.world._pg_mapping[pg] = reign
                 self.build_success = True
             except BuildReignFailed as e:
-                logger.exception(e)
+                logger.debug(e)
                 self.build_success = False
 
         if self.build_success:
-            logger.info(f"Connected\n{str(self.address)}")
+            logger.debug(f"Connected\n{str(self.address)}")
         return f"Success! {repr(self.address)}" if self.build_success else f"Failed! {repr(self.address)}"
 
     def __repr__(self) -> str:

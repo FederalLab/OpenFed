@@ -27,5 +27,5 @@ class AfterDownload(Step):
             logger.info(f"Receive @{backend.received_numbers}\n"
                         f"From {backend.reign}")
         else:
-            logger.warning(
+            logger.debug(
                 f"Try to download {backend.received_numbers+1} failed.")

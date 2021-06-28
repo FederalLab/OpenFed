@@ -211,7 +211,7 @@ class Reign(Informer, Delivery):
         """Return the only reign. If more then one, raise warning.
         """
         if len(register) == 0:
-            logger.warning("Empty world.")
+            logger.debug("Empty world.")
         if len(register) > 1:
-            logger.info("More than one register world, use the earliest one.")
+            logger.debug("More than one register world, use the earliest one.")
         return register.default_world.default_reign

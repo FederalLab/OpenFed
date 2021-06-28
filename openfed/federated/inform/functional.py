@@ -50,7 +50,7 @@ class Register(object):
     def register(cls, obj: Collector):
         if obj.bounding_name not in cls.provided_collector_dict:
             assert obj.bounding_name.startswith("Collector")
-            logger.info("Register collector %s" % obj.bounding_name)
+            logger.debug("Register collector %s" % obj.bounding_name)
             cls.provided_collector_dict[obj.bounding_name] = obj
         return obj
 
@@ -127,7 +127,7 @@ class SystemInfo(Collector):
 
     def better_read(self):
         if self.message is None:
-            logger.error("Empty message received.")
+            logger.debug("Empty message received.")
             return ""
         else:
             return tablist(
@@ -172,7 +172,7 @@ class GPUInfo(Collector):
 
     def better_read(self):
         if self.message is None:
-            logger.error("Empty message received.")
+            logger.debug("Empty message received.")
             return ""
         else:
             return tablist(

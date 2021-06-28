@@ -49,7 +49,7 @@ class Destroy(object):
     def destroy_all_in_all_world(cls) -> None:
         """A safe way to destroy all country which has been registered.
         """
-        logger.warning(
+        logger.debug(
             "Destroy OpenFed\n" +
             tablist(
                 head=["World", "Country", "Reign"],
@@ -69,5 +69,5 @@ class Destroy(object):
             del reign
             return True
         except Exception as e:
-            logger.exception(e)
+            logger.debug(e)
             return False

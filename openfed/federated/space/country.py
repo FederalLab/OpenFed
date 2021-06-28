@@ -351,7 +351,7 @@ class Country(object):
                 store, rank, world_size = attempt_init_store(
                     rank, world_size, tmp_timeout)
             except Exception as e:
-                logger.exception(e)
+                logger.debug(e)
                 raise ConnectTimeout
             finally:
                 ...
@@ -495,10 +495,10 @@ class Country(object):
             acquire_all()
             pg = connect_backend()
         except RuntimeError as re:
-            logger.exception(re)
+            logger.debug(re)
             raise ConnectTimeout(re)
         except TimeoutError as te:
-            logger.exception(te)
+            logger.debug(te)
             raise ConnectTimeout(te)
         except Exception as e:
             raise e

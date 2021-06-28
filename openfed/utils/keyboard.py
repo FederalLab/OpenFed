@@ -13,7 +13,7 @@ def keyboard_interrupt_handle():
         if type != KeyboardInterrupt:
             old_excepthook(type, value, traceback)
         else:
-            logger.info("Keyboard Interrupt")
+            logger.debug("Keyboard Interrupt")
             logger.warning("Force Quit!")
             Destroy.destroy_all_in_all_world()
             logger.success("Exited.")
