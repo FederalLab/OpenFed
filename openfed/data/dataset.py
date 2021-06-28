@@ -2,8 +2,9 @@ from abc import abstractmethod
 from typing import Any, List
 
 import numpy as np
-from openfed.data.partitioner import Partitioner
 from torch.utils.data import Dataset
+
+from .partitioner import Partitioner
 
 
 class FederatedDataset(Dataset):

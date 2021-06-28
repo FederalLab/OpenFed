@@ -4,7 +4,8 @@ from time import time
 
 import torch
 from openfed.common.logging import logger
-from openfed.unified.step.base import Backend, Step
+
+from .base import Backend, Step
 
 
 class AtLast(Step):

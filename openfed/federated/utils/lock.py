@@ -2,7 +2,7 @@ from collections import OrderedDict
 from threading import Lock
 from typing import Dict
 
-from openfed.common.logging import logger
+from openfed.common import logger
 
 
 class Maintainer():

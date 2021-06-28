@@ -2,15 +2,13 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Tuple, Union
 
 from bidict import bidict
-from openfed.common import Hook, Package
-from openfed.common.vars import ASYNC_OP
+from openfed.common import ASYNC_OP, Hook, Package
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch._C._distributed_c10d import Work
 
 from ..core.functional import gather_object
-from ..space.country import Country, ProcessGroup
-from ..space.world import World
+from ..space import Country, ProcessGroup, World
 from .functional import Cypher, FormotCheck
 
 

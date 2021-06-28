@@ -5,9 +5,8 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Type
 
 import torch
-from openfed.common.logging import logger
-from openfed.utils import openfed_class_fmt
-from openfed.utils.table import tablist
+from openfed.common import logger
+from openfed.utils import openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
 

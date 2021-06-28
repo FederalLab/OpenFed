@@ -1,4 +1,4 @@
-from openfed.common.logging import logger
+from openfed.common import logger
 
 
 def _auto_offline(func):

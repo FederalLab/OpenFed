@@ -1,5 +1,5 @@
 import torch
-from openfed.common.wrapper import Wrapper
+from openfed.common import Wrapper
 from torch.optim import Optimizer
 
 

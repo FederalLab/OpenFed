@@ -1,5 +1,5 @@
 import torch
-from openfed.optim.aux.aux import Aux
+from .aux import Aux
 
 
 class ElasticAux(Aux):

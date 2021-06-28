@@ -3,19 +3,16 @@ from datetime import timedelta
 from typing import Callable, Generator, Tuple, TypeVar
 
 import openfed
-from openfed.common.logging import logger
-from openfed.common.vars import ASYNC_OP
-from openfed.utils import openfed_class_fmt
-from openfed.utils.table import tablist
+from openfed.common import ASYNC_OP, logger
+from openfed.utils import openfed_class_fmt, tablist
 from torch._C._distributed_c10d import Work
 
-from ..deliver import Delivery
-from ..inform import Informer
-from ..utils.exception import ConnectTimeout, DeviceOffline, WrongState
-from ..utils.register import register
-from ..utils.utils import _auto_offline
-from .country import Country, ProcessGroup, Store
-from .world import World
+from .deliver import Delivery
+from .inform import Informer
+from .space import Country, ProcessGroup, Store, World
+from .utils import _auto_offline
+from .utils.exception import ConnectTimeout, DeviceOffline, WrongState
+from .utils.register import register
 
 _R = TypeVar("_R", bound='Reign')
 

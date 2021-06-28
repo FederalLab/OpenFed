@@ -4,10 +4,8 @@ import warnings
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from openfed.common.constants import (DEFAULT_PG_LONG_TIMEOUT,
-                                      DEFAULT_PG_SHORT_TIMEOUT,
-                                      DEFAULT_PG_TIMEOUT)
-from openfed.common.logging import logger
+from openfed.common import (DEFAULT_PG_LONG_TIMEOUT, DEFAULT_PG_SHORT_TIMEOUT,
+                            DEFAULT_PG_TIMEOUT, logger)
 from openfed.utils import openfed_class_fmt
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)

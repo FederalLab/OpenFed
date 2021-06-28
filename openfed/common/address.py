@@ -3,8 +3,7 @@ import os
 from argparse import Namespace
 from typing import List, TypeVar, overload
 
-from openfed.utils import openfed_class_fmt
-from openfed.utils.table import tablist
+from openfed.utils import openfed_class_fmt, tablist
 
 _A = TypeVar("_A", bound='Address')
 

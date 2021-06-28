@@ -3,30 +3,21 @@ from typing import Dict, List, Union
 
 import openfed
 from openfed.aggregate import Aggregator
-from openfed.common import (MAX_TRY_TIMES, Address, Hook, Peeper, SafeTread,
-                            default_address)
-from openfed.common.logging import logger
-from openfed.federated import Destroy, Maintainer, Reign, World
-from openfed.federated.utils.lock import openfed_lock
-from openfed.unified.step.after_destroy import AfterDestroy
-from openfed.unified.step.after_download import AfterDownload
-from openfed.unified.step.after_upload import AfterUpload
-from openfed.unified.step.at_failed import AtFailed
-from openfed.unified.step.at_invalid_state import AtInvalidState
-from openfed.unified.step.at_new_episode import AtNewEpisode
-from openfed.unified.step.at_zombie import AtZombie
-from openfed.unified.step.base import Step
-from openfed.unified.step.before_destroy import BeforeDestroy
-from openfed.unified.step.before_download import BeforeDownload
-from openfed.unified.step.before_upload import BeforeUpload
-from openfed.unified.unify import Unify
-from openfed.unified.utils import _backend_access, _convert_to_list
+from openfed.common import (MAX_TRY_TIMES, Address, Hook, SafeTread,
+                            default_address, logger)
+from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
 
+from .step import (AfterDestroy, AfterDownload, AfterUpload, AtFailed,
+                   AtInvalidState, AtNewEpisode, AtZombie, BeforeDestroy,
+                   BeforeDownload, BeforeUpload, Step)
+from .unify import Unify
+from .utils import _backend_access, _convert_to_list
 
-class Backend(Unify, SafeTread, Peeper, Hook):
+
+class Backend(Unify, SafeTread, Hook):
     """An unified API of backend for users.
     """
     aggregator: List[Aggregator]

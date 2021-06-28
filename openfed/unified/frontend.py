@@ -2,18 +2,17 @@ import time
 from typing import Any, Dict, List, Union
 
 import openfed
-from openfed.common.logging import logger
-from openfed.common import Address, Peeper, default_address
-from openfed.common.constants import SLEEP_LONG_TIME
+from openfed.common import SLEEP_LONG_TIME, Address, default_address, logger
 from openfed.federated import Maintainer, Reign, World
-from openfed.unified.unify import Unify
-from openfed.unified.utils import _frontend_access
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
 
+from .unify import Unify
+from .utils import _frontend_access
 
-class Frontend(Unify, Peeper):
+
+class Frontend(Unify):
     """An unified API of frontend for users.
     """
     maintainer: Maintainer

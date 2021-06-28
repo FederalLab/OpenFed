@@ -3,7 +3,7 @@ from collections import OrderedDict
 from enum import Enum, unique
 from typing import Any, Dict, List, TypeVar
 
-from openfed.common.array import Array
+from openfed.common import Array
 from openfed.utils import openfed_class_fmt
 from torch._C._distributed_c10d import ProcessGroup
 

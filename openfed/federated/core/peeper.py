@@ -1,8 +1,9 @@
 from openfed.common.thread import _thread_pool
-from openfed.federated.space.world import _world_list
-from openfed.federated.utils.lock import _maintainer_lock_dict
-from openfed.federated.utils.register import _country
-from openfed.utils.table import tablist
+from openfed.utils import tablist
+
+from ..space.world import _world_list
+from ..utils.lock import _maintainer_lock_dict
+from ..utils.register import _country
 
 
 class Peeper(object):

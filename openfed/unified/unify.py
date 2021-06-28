@@ -1,16 +1,15 @@
 from typing import Dict
 
 import openfed
-from openfed.common.logging import logger
-from openfed.common.thread import SafeTread
-from openfed.federated import Destroy, Maintainer, Reign, World
-from openfed.unified.utils import _backend_access
-from openfed.utils import openfed_class_fmt
-from openfed.utils.keyboard import keyboard_interrupt_handle
+from openfed.common import SafeTread, logger
+from openfed.federated import Destroy, Maintainer, Peeper, Reign, World
+from openfed.utils import keyboard_interrupt_handle, openfed_class_fmt
 from torch import Tensor
 
+from .utils import _backend_access
 
-class Unify(object):
+
+class Unify(Peeper):
     """Provide a unified api for backend and frontend.
     """
     maintainer: Maintainer

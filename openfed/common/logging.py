@@ -3,7 +3,7 @@ import sys
 from loguru import logger
 
 
-def set_logger_level(level: str = "INFO"):
+def log_level(level: str = "INFO"):
     # remove default logger
     logger.remove(0)
     logger.add(sys.stderr, level=level)

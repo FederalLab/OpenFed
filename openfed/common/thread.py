@@ -2,9 +2,8 @@ from abc import abstractmethod
 from threading import Thread
 from typing import Any, Dict
 
-from openfed.common.logging import logger
-from openfed.utils import openfed_class_fmt, time_string
-from openfed.utils.table import tablist
+from openfed.common import logger
+from openfed.utils import openfed_class_fmt, tablist, time_string
 from typing_extensions import final
 
 

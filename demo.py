@@ -11,7 +11,7 @@ from openfed.unified.step import StepAt
 from openfed.utils import time_string
 
 # >>> set log level
-# openfed.set_logger_level(level="ERROR")
+# openfed.log_level(level="ERROR")
 
 # >>> Get default arguments from OpenFed
 args = openfed.parser.parse_args()

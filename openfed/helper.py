@@ -2,8 +2,7 @@ import cmd
 import glob
 import os
 
-from openfed.common.address import Address
-from openfed.common.parser import parser
+from openfed.common import Address, parser
 
 
 class Helper(cmd.Cmd):
