@@ -91,7 +91,7 @@ class AverageAggregator(Aggregator):
                 new_p = aggregate(state["received_params"], key)
                 if key == "param":
                     if p.requires_grad:
-                        if not p.grad:
+                        if p.grad is None:
                             p.grad = p-new_p
                         else:
                             p.grad.copy_(p-new_p)

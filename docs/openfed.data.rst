@@ -13,10 +13,10 @@ Subpackages
 Submodules
 ----------
 
-openfed\.data\.dataset module
+openfed\.data\.datasets module
 -----------------------------
 
-.. automodule:: openfed.data.dataset
+.. automodule:: openfed.data.datasets
     :members:
     :undoc-members:
     :show-inheritance:

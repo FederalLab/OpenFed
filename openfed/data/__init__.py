@@ -1,5 +1,5 @@
 from .analysis import Analysis
-from .dataset import FederatedDataset, PartitionerDataset
+from .datasets import FederatedDataset, PartitionerDataset
 from .partitioner import (DirichletPartitioner, IIDPartitioner, Partitioner,
                           PowerLawPartitioner)
 

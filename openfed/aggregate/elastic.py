@@ -104,7 +104,7 @@ class ElasticAggregator(Aggregator):
                             state["received_params"], "importance", total_instances)
                         grad = self._elastic_update(
                             p-new_p, new_imp, group["quantile"])
-                        if not p.grad:
+                        if p.grad is None:
                             p.grad = grad
                         else:
                             p.grad.copy_(grad)

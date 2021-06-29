@@ -3,7 +3,7 @@ from typing import List, Tuple
 import numpy as np
 from openfed.utils import tablist
 
-from .dataset import FederatedDataset
+from .datasets import FederatedDataset
 
 
 class Analysis(object):

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from openfed.common import logger
 
-from ..dataset import FederatedDataset
+from ..datasets import FederatedDataset
 from ..utils import *
 
 DEFAULT_BATCH_SIZE = 4

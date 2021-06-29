@@ -95,7 +95,7 @@ class NaiveAggregator(Aggregator):
                     state['received_params'], key, total_instances)
                 if key == "param":
                     if p.requires_grad:
-                        if not p.grad:
+                        if p.grad is None:
                             p.grad = p-new_p
                         else:
                             p.grad.copy_(p-new_p)

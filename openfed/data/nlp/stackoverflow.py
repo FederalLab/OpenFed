@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from openfed.common import logger
 
-from ..dataset import FederatedDataset
+from ..datasets import FederatedDataset
 from ..utils import *
 
 word_count_file_path = None
