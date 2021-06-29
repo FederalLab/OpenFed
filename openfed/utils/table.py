@@ -5,7 +5,12 @@ from prettytable import PrettyTable
 
 def _string_trim(string: str, length: int = 15):
     # make sure string is string
-    string = str(string)
+    if isinstance(string, int):
+        string = f"{string}"
+    elif isinstance(string, float):
+        string = f"{string:.2f}"
+    else:
+        string = str(string)
     if len(string) > length + 3:
         return string[:15]+"..."
     else:
@@ -19,7 +24,7 @@ def _tablist(head: List[Any], data: List[Any]) -> str:
     return str(table)
 
 
-def tablist(head: List[Any], data: List[Any], items_per_row: int = 4, force_in_one_row: bool=False) -> str:
+def tablist(head: List[Any], data: List[Any], items_per_row: int = 4, force_in_one_row: bool = False) -> str:
     """
         If len(head) > items_per_row, we will split into multi-tables.
         If force_in_one_row is True, items_per_row will be ignored.

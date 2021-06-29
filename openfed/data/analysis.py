@@ -14,13 +14,13 @@ class Analysis(object):
         for p in range(total_parts):
             federated_dataset.set_part_id(p)
             parts_list.append(len(federated_dataset))
-        rdict = dict(
-            Parts=total_parts,
-            Samples=sum(parts_list),
-            Mean=np.mean(parts_list),
-            Var=np.var(parts_list),
-        )
         if verbose:
+            rdict = dict(
+                Parts=total_parts,
+                Samples=sum(parts_list),
+                Mean=np.mean(parts_list),
+                Var=np.var(parts_list),
+            )
             print(tablist(
                 head=list(rdict.keys()),
                 data=list(rdict.values()),
