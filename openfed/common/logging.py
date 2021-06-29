@@ -16,16 +16,16 @@ class Logger(object):
         self.logger.add(filename, *args, **kwargs)
 
     def error(self, *args, **kwargs):
-        self.logger.error(*args, **kwargs)
+        self.logger.opt(depth=1).error(*args, **kwargs)
 
     def warning(self, *args, **kwargs):
-        self.logger.warning(*args, **kwargs)
+        self.logger.opt(depth=1).warning(*args, **kwargs)
 
     def info(self, *args, **kwargs):
-        self.logger.info(*args, **kwargs)
+        self.logger.opt(depth=1).info(*args, **kwargs)
 
     def debug(self, *args, **kwargs):
-        self.logger.debug(*args, **kwargs)
+        self.logger.opt(depth=1).debug(*args, **kwargs)
 
 
 logger = Logger()

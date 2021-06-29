@@ -151,36 +151,37 @@ print(f"Finished.\nExit Client @{openfed_api.nick_name}.")
 ```bash
 (openfed) python demo.py --rank 0 --world_size 3
 [W ProcessGroupGloo.cpp:684] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-2021-06-28 15:41:25.025 | INFO     | openfed.common.logging:info:25 - Receive @1
+2021-06-29 10:08:48.136 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
 From <OpenFed> Reign
-programmers
+mixture
 
-2021-06-28 15:41:25.032 | WARNING  | openfed.common.logging:warning:22 - Version not aligned. (request @1, but @0).
-2021-06-28 15:41:25.039 | INFO     | openfed.common.logging:info:25 - Receive @2
+2021-06-29 10:08:48.139 | WARNING  | openfed.unified.step.before_upload:__call__:15 - Version not aligned. (request @1, but @0).
+2021-06-29 10:08:48.142 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @2
 From <OpenFed> Reign
-alcohol
+blinks
 
-2021-06-28 15:41:25.040 | INFO     | openfed.common.logging:info:25 - Aggregate operation triggered by count.
-2021-06-28 15:41:25.080 | INFO     | openfed.common.logging:info:25 - Receive @1
+2021-06-29 10:08:48.142 | INFO     | openfed.unified.step.at_last:__call__:94 - Aggregate operation triggered by count.
+2021-06-29 10:08:48.159 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
 From <OpenFed> Reign
-programmers
+mixture
 
-2021-06-28 15:41:25.088 | WARNING  | openfed.common.logging:warning:22 - Version not aligned. (request @2, but @1).
-2021-06-28 15:41:25.098 | INFO     | openfed.common.logging:info:25 - Receive @2
+2021-06-29 10:08:48.163 | WARNING  | openfed.unified.step.before_upload:__call__:15 - Version not aligned. (request @2, but @1).
+2021-06-29 10:08:48.169 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @2
 From <OpenFed> Reign
-alcohol
+blinks
 
-2021-06-28 15:41:25.099 | INFO     | openfed.common.logging:info:25 - Aggregate operation triggered by count.
-2021-06-28 15:41:25.142 | INFO     | openfed.common.logging:info:25 - Receive @1
+2021-06-29 10:08:48.170 | INFO     | openfed.unified.step.at_last:__call__:94 - Aggregate operation triggered by count.
+2021-06-29 10:08:48.193 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
 From <OpenFed> Reign
-programmers
+mixture
 
-2021-06-28 15:41:25.150 | INFO     | openfed.common.logging:info:25 - Receive @2
+2021-06-29 10:08:48.197 | WARNING  | openfed.unified.step.before_upload:__call__:15 - Version not aligned. (request @3, but @2).
+2021-06-29 10:08:48.201 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @2
 From <OpenFed> Reign
-alcohol
+blinks
 
-2021-06-28 15:41:25.151 | INFO     | openfed.common.logging:info:25 - Aggregate operation triggered by count.
-2021-06-28 15:41:25.158 | INFO     | openfed.common.logging:info:25 - Finished.
+2021-06-29 10:08:48.201 | INFO     | openfed.unified.step.at_last:__call__:94 - Aggregate operation triggered by count.
+2021-06-29 10:08:48.204 | INFO     | openfed.unified.unify:finish:83 - Finished.
  <OpenFed> OpenFed Unified API
 <OpenFed> Maintainer
 +---------+----------+---------+
@@ -195,53 +196,53 @@ alcohol
 ```bash
 (openfed) python demo.py --rank 1 --world_size 3
 [W ProcessGroupGloo.cpp:684] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-2021-06-28 15:41:20: Simulation @1
-2021-06-28 15:41:20: Downloading latest model from server.
-2021-06-28 15:41:25: Downloaded!
-2021-06-28 15:41:25: Uploading trained model to server.
-2021-06-28 15:41:25: Uploaded!
-2021-06-28 15:41:25: Simulation @2
-2021-06-28 15:41:25: Downloading latest model from server.
-2021-06-28 15:41:25: Downloaded!
-2021-06-28 15:41:25: Uploading trained model to server.
-2021-06-28 15:41:25: Uploaded!
-2021-06-28 15:41:25: Simulation @3
-2021-06-28 15:41:25: Downloading latest model from server.
-2021-06-28 15:41:25: Downloaded!
-2021-06-28 15:41:25: Uploading trained model to server.
-2021-06-28 15:41:25: Uploaded!
-2021-06-28 15:41:25: Simulation @4
-2021-06-28 15:41:25: Downloading latest model from server.
+2021-06-29 10:08:43: Simulation @1
+2021-06-29 10:08:43: Downloading latest model from server.
+2021-06-29 10:08:48: Downloaded!
+2021-06-29 10:08:48: Uploading trained model to server.
+2021-06-29 10:08:48: Uploaded!
+2021-06-29 10:08:48: Simulation @2
+2021-06-29 10:08:48: Downloading latest model from server.
+2021-06-29 10:08:48: Downloaded!
+2021-06-29 10:08:48: Uploading trained model to server.
+2021-06-29 10:08:48: Uploaded!
+2021-06-29 10:08:48: Simulation @3
+2021-06-29 10:08:48: Downloading latest model from server.
+2021-06-29 10:08:48: Downloaded!
+2021-06-29 10:08:48: Uploading trained model to server.
+2021-06-29 10:08:48: Uploaded!
+2021-06-29 10:08:48: Simulation @4
+2021-06-29 10:08:48: Downloading latest model from server.
 Downloading failed.
 Finished.
-Exit Client @alcohol.
+Exit Client @mixture.
 ```
 
 ### Frontend-2
 
 ```bash
-(openfed) python demo.py --rank 1 --world_size 3
+(openfed) python demo.py --rank 2 --world_size 3
 [W ProcessGroupGloo.cpp:684] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-2021-06-28 15:41:20: Simulation @1
-2021-06-28 15:41:20: Downloading latest model from server.
-2021-06-28 15:41:25: Downloaded!
-2021-06-28 15:41:25: Uploading trained model to server.
-2021-06-28 15:41:25: Uploaded!
-2021-06-28 15:41:25: Simulation @2
-2021-06-28 15:41:25: Downloading latest model from server.
-2021-06-28 15:41:25: Downloaded!
-2021-06-28 15:41:25: Uploading trained model to server.
-2021-06-28 15:41:25: Uploaded!
-2021-06-28 15:41:25: Simulation @3
-2021-06-28 15:41:25: Downloading latest model from server.
-2021-06-28 15:41:25: Downloaded!
-2021-06-28 15:41:25: Uploading trained model to server.
-2021-06-28 15:41:25: Uploaded!
-2021-06-28 15:41:25: Simulation @4
-2021-06-28 15:41:25: Downloading latest model from server.
+2021-06-29 10:08:43: Simulation @1
+2021-06-29 10:08:43: Downloading latest model from server.
+2021-06-29 10:08:48: Downloaded!
+2021-06-29 10:08:48: Uploading trained model to server.
+2021-06-29 10:08:48: Uploaded!
+2021-06-29 10:08:48: Simulation @2
+2021-06-29 10:08:48: Downloading latest model from server.
+2021-06-29 10:08:48: Downloaded!
+2021-06-29 10:08:48: Uploading trained model to server.
+2021-06-29 10:08:48: Uploaded!
+2021-06-29 10:08:48: Simulation @3
+2021-06-29 10:08:48: Downloading latest model from server.
+2021-06-29 10:08:48: Downloaded!
+2021-06-29 10:08:48: Uploading trained model to server.
+2021-06-29 10:08:48: Uploaded!
+2021-06-29 10:08:48: Simulation @4
+2021-06-29 10:08:48: Downloading latest model from server.
 Downloading failed.
 Finished.
-Exit Client @programmers.
+Exit Client @blinks.
 ```
 
 ## Project Structure
