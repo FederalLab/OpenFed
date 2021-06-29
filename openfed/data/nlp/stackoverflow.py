@@ -5,8 +5,10 @@ import os
 import h5py
 import numpy as np
 import torch
+from openfed.common import logger
 
 from ..dataset import FederatedDataset
+from ..utils import *
 
 word_count_file_path = None
 word_dict = None
@@ -244,24 +246,47 @@ def split(dataset):
     return x, y
 
 
-class StackOverFlowTP(FederatedDataset):
-    """tag prediction.
-    """
+class StackOverFlow(FederatedDataset):
+    def __init__(self, root: str, train: bool = True, download: bool = True):
 
-    def __init__(self, root: str, train: bool = True):
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
-
-        with h5py.File(data_file, "r") as data_h5:
-            client_ids = list(data_h5[_EXAMPLE].keys())
+        if not os.path.isfile(data_file):
+            if download:
+                urls = [
+                    'https://fedml.s3-us-west-1.amazonaws.com/stackoverflow.tag_count.tar.bz2',
+                    'https://fedml.s3-us-west-1.amazonaws.com/stackoverflow.word_count.tar.bz2',
+                    'https://fedml.s3-us-west-1.amazonaws.com/stackoverflow.tar.bz2',
+                    'https://fedml.s3-us-west-1.amazonaws.com/stackoverflow_nwp.pkl', ]
+                for url in urls:
+                    logger.debug(f"Download dataset from {url} to {root}")
+                    if wget_https(url, root):
+                        if url.endswith(".bz2"):
+                            if tar_xvf(os.path.join(root, url.split("/")[-1]), output_dir=root):
+                                logger.debug("Downloaded.")
+                    else:
+                        raise RuntimeError("Download dataset failed.")
+            else:
+                raise FileNotFoundError(f"{data_file} not exists.")
 
         self.data_file = data_file
         self.root = root
 
+
+class StackOverFlowTP(StackOverFlow):
+    """tag prediction.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        with h5py.File(self.data_file, "r") as data_h5:
+            client_ids = list(data_h5[_EXAMPLE].keys())
+
         self.total_parts = len(client_ids)
         self.parts_name = client_ids
 
-        self.classes = len(get_tag_dict(root))
+        self.classes = len(get_tag_dict(self.root))
 
     def __len__(self) -> int:
         with h5py.File(self.data_file, 'r') as data_h5:
@@ -293,25 +318,23 @@ class StackOverFlowTP(FederatedDataset):
         return sum(samples)
 
 
-class StackOverFlowNWP(FederatedDataset):
+class StackOverFlowNWP(StackOverFlow):
     """next work prediction.
     """
 
-    def __init__(self, root: str, train: bool = True):
-        # TODO: 把自动下载数据集的代码添加到这里
-        data_file = os.path.join(
-            root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        with h5py.File(data_file, "r") as data_h5:
+        with h5py.File(self.data_file, "r") as data_h5:
             client_ids = list(data_h5[_EXAMPLE].keys())
 
-        self.data_file = data_file
-        self.root = root
+        with h5py.File(self.data_file, "r") as data_h5:
+            client_ids = list(data_h5[_EXAMPLE].keys())
 
         self.total_parts = len(client_ids)
         self.parts_name = client_ids
 
-        self.classes = len(get_word_dict(root)) + 1
+        self.classes = len(get_word_dict(self.root)) + 1
 
     def __len__(self) -> int:
         with h5py.File(self.data_file, 'r') as data_h5:

@@ -6,12 +6,14 @@ import re
 import h5py
 import numpy as np
 import torch
+from openfed.common import logger
 
 from ..dataset import FederatedDataset
+from ..utils import *
 
 DEFAULT_BATCH_SIZE = 4
-DEFAULT_TRAIN_FILE = 'all_data_niid_2_keep_0_train_8.json'
-DEFAULT_TEST_FILE = 'all_data_niid_2_keep_0_test_8.json'
+DEFAULT_TRAIN_FILE_TFF = 'all_data_niid_2_keep_0_train_8.json'
+DEFAULT_TEST_FILE_TFF = 'all_data_niid_2_keep_0_test_8.json'
 
 # group name defined by tff in h5 file
 _USERS = 'users'
@@ -146,8 +148,8 @@ def bag_of_words(line, vocab):
 DEFAULT_TRAIN_CLIENTS_NUM = 715
 DEFAULT_TEST_CLIENTS_NUM = 715
 DEFAULT_BATCH_SIZE = 4
-DEFAULT_TRAIN_FILE = 'shakespeare_train.h5'
-DEFAULT_TEST_FILE = 'shakespeare_test.h5'
+DEFAULT_TRAIN_FILE_PROX = 'shakespeare_train.h5'
+DEFAULT_TEST_FILE_PROX = 'shakespeare_test.h5'
 
 # group name defined by tff in h5 file
 _EXAMPLE = 'examples'
@@ -222,13 +224,24 @@ def preprocess(sentences, max_seq_len=SEQUENCE_LENGTH):
 
 
 class ShakespeareNWP(FederatedDataset):
-    """Used for next word prediction.
+    """Used for next word prediction. TFF version
     """
 
-    def __init__(self, root: str, train: bool = True):
-        # TODO: 把自动下载数据集的代码添加到这里
+    def __init__(self, root: str, train: bool = True, download: bool = True):
         data_file = os.path.join(
-            root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
+            root, DEFAULT_TRAIN_FILE_TFF if train else DEFAULT_TEST_FILE_TFF)
+
+        if not os.path.isfile(data_file):
+            if download:
+                url = 'https://fedml.s3-us-west-1.amazonaws.com/shakespeare.tar.bz2'
+                logger.debug(f"Download dataset from {url} to {root}")
+                if wget_https(url, root):
+                    if tar_xvf(os.path.join(root, "shakespeare.tar.bz2"), output_dir=root):
+                        logger.debug("Downloaded.")
+                else:
+                    raise RuntimeError("Download dataset failed.")
+            else:
+                raise FileNotFoundError(f"{data_file} not exists.")
 
         data_h5 = h5py.File(data_file, "r")
 
@@ -265,11 +278,28 @@ class ShakespeareNCP(FederatedDataset):
     """Used for next char prediction. FedProx version.
     """
 
-    def __init__(self, root: str, train: bool = True):
+    def __init__(self, root: str, train: bool = True, download: bool = True):
         data_file = os.path.join(
-            root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
+            root, DEFAULT_TRAIN_FILE_PROX if train else DEFAULT_TEST_FILE_PROX)
 
-        with open(data_file, "r") as f:
+        if not os.path.isfile(data_file):
+            if download:
+                file_ids = ['1mD6_4ju7n2WFAahMKDtozaGxUASaHAPH',
+                            '1GERQ9qEJjXk_0FXnw1JbjuGCI-zmmfsk']
+                filenames = [
+                    DEFAULT_TRAIN_FILE_PROX,
+                    DEFAULT_TEST_FILE_PROX,
+                ]
+                for file_id, filename in zip(file_ids, filenames):
+                    file_id = '1GERQ9qEJjXk_0FXnw1JbjuGCI-zmmfsk'
+                    filename = os.path.join(root, filename)
+                    logger.debug(f"Download dataset: {file_id}, {filename}")
+                    if not wget_google_driver_url(file_id, filename):
+                        raise RuntimeError("Download dataset failed.")
+            else:
+                raise FileNotFoundError(f"{data_file} not exists.")
+
+        with open(self.data_file, "r") as f:
             data_json = json.load(f)
             # dict
             parts_data_list = data_json[_SNIPPETS]
