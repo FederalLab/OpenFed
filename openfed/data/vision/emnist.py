@@ -3,8 +3,10 @@ import os
 import h5py
 import numpy as np
 import torch
+from openfed.common import logger
 
 from ..dataset import FederatedDataset
+from ..utils import *
 
 DEFAULT_CLIENTS_NUM = 3400
 DEFAULT_BATCH_SIZE = 20
@@ -18,10 +20,21 @@ _LABEL = 'label'
 
 
 class EMNIST(FederatedDataset):
-    def __init__(self, root: str, train: bool = True, transform=None, target_transform=None):
-        # TODO: 把自动下载数据机的代码添加到这里
+    def __init__(self, root: str, train: bool = True, transform=None, target_transform=None, download: bool = True):
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
+
+        if not os.path.isfile(data_file):
+            if download:
+                url = 'https://fedml.s3-us-west-1.amazonaws.com/fed_emnist.tar.bz2'
+                logger.debug(f"Download dataset from {url} to {root}")
+                if wget_https(url, root):
+                    if tar_xvf(os.path.join(root, "fed_emnist.tar.bz2"), output_dir=root):
+                        logger.debug("Downloaded.")
+                else:
+                    raise RuntimeError("Download dataset failed.")
+            else:
+                raise FileNotFoundError(f"{data_file} not exists.")
 
         data_h5 = h5py.File(data_file, "r")
 
