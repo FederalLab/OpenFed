@@ -247,7 +247,7 @@ def split(dataset):
 
 
 class StackOverFlow(FederatedDataset):
-    def __init__(self, root: str, train: bool = True, download: bool = True):
+    def __init__(self, root: str, train: bool = True, download: bool = True, transform=None):
 
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
@@ -271,6 +271,7 @@ class StackOverFlow(FederatedDataset):
 
         self.data_file = data_file
         self.root = root
+        self.transform = transform
 
 
 class StackOverFlowTP(StackOverFlow):
@@ -307,7 +308,10 @@ class StackOverFlowTP(StackOverFlow):
             sample = preprocess_input(sample, self.root)
             tag = preprocess_target(tag, self.root)
 
-        return torch.tensor(sample), torch.tensor(tag)
+        if self.transform:
+            sample, tag = self.transform(sample), self.transform(tag)
+
+        return sample, tag
 
     def total_samples(self):
         samples = []
@@ -347,8 +351,10 @@ class StackOverFlowNWP(StackOverFlow):
             raw_token = data_h5[_EXAMPLE][part_name][_TOKENS][()][index].decode(
                 'utf-8')
             sample = tokenizer(raw_token, self.root)
-
-        return torch.tensor(sample[:-1]), torch.tensor(sample[1:])
+        x, y = sample[:-1], torch.tensor(sample[1:])
+        if self.transform:
+            x, y = self.transform(x), self.transform(y)
+        return x, y
 
     def total_samples(self):
         samples = []

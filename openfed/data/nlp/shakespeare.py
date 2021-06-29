@@ -12,12 +12,12 @@ from ..dataset import FederatedDataset
 from ..utils import *
 
 DEFAULT_BATCH_SIZE = 4
-DEFAULT_TRAIN_FILE_TFF = 'all_data_niid_2_keep_0_train_8.json'
-DEFAULT_TEST_FILE_TFF = 'all_data_niid_2_keep_0_test_8.json'
+DEFAULT_TRAIN_FILE_PROX = 'all_data_niid_2_keep_0_train_8.json'
+DEFAULT_TEST_FILE_PROX = 'all_data_niid_2_keep_0_test_8.json'
 
 # group name defined by tff in h5 file
 _USERS = 'users'
-_SNIPPETS = 'user_data'
+_SNIPPETS_PROX = 'user_data'
 
 # ------------------------
 # utils for shakespeare dataset
@@ -148,12 +148,12 @@ def bag_of_words(line, vocab):
 DEFAULT_TRAIN_CLIENTS_NUM = 715
 DEFAULT_TEST_CLIENTS_NUM = 715
 DEFAULT_BATCH_SIZE = 4
-DEFAULT_TRAIN_FILE_PROX = 'shakespeare_train.h5'
-DEFAULT_TEST_FILE_PROX = 'shakespeare_test.h5'
+DEFAULT_TRAIN_FILE_TFF = 'shakespeare_train.h5'
+DEFAULT_TEST_FILE_TFF = 'shakespeare_test.h5'
 
 # group name defined by tff in h5 file
 _EXAMPLE = 'examples'
-_SNIPPETS = 'snippets'
+_SNIPPETS_TFF = 'snippets'
 
 
 word_dict = None
@@ -227,7 +227,7 @@ class ShakespeareNWP(FederatedDataset):
     """Used for next word prediction. TFF version
     """
 
-    def __init__(self, root: str, train: bool = True, download: bool = True):
+    def __init__(self, root: str, train: bool = True, download: bool = True, transform=None):
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE_TFF if train else DEFAULT_TEST_FILE_TFF)
 
@@ -254,20 +254,21 @@ class ShakespeareNWP(FederatedDataset):
         parts_data_list = []
         for client_id in client_ids:
             parts_data_list.append(
-                [x.decode('utf-8') for x in np.array(data_h5[_EXAMPLE][client_id][_SNIPPETS][()])])
+                [x.decode('utf-8') for x in np.array(data_h5[_EXAMPLE][client_id][_SNIPPETS_TFF][()])])
         self.parts_data_list = parts_data_list
 
         self.classes = len(get_word_dict()) + 1
+        self.transform = transform
 
     def __len__(self) -> int:
         return len(self.parts_data_list[self.part_id])
 
     def __getitem__(self, index: int):
-        data = preprocess([self.parts_data_list[self.part_id][index]])[0]
-
-        data = torch.tensor(data).reshape(-1)
-
+        data = preprocess([self.parts_data_list[self.part_id][index]])[
+            0].reshape(-1)
         x, y = data[:-1], data[-1]
+        if self.transform:
+            x, y = self.transform(x), self.transform(y)
         return x, y
 
     def total_samples(self):
@@ -278,7 +279,7 @@ class ShakespeareNCP(FederatedDataset):
     """Used for next char prediction. FedProx version.
     """
 
-    def __init__(self, root: str, train: bool = True, download: bool = True):
+    def __init__(self, root: str, train: bool = True, download: bool = True, transform=None):
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE_PROX if train else DEFAULT_TEST_FILE_PROX)
 
@@ -299,10 +300,10 @@ class ShakespeareNCP(FederatedDataset):
             else:
                 raise FileNotFoundError(f"{data_file} not exists.")
 
-        with open(self.data_file, "r") as f:
+        with open(data_file, "r") as f:
             data_json = json.load(f)
             # dict
-            parts_data_list = data_json[_SNIPPETS]
+            parts_data_list = data_json[_SNIPPETS_PROX]
 
         self.part_id = 0
         self.total_parts = len(parts_data_list.keys())
@@ -311,6 +312,7 @@ class ShakespeareNCP(FederatedDataset):
         self.parts_data_list = parts_data_list
 
         self.classes = VOCAB_SIZE
+        self.transform = transform
 
     def __len__(self) -> int:
         part_name = self.parts_name[self.part_id]
@@ -321,8 +323,9 @@ class ShakespeareNCP(FederatedDataset):
         data = self.parts_data_list[part_name]
         x, y = word_to_indices(
             data['x'][index]), letter_to_index(data['y'][index])
-
-        return torch.tensor(x), torch.tensor(y)
+        if self.transform:
+            x, y = self.transform(x), self.transform(y)
+        return x, y
 
     def total_samples(self):
         return sum([len(x['x']) for x in self.parts_data_list.values()])
