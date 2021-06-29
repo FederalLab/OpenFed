@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, List
-
+from torch import Tensor
 import numpy as np
 from torch.utils.data import Dataset
 
@@ -22,7 +22,7 @@ class FederatedDataset(Dataset):
 
 class PartitionerDataset(FederatedDataset):
     dataset: Dataset
-    part_index_list: List[np.array]
+    parts_index_list: List[np.array]
     partitioner: Partitioner
 
     def __init__(self,
@@ -37,7 +37,7 @@ class PartitionerDataset(FederatedDataset):
         self.total_parts = total_parts
         self.partitioner = partitioner
 
-        self.part_index_list = self.partitioner(
+        self.parts_index_list = self.partitioner(
             total_parts, self.data_index_list())
 
     def data_index_list(self) -> List[np.array]:
@@ -49,8 +49,11 @@ class PartitionerDataset(FederatedDataset):
         if isinstance(self.dataset.classes, int):
             classes = range(self.dataset.classes)
         else:
-            classes = self.dataset.classes
-        targets = np.array(self.dataset.targets)
+            classes = range(len(self.dataset.classes))
+        if isinstance(self.dataset.targets, Tensor):
+            targets = self.dataset.targets.numpy()
+        else:
+            targets = self.dataset.targets
 
         return [np.where(targets == cls)[0] for cls in classes]
 
