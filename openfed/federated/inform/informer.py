@@ -270,7 +270,8 @@ class Informer(Hook):
             if key.startswith("Collector"):
                 # don't forget () operation.
                 obj = Register(key, self)()
-                if obj is not None:
+                if obj is not None and self.world.leader and obj.leader_collector or \
+                        self.world.follower and obj.follower_collector:
                     obj.load_message(value)
                     logger.debug(obj)
 
@@ -279,7 +280,9 @@ class Informer(Hook):
         """
         cdict = {}
         for k, f in self.hook_dict.items():
-            cdict[k] = f()
+            if self.world.leader and f.leader_scatter or\
+                    self.world.follower and f.follower_scatter:
+                cdict[k] = f()
         self._update(cdict)
 
     def __repr__(self) -> str:

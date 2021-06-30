@@ -32,7 +32,7 @@ def convert_to_list(x):
 
 def after_connection(func):
     def wrapper(self, *args, **kwargs):
-        if self.maintainer is None or self.reign is None:
+        if self.maintainer is None:
             raise AccessError(
                 f"{func} only available after connection build.")
         else:
@@ -42,7 +42,7 @@ def after_connection(func):
 
 def before_connection(func):
     def wrapper(self, *args, **kwargs):
-        if not (self.maintainer is None and self.reign is None):
+        if not (self.maintainer is None):
             raise AccessError(
                 f"{func} only available before connection build.")
         else:

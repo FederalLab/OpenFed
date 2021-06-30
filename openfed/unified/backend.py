@@ -113,6 +113,7 @@ class Backend(Unify, SafeTread, Hook):
         self.optimizer = optimizer
 
     @backend_access
+    @after_connection
     def safe_run(self):
         """
             Use self.run() to start this loop in the main thread.
@@ -139,6 +140,13 @@ class Backend(Unify, SafeTread, Hook):
 
                         # register hook to reign if necessary.
                         self._add_hook_to_reign()
+
+                        # scatter self information to other side
+                        self.reign.scatter()
+
+                        # collect other side information
+                        self.reign.collect()
+
                         cnt += 1
                         self.step("at_first")
                         if reign.is_offline:

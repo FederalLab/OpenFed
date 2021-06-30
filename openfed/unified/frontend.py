@@ -77,7 +77,16 @@ class Frontend(Unify):
         A download and upload is build a version updating.
         So increase version number here.
         """
+        self.reign.collect()
+        self.reign.scatter()
         return self._wait_handler(self.reign.upload(self.version))
+
+    @frontend_access
+    @after_connection
+    def download(self) -> bool:
+        self.reign.collect()
+        self.reign.scatter()
+        return self._wait_handler(self.reign.download(self.version))
 
     @frontend_access
     @after_connection
@@ -88,11 +97,6 @@ class Frontend(Unify):
             self.version = version
         else:
             self.version += 1
-
-    @frontend_access
-    @after_connection
-    def download(self) -> bool:
-        return self._wait_handler(self.reign.download(self.version))
 
     @frontend_access
     @after_connection

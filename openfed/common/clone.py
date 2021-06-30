@@ -1,3 +1,4 @@
+from copy import copy
 from typing import Any
 
 
@@ -8,4 +9,6 @@ class Clone(object):
     """
 
     def clone(self) -> Any:
-        return type('Clone', self.__bases__, dict(self.__dict__))()
+        # NOTE: Do not use deepcopy operation!
+        c = copy(self)
+        return c

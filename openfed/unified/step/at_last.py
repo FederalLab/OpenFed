@@ -4,6 +4,7 @@ from time import time
 
 import torch
 from openfed.common.logging import logger
+from torch.optim.lr_scheduler import _LRScheduler
 
 from .base import Backend, Step
 
@@ -18,6 +19,9 @@ class AtLast(Step):
 
 class Aggregate(AtLast):
     checkpoint: str
+
+    def __init__(self, lr_scheduler: _LRScheduler = None):
+        self.lr_scheduler = lr_scheduler
 
     def aggregate(self, backend: Backend, *args, **kwargs):
         """Aggregate received models.
@@ -41,9 +45,13 @@ class Aggregate(AtLast):
             aggregator.clear_buffer()
 
         backend.task_info_list = task_info_list
+        # update learning rate
+        if self.lr_scheduler is not None:
+            self.lr_scheduler.step()
 
         # Reset same flags
         backend.received_numbers = 0
+        logger.info(f"Update version from @{backend.version} to @{backend.version+1}.")
         backend.version += 1
 
         if self.checkpoint:
@@ -54,13 +62,13 @@ class Aggregate(AtLast):
 class AggregatePeriod(Aggregate):
     tic: float
 
-    def __init__(self, period: timedelta, checkpoint: str = None):
+    def __init__(self, period: timedelta, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
         """
         Args: 
             period: The period to aggregate received model.
             checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
         """
-        super().__init__()
+        super().__init__(lr_scheduler)
         self.period = period
         self.tic = time.time()
         self.checkpoint = checkpoint
@@ -79,13 +87,13 @@ class AggregatePeriod(Aggregate):
 class AggregateCount(Aggregate):
     count: int
 
-    def __init__(self, count: int, checkpoint: str = None):
+    def __init__(self, count: int, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
         """
         Args:
             count: when the number of received models reach count, aggregate.
             checkpoint: if given, save the new aggregated model.
         """
-        super().__init__()
+        super().__init__(lr_scheduler)
         self.count = count
         self.checkpoint = checkpoint
 

@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Type
 
 import torch
-from openfed.common import logger, Clone
+from openfed.common import Clone, logger
 from openfed.utils import openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
@@ -72,6 +72,16 @@ class Collector(Clone):
     # used to index or retrieve the message
     bounding_name: str = "Collector.base"
 
+    # If True, run collect in leader
+    leader_collector: bool = True
+    # If True, run collect in follower
+    follower_collector: bool = True
+
+    # If True, scatter self message in leader
+    leader_scatter: bool = True
+    # If True, scatter self message in follower
+    follower_scatter: bool = True
+
     @abstractmethod
     def collect(self) -> Any:
         """Implement related functions to collect messages.
@@ -114,6 +124,12 @@ class SystemInfo(Collector):
 
     message: Any = None
 
+    leader_collector: bool = True
+    follower_collector: bool = False
+
+    leader_scatter: bool = False
+    follower_scatter: bool = True
+
     def collect(self) -> Dict[str, str]:
         return dict(
             system=platform.system(),
@@ -155,6 +171,11 @@ class GPUInfo(Collector):
     bounding_name: str = "Collector.GPUInfo"
 
     message: Any = None
+    leader_collector: bool = True
+    follower_collector: bool = False
+
+    leader_scatter: bool = False
+    follower_scatter: bool = True
 
     def collect(self) -> Dict[str, str]:
         if torch.cuda.is_available():
@@ -196,6 +217,11 @@ class LRTracker(Collector):
     """Keep tack of learning rate during training.
     """
     bounding_name: str = "Collector.LRTracker"
+    leader_collector: bool = False
+    follower_collector: bool = True
+
+    leader_scatter: bool = True
+    follower_scatter: bool = False
 
     def __init__(self, lr_scheduler: _LRScheduler):
         self.lr_scheduler = lr_scheduler

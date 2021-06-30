@@ -24,8 +24,7 @@ class AfterDownload(Step):
             # Increase the total number of received models
             backend.received_numbers += 1
 
-            logger.info(f"Receive @{backend.received_numbers}\n"
-                        f"From {backend.reign}")
+            logger.info(f"{backend.received_numbers} at v.{backend.version} from {backend.nick_name}.")
         else:
             logger.debug(
                 f"Try to download {backend.received_numbers+1} failed.")
