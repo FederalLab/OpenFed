@@ -41,6 +41,6 @@ class Hook(object):
         else:
             func = kwargs['func']
             if func in self.hook_list:
-                msg = "Key '%s' already registered" % key
+                msg = "Func '%s' already registered" % func
                 raise KeyError(msg)
             self.hook_list.append(func)
