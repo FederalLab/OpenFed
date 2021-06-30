@@ -204,9 +204,14 @@ class Backend(Unify, SafeTread, Hook):
 
     @backend_access
     def register_step(self, step: Step):
+        """Register the step function to step possition call."""
         name = step.step_name
-        name = f"{name}.{len(self.hook_dict)}"
-        self.register_hook(key=name, func=step)
+        if isinstance(name, str):
+            name = (name)
+
+        for n in name:
+            n = f"{n}.{len(self.hook_dict)}"
+            self.register_hook(key=n, func=step)
 
     @backend_access
     def step(self, step_name: str, *args, **kwargs) -> Union[None, bool]:

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from threading import Lock
-from typing import Union
+from typing import Union, List
 
 from openfed.common import Clone
 
@@ -42,3 +42,40 @@ class Step(Clone):
     @abstractmethod
     def __call__(self, backend: Backend, *args, **kwargs) -> Union[None, bool]:
         ...
+
+
+class MultiStep(Step):
+    step_name: List[str] = []
+
+    def _after_destroy(self):
+        self.step_name.append('after_destroy')
+
+    def _after_download(self):
+        self.step_name.append('after_download')
+
+    def _after_download(self):
+        self.step_name.append('after_download')
+
+    def _at_failed(self):
+        self.step_name.append('at_failed')
+
+    def _at_invalid_state(self):
+        self.step_name.append('at_invalid_state')
+
+    def _at_last(self):
+        self.step_name.append('at_last')
+
+    def _at_new_episode(self):
+        self.step_name.append('at_new_episode')
+
+    def _at_zombie(self):
+        self.step_name.append('at_zombie')
+
+    def _before_destory(self):
+        self.step_name.append('before_destory')
+
+    def _before_download(self):
+        self.step_name.append('before_download')
+
+    def _before_upload(self):
+        self.step_name.append('before_upload')
