@@ -24,7 +24,7 @@ class BeforeUpload(Step):
         backend.reign.reset()
 
         # pack new data
-        backend.reign.set_state_dict(backend.state_dict)
+        backend.reign.reset_state_dict(backend.state_dict)
         for aggregator, optimizer in zip(backend.aggregator, backend.optimizer):
             backend.reign.pack_state(aggregator)
             backend.reign.pack_state(optimizer)

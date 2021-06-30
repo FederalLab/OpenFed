@@ -8,7 +8,7 @@ from openfed.utils import openfed_class_fmt
 from random_words import RandomWords
 
 from ..space import Country, Store, World
-from ..utils import _auto_filterout, _auto_offline
+from ..utils import auto_filterout, auto_offline
 from ..utils.exception import (BuildReignFailed, InvalidStoreReading,
                                InvalidStoreWriting)
 from .functional import Collector, GPUInfo, Register, SystemInfo
@@ -114,7 +114,7 @@ class Informer(Hook):
         self._nick_name = self.nick_name
 
     @property
-    @_auto_offline
+    @auto_offline
     def nick_name(self) -> str:
         if self._nick_name:
             return self._nick_name
@@ -129,7 +129,7 @@ class Informer(Hook):
     def _u_key(self) -> str:
         return OPENFED_IDENTIFY + "_" + ("LEADER" if not self.world.leader else "FOLLOWER")
 
-    @_auto_filterout
+    @auto_filterout
     def _write(self, info: Dict[str, str]) -> bool:
         """Write info to self._i_key.
         """
@@ -259,7 +259,7 @@ class Informer(Hook):
         """
         super().register_hook(key=collector.bounding_name, func=collector)
 
-    @_auto_filterout
+    @auto_filterout
     def collect(self):
         """Collect message from other side.
         """

@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Type
 
 import torch
-from openfed.common import logger
+from openfed.common import logger, Clone
 from openfed.utils import openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
@@ -64,7 +64,7 @@ class Register(object):
 
 
 @Register.register
-class Collector(object):
+class Collector(Clone):
     """Some useful utilities to collect message.
     What's more, Collector also provide necessary function to better 
     visualizing the received messages.

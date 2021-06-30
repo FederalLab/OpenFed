@@ -25,3 +25,15 @@ class AccessError(OpenFedException):
             class_name="AccessError",
             description=self.msg
         )
+
+class ConnectionNotBuild(OpenFedException):
+    """Some operation only be available when the connection correctly built.
+    """
+    def __init__(self, msg: str = ""):
+        self.msg = f"ConnectionNotBuild\n{msg}"
+    
+    def __str__(self):
+        return openfed_class_fmt.format(
+            class_name="ConnectionNotBuild",
+            description=self.msg
+        )

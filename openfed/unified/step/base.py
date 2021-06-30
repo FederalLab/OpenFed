@@ -2,6 +2,8 @@ from abc import abstractmethod
 from threading import Lock
 from typing import Union
 
+from openfed.common import Clone
+
 
 class Backend(object):
     ...
@@ -29,7 +31,7 @@ class StepAt(object):
         _step_lock.release()
 
 
-class Step(object):
+class Step(Clone):
     step_name: str
 
     def __init__(self):

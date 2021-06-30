@@ -2,9 +2,9 @@ from abc import abstractmethod
 from typing import Dict
 
 from torch import Tensor
+from openfed.common import Clone
 
-
-class Cypher(object):
+class Cypher(Clone):
     r"""Cypher: encrypt/decrypt data in pairs.
     The encrypt and decrypt functions will be called in two ends respectively.
     You can store the inner operation in the returned dictionary directly, but not 

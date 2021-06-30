@@ -1,7 +1,7 @@
 from openfed.common import logger
 
 
-def _auto_offline(func):
+def auto_offline(func):
     """If any exception raised, we will offline the device and return False instead of original output.
     """
 
@@ -15,7 +15,7 @@ def _auto_offline(func):
     return wrapper
 
 
-def _auto_filterout(func):
+def auto_filterout(func):
     """If any exception raised, we will filter out those exception, and return False instead of original output.
     """
 

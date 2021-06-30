@@ -55,6 +55,12 @@ class Delivery(Package, Hook):
         for k, v in state_dict.items():
             self.key_tensor_map(k, v)
 
+    def reset_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
+        """Call reset() and set_state_dict() in a single step.
+        """
+        self.reset()
+        self.set_state_dict(state_dict)
+
     def key_name(self, t: Tensor) -> str:
         """Return the string name for the given tensor t.
         """

@@ -14,7 +14,8 @@ from .step import (AfterDestroy, AfterDownload, AfterUpload, AtFailed,
                    AtInvalidState, AtNewEpisode, AtZombie, BeforeDestroy,
                    BeforeDownload, BeforeUpload, Step)
 from .unify import Unify
-from .utils import _backend_access, _convert_to_list
+from .utils import (after_connection, backend_access, before_connection,
+                    convert_to_list, frontend_access)
 
 
 class Backend(Unify, SafeTread, Hook):
@@ -23,15 +24,7 @@ class Backend(Unify, SafeTread, Hook):
     aggregator: List[Aggregator]
     optimizer: List[Optimizer]
 
-    state_dict: List[Dict[str, Tensor]]
-
     task_info_list: List[Dict]
-
-    maintainer: Maintainer
-
-    reign: Reign
-
-    version: int
 
     loop_times: int
 
@@ -74,7 +67,7 @@ class Backend(Unify, SafeTread, Hook):
             self.register_step(BeforeDownload())
             self.register_step(BeforeUpload())
 
-    @_backend_access
+    @backend_access
     def build_connection(self,
                          world: World = None,
                          address: Union[Address, List[Address]] = None,
@@ -100,26 +93,26 @@ class Backend(Unify, SafeTread, Hook):
         self.maintainer = Maintainer(
             world, address=address, address_file=address_file)
 
-    @_backend_access
+    @backend_access
     def set_aggregate_triggers(self, trigger: Step):
         self.register_step(trigger)
         self.aggregate_triggers = True
 
-    @_backend_access
+    @backend_access
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
         logger.debug(
             f"{'Set' if not self.state_dict else 'Unset'} state dict.")
         self.state_dict = state_dict
 
-    @_backend_access
+    @backend_access
     def set_aggregator_and_optimizer(self, aggregator: Union[Aggregator, List[Aggregator]], optimizer: Union[Optimizer, List[Optimizer]]):
-        aggregator = _convert_to_list(aggregator)
-        optimizer = _convert_to_list(optimizer)
+        aggregator = convert_to_list(aggregator)
+        optimizer = convert_to_list(optimizer)
         assert len(aggregator) == len(optimizer)
         self.aggregator = aggregator
         self.optimizer = optimizer
 
-    @_backend_access
+    @backend_access
     def safe_run(self):
         """
             Use self.run() to start this loop in the main thread.
@@ -141,8 +134,12 @@ class Backend(Unify, SafeTread, Hook):
                 self.loop_times += 1
                 for reign in rg:
                     if not self.stopped and reign is not None:
-                        cnt += 1
+                        # assign reign to self first.
                         self.reign = reign
+
+                        # register hook to reign if necessary.
+                        self._add_hook_to_reign()
+                        cnt += 1
                         self.step("at_first")
                         if reign.is_offline:
                             # Destroy process
@@ -197,13 +194,13 @@ class Backend(Unify, SafeTread, Hook):
         self.finish()
         return "Backend exited."
 
-    @_backend_access
+    @backend_access
     def register_step(self, step: Step):
         name = step.step_name
         name = f"{name}.{len(self.hook_dict)}"
         self.register_hook(key=name, func=step)
 
-    @_backend_access
+    @backend_access
     def step(self, step_name: str, *args, **kwargs) -> Union[None, bool]:
         """
             You can chain the same type hook together.
@@ -228,7 +225,7 @@ class Backend(Unify, SafeTread, Hook):
 
         return True
 
-    @_backend_access
+    @backend_access
     def __repr__(self):
         return openfed_class_fmt.format(
             class_name="Backend",

@@ -9,18 +9,13 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from .unify import Unify
-from .utils import _frontend_access
+from .utils import frontend_access, after_connection, before_connection
 
 
 class Frontend(Unify):
     """An unified API of frontend for users.
     """
-    maintainer: Maintainer
-
-    reign: Reign
-    frontend: bool = True
-
-    @_frontend_access
+    @frontend_access
     def build_connection(self, world: World = None, address: Union[Address, List[Address]] = None, address_file: str = None):
         if world is None:
             world = World(leader=False)
@@ -37,19 +32,34 @@ class Frontend(Unify):
             time.sleep(SLEEP_LONG_TIME.seconds)
         self.reign = Reign.default_reign()
 
-    @_frontend_access
-    def set_state_dict(self, state_dict: Dict[str, Tensor]):
-        self.reign.set_state_dict(state_dict)
+        assert self.reign, "Reign not available!"
 
-    @_frontend_access
+        # Auto register hooks for reign.
+        # As for frontend, each frontend is only with 1 reign, which is specified here.
+        # Thus, we can do the following thing once only.
+        self._add_hook_to_reign()
+        if self.state_dict is not None:
+            self.reign.reset_state_dict(self.state_dict)
+
+    @frontend_access
+    @before_connection
+    def set_state_dict(self, state_dict: Dict[str, Tensor]):
+        logger.debug(
+            f"{'Set' if not self.state_dict else 'Unset'} state dict.")
+        self.state_dict = state_dict
+
+    @frontend_access
+    @after_connection
     def pack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
         self.reign.pack_state(obj, keys)
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
         self.reign.unpack_state(obj, keys)
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def _wait_handler(self, flag: bool):
         if flag:
             return True
@@ -60,7 +70,8 @@ class Frontend(Unify):
                 time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
             return True
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def upload(self) -> bool:
         """As for frontend, it is much easier for us to judge the new version.
         A download and upload is build a version updating.
@@ -68,7 +79,8 @@ class Frontend(Unify):
         """
         return self._wait_handler(self.reign.upload(self.version))
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def update_version(self, version: int = None):
         """Update inner model version.
         """
@@ -77,27 +89,33 @@ class Frontend(Unify):
         else:
             self.version += 1
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def download(self) -> bool:
         return self._wait_handler(self.reign.download(self.version))
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def set_task_info(self, task_info: Dict) -> None:
         self.reign.set_task_info(task_info)
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def get_task_info(self) -> Dict:
         return self.reign.task_info
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def set(self, key: str, value: Any) -> None:
         self.reign.set(key, value)
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def get(self, key: str) -> Any:
         return self.reign.get(key)
 
-    @_frontend_access
+    @frontend_access
+    @after_connection
     def __repr__(self):
         return openfed_class_fmt.format(
             class_name="Frontend",

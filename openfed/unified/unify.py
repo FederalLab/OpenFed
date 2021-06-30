@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Callable, Dict, List
 
 import openfed
 from openfed.common import SafeTread, logger
@@ -6,27 +6,33 @@ from openfed.federated import Destroy, Maintainer, Peeper, Reign, World
 from openfed.utils import keyboard_interrupt_handle, openfed_class_fmt
 from torch import Tensor
 
-from .utils import _backend_access
+from .utils import (after_connection, backend_access, before_connection,
+                    frontend_access)
 
 
 class Unify(Peeper):
     """Provide a unified api for backend and frontend.
     """
-    maintainer: Maintainer
+    maintainer: Maintainer = None
 
-    reign: Reign
+    reign: Reign = None
 
-    world: World
+    world: World = None
 
-    version: int
+    version: int = 0
 
-    frontend: bool
+    frontend: bool = True
     # fontend xor backward == True
-    backend: bool
+    backend: bool = False
 
-    async_op: bool
+    async_op: bool = False
 
-    dynamic_address_loading: bool
+    dynamic_address_loading: bool = True
+
+    state_dict: List[Dict[str, Tensor]] = None
+
+    _hooks_for_informers: List[Callable] = None
+    _hooks_for_delivers: List[Callable] = None
 
     def __init__(self,
                  frontend: bool = True,
@@ -58,7 +64,34 @@ class Unify(Peeper):
         # Set default value
         self.version = 0
 
+        self._hooks_for_delivers = []
+        self._hooks_for_informers = []
+
+    @before_connection
+    def add_informer_hook(self, hook: Callable):
+        self._hooks_for_informers.append(hook)
+
+    @before_connection
+    def add_deliver_hook(self, hook: Callable):
+        self._hooks_for_delivers.append(hook)
+
+    @after_connection
+    def _add_hook_to_reign(self):
+        for hook in self._hooks_for_informers:
+            if hook.bounding_name not in self.reign._hook_dict:
+                # register a clone of informer hook.
+                # informer hook may contain some inner variable, which is not allowed
+                # to share with each other.
+                self.reign.register_collector(hook.clone())
+        for hook in self._hooks_for_delivers:
+            if hook not in self.reign._hook_list:
+                # register the hook directly.
+                # deliver hook is not allowed to have inner parameters.
+                # it can be used among all reign.
+                self.reign.register_cypher(hook)
+
     @property
+    @after_connection
     def nick_name(self) -> str:
         return self.reign.nick_name
 
@@ -74,6 +107,7 @@ class Unify(Peeper):
             description="The unify api for backend and frontend."
         )
 
+    @after_connection
     def finish(self):
         Destroy.destroy_all_in_a_world(self.world)
         if self.maintainer:
@@ -83,7 +117,8 @@ class Unify(Peeper):
             logger.info(f"Finished.\n {self}")
             exit(0)
 
-    @_backend_access
+    @backend_access
+    @after_connection
     def run(self, *args, **kwargs):
         return SafeTread.run(self, *args, **kwargs)
 

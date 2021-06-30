@@ -1,5 +1,6 @@
 from .address import Address, default_address, default_address_lists
 from .array import Array
+from .clone import Clone
 from .constants import *
 from .exception import OpenFedException
 from .hook import Hook
@@ -10,6 +11,7 @@ from .thread import SafeTread
 from .vars import *
 from .wrapper import Wrapper
 
+del clone
 del address
 del array
 del constants
