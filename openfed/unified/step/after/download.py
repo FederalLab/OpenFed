@@ -1,10 +1,10 @@
 from openfed.common.logging import logger
 
-from ..base import Backend, Step
+from ..base import Backend, Step, after_download
 
 
 class AfterDownload(Step):
-    step_name = 'after_download'
+    step_name = after_download
 
     def step(self, backend: Backend, flag: bool) -> None:
         if flag:  # Download success

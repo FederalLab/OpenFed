@@ -1,10 +1,10 @@
 from openfed.common.logging import logger
 
-from ..base import Backend, Step
+from ..base import Backend, Step, before_upload
 
 
 class BeforeUpload(Step):
-    step_name = 'before_upload'
+    step_name = before_upload
 
     def step(self, backend: Backend, *args, **kwargs) -> bool:
 

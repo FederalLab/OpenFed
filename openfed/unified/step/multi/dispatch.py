@@ -1,5 +1,5 @@
 from collections import overload
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
 from openfed.common import logger

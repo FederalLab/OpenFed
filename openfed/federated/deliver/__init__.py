@@ -1,5 +1,5 @@
 from .delivery import Delivery
-from .cypher import Cypher
+from .cypher import *
 
 del delivery
 del cypher

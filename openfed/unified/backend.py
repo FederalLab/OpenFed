@@ -10,12 +10,11 @@ from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
 
-from .step import (AfterDestroy, AfterDownload, AfterUpload, AtFailed,
+from .step import (AfterDestroy, AfterDownload, AfterUpload, AtFailed, AtFirst,
                    AtInvalidState, AtNewEpisode, AtZombie, BeforeDestroy,
                    BeforeDownload, BeforeUpload, Step)
 from .unify import Unify
-from .utils import (after_connection, backend_access,
-                    convert_to_list)
+from .utils import *
 
 
 class Backend(Unify, SafeTread, Hook):
@@ -60,6 +59,7 @@ class Backend(Unify, SafeTread, Hook):
             self.register_step(AfterDestroy())
             self.register_step(AfterDownload())
             self.register_step(AfterUpload())
+            self.register_step(AtFirst())
             self.register_step(AtFailed())
             self.register_step(AtInvalidState())
             # There may be some different operations on at last operations.
@@ -133,7 +133,7 @@ class Backend(Unify, SafeTread, Hook):
         self.loop_times = 0
         while not self.stopped:
             with self.maintainer.maintainer_lock:
-                self.step("at_new_episode")
+                self.step(at_new_episode)
                 rg = Reign.reign_generator()
                 cnt = 0
                 self.loop_times += 1
@@ -152,41 +152,41 @@ class Backend(Unify, SafeTread, Hook):
                         self.reign.collect()
 
                         cnt += 1
-                        self.step("at_first")
+                        self.step(at_first)
                         if reign.is_offline:
                             # Destroy process
-                            if self.step("before_destroy"):
-                                self.step("after_destroy",
+                            if self.step(before_destroy):
+                                self.step(after_destroy,
                                           Destroy.destroy_reign(reign))
                             else:
-                                self.step("at_failed")
+                                self.step(at_failed)
                         elif reign.upload_hang_up:
-                            self.step("after_upload",
+                            self.step(after_upload,
                                       reign.deal_with_hang_up())
                         elif reign.download_hang_up:
-                            self.step("after_download",
+                            self.step(after_download,
                                       reign.deal_with_hang_up())
                         elif reign.is_zombie:
-                            self.step("at_zombie")
+                            self.step(at_zombie)
                         elif reign.is_pushing:
                             # Client want to push data to server, we need to download.
-                            if self.step("before_download"):
-                                self.step("after_download",
+                            if self.step(before_download):
+                                self.step(after_download,
                                           reign.download(self.version))
                             else:
-                                self.step("at_failed")
+                                self.step(at_failed)
                         elif reign.is_pulling:
                             # Client want to pull data from server, we need to upload
                             # if self.step_before_upload():
-                            if self.step("before_upload"):
-                                self.step("after_upload",
+                            if self.step(before_upload):
+                                self.step(after_upload,
                                           reign.upload(self.version))
                             else:
-                                self.step("at_failed")
+                                self.step(at_failed)
                         else:
-                            self.step("at_invalid_state")
+                            self.step(at_invalid_state)
                     # update regularly.
-                    self.step("at_last")
+                    self.step(at_last)
                 else:
                     del rg
             if cnt == 0:

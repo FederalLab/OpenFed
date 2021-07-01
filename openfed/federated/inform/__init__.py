@@ -1,4 +1,4 @@
-from .collector import Collector
+from .collector import *
 from .informer import Informer
 
 del collector

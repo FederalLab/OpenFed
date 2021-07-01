@@ -6,11 +6,11 @@ import torch
 from openfed.common.logging import logger
 from torch.optim.lr_scheduler import _LRScheduler
 
-from ..base import Backend, Step
+from ..base import Backend, Step, at_last
 
 
 class AtLast(Step):
-    step_name = 'at_last'
+    step_name = at_last
 
     @abstractmethod
     def step(self, backend: Backend, *args, **kwargs) -> None:
