@@ -284,7 +284,7 @@ class Aggregator(Package, Wrapper, Hook):
             if key not in received_info:
                 raise KeyError(f"{key} is needed, but not returned.")
 
-    def register_auto_reduce_hook(self, func: Reducer):
+    def register_reducer(self, func: Reducer):
         """
         Args:
             func: func will take in a list of dict infos and return the processed values.

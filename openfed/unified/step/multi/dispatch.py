@@ -1,4 +1,4 @@
-from collections import overload
+from typing_extensions import overload
 from typing import Dict, List
 
 import numpy as np

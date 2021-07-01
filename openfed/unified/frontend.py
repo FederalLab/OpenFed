@@ -2,14 +2,15 @@ import time
 from typing import Any, Dict, List, Union
 
 import openfed
-from openfed.common import SLEEP_LONG_TIME, Address, default_address, logger
+from openfed.common import (SLEEP_LONG_TIME, Address, TaskInfo,
+                            default_address, logger)
 from openfed.federated import Maintainer, Reign, World
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
 
 from .unify import Unify
-from .utils import frontend_access, after_connection, before_connection
+from .utils import after_connection, before_connection, frontend_access
 
 
 class Frontend(Unify):
@@ -100,12 +101,12 @@ class Frontend(Unify):
 
     @frontend_access
     @after_connection
-    def set_task_info(self, task_info: Dict) -> None:
+    def set_task_info(self, task_info: TaskInfo) -> None:
         self.reign.set_task_info(task_info)
 
     @frontend_access
     @after_connection
-    def get_task_info(self) -> Dict:
+    def get_task_info(self) -> TaskInfo:
         return self.reign.task_info
 
     @frontend_access
