@@ -10,7 +10,7 @@ from openfed.utils import openfed_class_fmt
 
 
 class API(Frontend, Backend):
-    """Provide a unified API for users on backend and frontend.
+    """Provide an unified API for users on backend and frontend.
     """
 
     def __init__(self,

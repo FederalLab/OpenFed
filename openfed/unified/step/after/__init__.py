@@ -1,7 +1,7 @@
-from .after_destroy import *
-from .after_download import *
-from .after_upload import *
+from .destroy import *
+from .download import *
+from .upload import *
 
-del after_destroy
-del after_download
-del after_upload
+del destroy
+del download
+del upload
