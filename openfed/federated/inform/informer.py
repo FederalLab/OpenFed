@@ -3,7 +3,7 @@ from enum import Enum, unique
 from typing import Any, Callable, Dict
 
 import openfed.utils as utils
-from openfed.common import Hook, logger, TaskInfo
+from openfed.common import Hook, TaskInfo, logger
 from openfed.utils import openfed_class_fmt
 from random_words import RandomWords
 
@@ -31,12 +31,10 @@ class STATUS(Enum):
     OFFLINE = "OFFLINE"  # offline.
 
 
-def to_enum(value, enum_type: Enum) -> Enum:
-    for enum in enum_type:
-        if enum.value == value:
-            return enum
-    else:
-        raise ValueError(f"{value} is not a valid enum {enum_type}.")
+push = STATUS.PUSH.value
+pull = STATUS.PULL.value
+zombie = STATUS.ZOMBIE.value
+offline = STATUS.OFFLINE.value
 
 
 def safe_store_set(store: Store, key: str, value: Dict) -> bool:
@@ -84,8 +82,7 @@ class Informer(Hook):
     def __init__(self):
         self._do_not_access_backup_info = {}
         # write self._i_key to initialize the key value store.
-        safe_store_set(self.store, self._i_key, {
-                       OPENFED_STATUS: STATUS.ZOMBIE.value})
+        safe_store_set(self.store, self._i_key, {OPENFED_STATUS: zombie})
 
         # set nick name if leader
         if self.world.leader:
@@ -168,7 +165,7 @@ class Informer(Hook):
             # The server is quiet stable, if read failed, we think it is offline.
             # But client sometimes may be unstable, if read failed, we will assume it
             # go into offline.
-            info[OPENFED_STATUS] = STATUS.OFFLINE.value if self.world.follower else STATUS.ZOMBIE.value
+            info[OPENFED_STATUS] = offline if self.world.follower else zombie
             self.fresh_read = False
         finally:
             self._backup_info = info
@@ -198,60 +195,59 @@ class Informer(Hook):
 
     @property
     @_must_fresh_read
-    def task_info(self) ->TaskInfo:
+    def task_info(self) -> TaskInfo:
         return TaskInfo().load_dict(self.get(OPENFED_TASK_INFO))
 
     def set_task_info(self, task_info: TaskInfo):
         self.set(OPENFED_TASK_INFO, task_info.as_dict())
 
-    def _get_state(self) -> STATUS:
-        state = self.get(OPENFED_STATUS)
-        return to_enum(state, STATUS)
+    def _get_state(self) -> str:
+        return self.get(OPENFED_STATUS)
 
-    def _set_state(self, state: STATUS):
-        self.set(OPENFED_STATUS, state.value)
+    def _set_state(self, state: str):
+        self.set(OPENFED_STATUS, state)
 
     @property
     def alive(self) -> bool:
         """opposite to self.offline
         """
-        return self.world.ALIVE and self._get_state() != STATUS.OFFLINE
+        return self.world.ALIVE and self._get_state() != offline
 
     def pulling(self):
         """Set state to pull.
         """
-        self._set_state(STATUS.PULL)
+        self._set_state(pull)
 
     @property
     def is_pulling(self) -> bool:
-        return self._get_state() == STATUS.PULL
+        return self._get_state() == pull
 
     def pushing(self):
         """Set state to push.
         """
-        self._set_state(STATUS.PUSH)
+        self._set_state(push)
 
     @property
     def is_pushing(self) -> bool:
-        return self._get_state() == STATUS.PUSH
+        return self._get_state() == push
 
     def zombie(self):
         """Set state to zombie
         """
-        self._set_state(STATUS.ZOMBIE)
+        self._set_state(zombie)
 
     @property
     def is_zombie(self) -> bool:
-        return self._get_state() == STATUS.ZOMBIE
+        return self._get_state() == zombie
 
     def offline(self):
         """Set state to offline.
         """
-        self._set_state(STATUS.OFFLINE)
+        self._set_state(offline)
 
     @property
     def is_offline(self) -> bool:
-        return self.world.ALIVE and self._get_state() == STATUS.OFFLINE
+        return self.world.ALIVE and self._get_state() == offline
 
     @Register.add_to_pool
     def register_collector(self, collector: Collector):

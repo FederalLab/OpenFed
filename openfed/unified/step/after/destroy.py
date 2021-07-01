@@ -7,4 +7,5 @@ class AfterDestroy(Step):
     step_name = after_destroy
 
     def step(self, backend: Backend, *args, **kwargs) -> None:
-        logger.debug(f'destroy {backend.reign}')
+        # logger.debug(f'destroy {backend.reign}')
+        ...

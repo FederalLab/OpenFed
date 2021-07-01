@@ -1,9 +1,7 @@
 import time
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 
-import openfed
-from openfed.common import (SLEEP_LONG_TIME, Address, TaskInfo,
-                            default_address, logger)
+from openfed.common import SLEEP_LONG_TIME, Address, default_address, logger
 from openfed.federated import Maintainer, Reign, World
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
@@ -58,66 +56,6 @@ class Frontend(Unify):
     @after_connection
     def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
         self.reign.unpack_state(obj, keys)
-
-    @frontend_access
-    @after_connection
-    def _wait_handler(self, flag: bool):
-        if flag:
-            return True
-        elif openfed.ASYNC_OP.is_async_op:
-            while not self.reign.deal_with_hang_up():
-                if self.reign.is_offline:
-                    return False
-                time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
-            return True
-
-    @frontend_access
-    @after_connection
-    def upload(self) -> bool:
-        """As for frontend, it is much easier for us to judge the new version.
-        A download and upload is build a version updating.
-        So increase version number here.
-        """
-        self.reign.collect()
-        self.reign.scatter()
-        return self._wait_handler(self.reign.upload(self.version))
-
-    @frontend_access
-    @after_connection
-    def download(self) -> bool:
-        self.reign.collect()
-        self.reign.scatter()
-        return self._wait_handler(self.reign.download(self.version))
-
-    @frontend_access
-    @after_connection
-    def update_version(self, version: int = None):
-        """Update inner model version.
-        """
-        if version:
-            self.version = version
-        else:
-            self.version += 1
-
-    @frontend_access
-    @after_connection
-    def set_task_info(self, task_info: TaskInfo) -> None:
-        self.reign.set_task_info(task_info)
-
-    @frontend_access
-    @after_connection
-    def get_task_info(self) -> TaskInfo:
-        return self.reign.task_info
-
-    @frontend_access
-    @after_connection
-    def set(self, key: str, value: Any) -> None:
-        self.reign.set(key, value)
-
-    @frontend_access
-    @after_connection
-    def get(self, key: str) -> Any:
-        return self.reign.get(key)
 
     @frontend_access
     @after_connection

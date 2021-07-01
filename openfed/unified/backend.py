@@ -149,12 +149,6 @@ class Backend(Unify, SafeTread, Hook):
                         # register hook to reign if necessary.
                         self._add_hook_to_reign()
 
-                        # scatter self information to other side
-                        self.reign.scatter()
-
-                        # collect other side information
-                        self.reign.collect()
-
                         cnt += 1
                         self.step(at_first)
                         if reign.is_offline:
@@ -176,7 +170,7 @@ class Backend(Unify, SafeTread, Hook):
                             # Client want to push data to server, we need to download.
                             if self.step(before_download):
                                 self.step(after_download,
-                                          reign.download(self.version))
+                                          self.download())
                             else:
                                 self.step(at_failed)
                         elif reign.is_pulling:
@@ -184,7 +178,7 @@ class Backend(Unify, SafeTread, Hook):
                             # if self.step_before_upload():
                             if self.step(before_upload):
                                 self.step(after_upload,
-                                          reign.upload(self.version))
+                                          self.upload())
                             else:
                                 self.step(at_failed)
                         else:
@@ -215,14 +209,14 @@ class Backend(Unify, SafeTread, Hook):
         """Register the step function to step possition call."""
         names = step.step_name
         if isinstance(names, str):
-            names = (names)
+            names = [names]
 
         for name in names:
             cnt = 0
             for n in self.hook_dict.keys():
                 if n.startswith(name):
-                    cnt += 1
-            name = f"{name}.{cnt}"
+                    cnt = max(cnt, int(n.split(".")[-1]))
+            name = f"{name}.{cnt+1}"
             self.register_hook(key=name, func=step)
 
     @backend_access
@@ -238,7 +232,7 @@ class Backend(Unify, SafeTread, Hook):
             assert step_name in self.hook_dict
             del self.hook_dict[step_name]
         else:
-            del_keys = [key.startswith(step_name) for key in self.hook_dict]
+            del_keys = [key for key in self.hook_dict if key.startswith(step_name)]
             for d_key in del_keys:
                 del self.hook_dict[d_key]
         self.register_step(step)

@@ -42,9 +42,9 @@ class AutoReducer(Reducer):
             task_info = task_info_list[0].as_dict()
             assert self.weight_key in task_info, "weight key is not contained in task info."
 
-            demo = sum([ti.get([self.weight_key]) for ti in task_info_list])
+            demo = sum([ti.get_info(self.weight_key) for ti in task_info_list])
             rdict[self.weight_key] = demo
-            weight = [ti.get([self.weight_key]) /
+            weight = [ti.get_info(self.weight_key) /
                       demo for ti in task_info_list]
         else:
             weight = [1.0/len(task_info_list)

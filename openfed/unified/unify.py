@@ -1,13 +1,13 @@
-from typing import Callable, Dict, List
+import time
+from typing import Any, Callable, Dict, List
 
 import openfed
-from openfed.common import SafeTread, logger
+from openfed.common import SafeTread, TaskInfo, logger
 from openfed.federated import Destroy, Maintainer, Peeper, Reign, World
 from openfed.utils import keyboard_interrupt_handle, openfed_class_fmt
 from torch import Tensor
 
-from .utils import (after_connection, backend_access, before_connection,
-                    frontend_access)
+from .utils import after_connection, backend_access, before_connection
 
 
 class Unify(Peeper):
@@ -137,3 +137,69 @@ class Unify(Peeper):
 
         openfed.DYNAMIC_ADDRESS_LOADING.set(dynamic_address_loading)
         openfed.ASYNC_OP.set(async_op)
+
+    @after_connection
+    def set_task_info(self, task_info: TaskInfo) -> None:
+        self.reign.set_task_info(task_info)
+
+    @after_connection
+    def get_task_info(self) -> TaskInfo:
+        return self.reign.task_info
+
+    @after_connection
+    def scatter(self):
+        return self.reign.scatter()
+
+    @after_connection
+    def collect(self):
+        return self.reign.collect()
+
+    @after_connection
+    def update_version(self, version: int = None):
+        """Update inner model version.
+        """
+        if version:
+            self.version = version
+        else:
+            self.version += 1
+
+    @after_connection
+    def set(self, key: str, value: Any) -> None:
+        self.reign.set(key, value)
+
+    @after_connection
+    def get(self, key: str) -> Any:
+        return self.reign.get(key)
+
+    @after_connection
+    def upload(self) -> bool:
+        """As for frontend, it is much easier for us to judge the new version.
+        A download and upload is build a version updating.
+        So increase version number here.
+        """
+        self.collect()
+        self.scatter()
+        if self.frontend:
+            return self._wait_handler(self.reign.upload(self.version))
+        else:
+            return self.reign.upload(self.version)
+
+    @after_connection
+    def download(self) -> bool:
+        self.collect()
+        self.scatter()
+        if self.frontend:
+            return self._wait_handler(self.reign.download(self.version))
+        else:
+            return self.reign.download(self.version)
+
+    @after_connection
+    def _wait_handler(self, flag: bool):
+        if flag:
+            return True
+        elif openfed.ASYNC_OP.is_async_op:
+            while not self.reign.deal_with_hang_up():
+                if self.reign.is_offline:
+                    return False
+                time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
+            return True

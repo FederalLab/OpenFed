@@ -7,4 +7,5 @@ class AtInvalidState(Step):
     step_name = at_invalid_state
 
     def step(self, backend: Backend, *args, **kwargs) -> None:
-        logger.debug("An invalid state was encountered.")
+        # logger.debug("An invalid state was encountered.")
+        ...

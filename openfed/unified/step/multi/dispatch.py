@@ -1,8 +1,9 @@
-from typing_extensions import overload
 from typing import Dict, List
 
 import numpy as np
-from openfed.common import logger
+from openfed.common import TaskInfo, logger
+from openfed.utils import openfed_class_fmt, tablist
+from typing_extensions import overload
 
 from ..base import Backend, MultiStep
 
@@ -50,49 +51,49 @@ class Dispatch(MultiStep):
         self._before_upload()
 
     def _permutation(self):
-        return np.random.permutation(self.total_parts)[
-            :self.samples]
+        return [int(x) for x in np.random.permutation(self.total_parts)[
+            :self.samples]]
 
     def reset(self):
         self.pending_queue = self._permutation()
         self.running_queue = dict()
         self.finished_queue = dict()
 
-    def after_download(self, backend: Backend, *args, **kwargs):
-        task_info = backend.reign_task_info
-        part_id = task_info["part_id"]
+    def after_download(self, backend: Backend, flag: bool):
+        if flag:
+            task_info = backend.reign_task_info
+            part_id = task_info.get_info("part_id")
 
-        logger.debug(f"Download a model from {backend.nick_name}.")
+            logger.debug(f"Download a model from {backend.nick_name}.")
 
-        # pop from running queue
-        self.running_queue.pop(part_id)
+            # pop from running queue
+            self.running_queue.pop(part_id)
 
-        # add to finished queue
-        self.finished_queue[part_id] = backend.nick_name
+            # add to finished queue
+            self.finished_queue[part_id] = backend.nick_name
 
-        # All finished
-        if len(self.running_queue) == 0 and len(self.pending_queue) == 0:
-            # Reset
-            self.reset()
-            logger.debug(f"Finished a round.")
-        else:
-            logger.debug(
-                f"Pending: {len(self.pending_queue)}, Runing: {len(self.running_queue)}, Finished: {len(self.finished_queue)}")
+            # All finished
+            if len(self.running_queue) == 0 and len(self.pending_queue) == 0:
+                # Reset
+                self.reset()
+                logger.debug(f"Finished a round.")
+            else:
+                logger.debug(self)
 
     def before_upload(self, backend: Backend, *args, **kwargs) -> bool:
         # version is not used in dispatch mode
         if len(self.pending_queue) > 0:
             # assign a new part id
             part_id = self.pending_queue.pop(-1)
+            self.running_queue[part_id] = backend.nick_name
 
             # generate task_info
-            task_info = dict(
-                part_id=part_id,
-                version=backend.version,
-            )
+            task_info = TaskInfo()
+            task_info.add_info('part_id', int(part_id))
+            task_info.add_info('version', backend.version)
 
             # set task_info
-            backend.reign.set_task_info(task_info)
+            backend.set_task_info(task_info)
 
             # reset old state
 
@@ -119,3 +120,12 @@ class Dispatch(MultiStep):
         else:
             # unknown case.
             return False
+
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="Dispatch",
+            description=tablist(
+                head=["Pending", "Running", "Finished"],
+                data=[len(self.pending_queue), len(self.running_queue), len(self.finished_queue)]
+            )
+        )

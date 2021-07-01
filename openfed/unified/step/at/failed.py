@@ -7,4 +7,5 @@ class AtFailed(Step):
     step_name = at_failed
 
     def step(self, backend: Backend, *args, **kwargs) -> None:
-        logger.debug("Failed at previous step.")
+        # logger.debug("Failed at previous step.")
+        ...

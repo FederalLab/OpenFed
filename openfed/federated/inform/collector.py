@@ -234,6 +234,6 @@ class LRTracker(Collector):
 
     def better_read(self):
         return (
-            "Lastest Learing Rate\n"
-            f"{self.lr_scheduler.get_last_lr()}"
+            "Lastest Learing Rate: "
+            f"{self.lr_scheduler.get_last_lr()[0]}"
         )

@@ -131,7 +131,7 @@ class MultiStep(Step):
 
     def __call__(self, backend: Backend, *args, **kwargs):
         if self.current_step in self.step_name:
-            func = getattr(self, self.current_step)
-            return func(self, backend, *args, **kwargs)
+            func = getattr(self, self.current_step.lower())
+            return func(backend, *args, **kwargs)
         else:
             return None
