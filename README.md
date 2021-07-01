@@ -341,22 +341,22 @@ openfed
 │   │   ├── __init__.py
 │   │   ├── after
 │   │   │   ├── __init__.py
-│   │   │   ├── after_destroy.py
-│   │   │   ├── after_download.py
-│   │   │   └── after_upload.py
+│   │   │   ├── destroy.py
+│   │   │   ├── download.py
+│   │   │   └── upload.py
 │   │   ├── at
 │   │   │   ├── __init__.py
-│   │   │   ├── at_failed.py
-│   │   │   ├── at_invalid_state.py
-│   │   │   ├── at_last.py
-│   │   │   ├── at_new_episode.py
-│   │   │   └── at_zombie.py
+│   │   │   ├── failed.py
+│   │   │   ├── invalid_state.py
+│   │   │   ├── last.py
+│   │   │   ├── new_episode.py
+│   │   │   └── zombie.py
 │   │   ├── base.py
 │   │   ├── before
 │   │   │   ├── __init__.py
-│   │   │   ├── before_destroy.py
-│   │   │   ├── before_download.py
-│   │   │   └── before_upload.py
+│   │   │   ├── destroy.py
+│   │   │   ├── download.py
+│   │   │   └── upload.py
 │   │   └── multi
 │   │       ├── __init__.py
 │   │       └── dispatch.py
