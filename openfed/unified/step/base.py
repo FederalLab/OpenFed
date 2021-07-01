@@ -41,9 +41,11 @@ class Step(Clone):
         if len(_backend) > 0:
             _backend[0].register_step(self)
 
-    @abstractmethod
     def __call__(self, backend: Backend, *args, **kwargs) -> Union[None, bool]:
-        ...
+        return self.step(backend, *args, **kwargs)
+
+    def step(self, backend: Backend, *args, **kwargs) -> Union[None, bool]:
+        raise NotImplementedError
 
 
 class MultiStep(Step):

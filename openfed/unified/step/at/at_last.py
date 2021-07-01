@@ -13,7 +13,7 @@ class AtLast(Step):
     step_name = 'at_last'
 
     @abstractmethod
-    def __call__(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend: Backend, *args, **kwargs) -> None:
         ...
 
 
@@ -78,7 +78,7 @@ class AggregatePeriod(Aggregate):
         self.tic = time.time()
         self.checkpoint = checkpoint
 
-    def __call__(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend: Backend, *args, **kwargs) -> None:
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             logger.info("Aggregate operation triggered by period.")
@@ -102,7 +102,7 @@ class AggregateCount(Aggregate):
         self.count = count
         self.checkpoint = checkpoint
 
-    def __call__(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend: Backend, *args, **kwargs) -> None:
         if backend.received_numbers >= self.count:
             logger.info("Aggregate operation triggered by count.")
             self.aggregate(backend, *args, **kwargs)
@@ -121,7 +121,7 @@ class StopAtVersion(AtLast):
         super().__init__()
         self.max_version = max_version
 
-    def __call__(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend: Backend, *args, **kwargs) -> None:
         if backend.version >= self.max_version:
             backend.manual_stop()
         else:
@@ -139,7 +139,7 @@ class StopAtLoopTimes(AtLast):
         super().__init__()
         self.max_loop_times = max_loop_times
 
-    def __call__(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend: Backend, *args, **kwargs) -> None:
         if backend.loop_times >= self.max_loop_times:
             backend.manual_stop()
         else:

@@ -6,7 +6,7 @@ from ..base import Backend, Step
 class AfterDownload(Step):
     step_name = 'after_download'
 
-    def __call__(self, backend: Backend, flag: bool) -> None:
+    def step(self, backend: Backend, flag: bool) -> None:
         if flag:  # Download success
             # download is to check others upload version
             if backend.reign.upload_version != backend.version:

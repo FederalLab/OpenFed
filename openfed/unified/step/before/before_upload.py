@@ -6,7 +6,7 @@ from ..base import Backend, Step
 class BeforeUpload(Step):
     step_name = 'before_upload'
 
-    def __call__(self, backend: Backend, *args, **kwargs) -> bool:
+    def step(self, backend: Backend, *args, **kwargs) -> bool:
 
         # Check version requirements
         # upload is to check other download version.

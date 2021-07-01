@@ -252,10 +252,16 @@ openfed
 ├── __init__.py
 ├── aggregate
 │   ├── __init__.py
-│   ├── aggregator.py
-│   ├── average.py
-│   ├── elastic.py
-│   └── naive.py
+│   ├── aggregator
+│   │   ├── __init__.py
+│   │   ├── average_aggregator.py
+│   │   ├── elastic_aggregator.py
+│   │   └── naive_aggregator.py
+│   ├── base.py
+│   ├── reducer.py
+│   └── utils
+│       ├── __init__.py
+│       └── utils.py
 ├── api.py
 ├── common
 │   ├── __init__.py
@@ -268,6 +274,7 @@ openfed
 │   ├── logging.py
 │   ├── package.py
 │   ├── parser.py
+│   ├── task_info.py
 │   ├── thread.py
 │   ├── vars.py
 │   └── wrapper.py
@@ -299,11 +306,11 @@ openfed
 │   │   └── peeper.py
 │   ├── deliver
 │   │   ├── __init__.py
-│   │   ├── delivery.py
-│   │   └── functional.py
+│   │   ├── cypher.py
+│   │   └── delivery.py
 │   ├── inform
 │   │   ├── __init__.py
-│   │   ├── functional.py
+│   │   ├── collector.py
 │   │   └── informer.py
 │   ├── reign.py
 │   ├── space
@@ -322,7 +329,7 @@ openfed
 │   ├── __init__.py
 │   ├── aux
 │   │   ├── __init__.py
-│   │   ├── aux.py
+│   │   ├── base.py
 │   │   ├── elastic_aux.py
 │   │   └── prox_aux.py
 │   └── scaffold.py
@@ -332,18 +339,27 @@ openfed
 │   ├── frontend.py
 │   ├── step
 │   │   ├── __init__.py
-│   │   ├── after_destroy.py
-│   │   ├── after_download.py
-│   │   ├── after_upload.py
-│   │   ├── at_failed.py
-│   │   ├── at_invalid_state.py
-│   │   ├── at_last.py
-│   │   ├── at_new_episode.py
-│   │   ├── at_zombie.py
+│   │   ├── after
+│   │   │   ├── __init__.py
+│   │   │   ├── after_destroy.py
+│   │   │   ├── after_download.py
+│   │   │   └── after_upload.py
+│   │   ├── at
+│   │   │   ├── __init__.py
+│   │   │   ├── at_failed.py
+│   │   │   ├── at_invalid_state.py
+│   │   │   ├── at_last.py
+│   │   │   ├── at_new_episode.py
+│   │   │   └── at_zombie.py
 │   │   ├── base.py
-│   │   ├── before_destroy.py
-│   │   ├── before_download.py
-│   │   └── before_upload.py
+│   │   ├── before
+│   │   │   ├── __init__.py
+│   │   │   ├── before_destroy.py
+│   │   │   ├── before_download.py
+│   │   │   └── before_upload.py
+│   │   └── multi
+│   │       ├── __init__.py
+│   │       └── dispatch.py
 │   ├── unify.py
 │   └── utils
 │       ├── __init__.py
@@ -354,5 +370,5 @@ openfed
     ├── table.py
     └── utils.py
 
-19 directories, 85 files
+25 directories, 95 files
 ```
