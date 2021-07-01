@@ -14,7 +14,11 @@ from .step import (AfterDestroy, AfterDownload, AfterUpload, AtFailed, AtFirst,
                    AtInvalidState, AtNewEpisode, AtZombie, BeforeDestroy,
                    BeforeDownload, BeforeUpload, Step)
 from .unify import Unify
-from .utils import *
+from .utils import (after_connection, after_destroy, after_download,
+                    after_upload, at_failed, at_first, at_invalid_state,
+                    at_last, at_new_episode, at_zombie, backend_access,
+                    before_destroy, before_download, before_upload,
+                    convert_to_list)
 
 
 class Backend(Unify, SafeTread, Hook):

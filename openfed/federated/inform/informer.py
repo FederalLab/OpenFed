@@ -92,7 +92,7 @@ class Informer(Hook):
             safe_store_set(self.store, NICK_NAME, rw.random_word())
 
         # pre-write task_info keys.
-        self.set_task_info(TaskInfo().as_dict())
+        self.set_task_info(TaskInfo())
 
         # register a default collector
         self.register_collector(SystemInfo())

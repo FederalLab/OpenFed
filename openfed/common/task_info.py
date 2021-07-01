@@ -2,6 +2,8 @@ from typing import Any, Dict
 
 from openfed.utils import openfed_class_fmt, tablist
 
+from .logging import logger
+
 
 class TaskInfo(object):
     _info_dict: Dict[str, Any]
@@ -12,6 +14,8 @@ class TaskInfo(object):
         self._info_dict = {}
 
     def add_info(self, key: str, value: Any):
+        if key in self._info_dict:
+            logger.debug(f"Reset {key} {self._info_dict[key]} as {value}")
         self._info_dict[key] = value
 
     def get_info(self, key: str):
