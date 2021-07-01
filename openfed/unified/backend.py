@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Union
 
 import openfed
 from openfed.aggregate import Aggregator
-from openfed.common import (MAX_TRY_TIMES, Address, Hook, SafeTread,
-                            default_address, logger, TaskInfo)
+from openfed.common import (MAX_TRY_TIMES, Address, Hook, SafeTread, TaskInfo,
+                            default_address, logger)
 from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
@@ -209,13 +209,35 @@ class Backend(Unify, SafeTread, Hook):
     @backend_access
     def register_step(self, step: Step):
         """Register the step function to step possition call."""
-        name = step.step_name
-        if isinstance(name, str):
-            name = (name)
+        names = step.step_name
+        if isinstance(names, str):
+            names = (names)
 
-        for n in name:
-            n = f"{n}.{len(self.hook_dict)}"
-            self.register_hook(key=n, func=step)
+        for name in names:
+            cnt = 0
+            for n in self.hook_dict.keys():
+                if n.startswith(name):
+                    cnt += 1
+            name = f"{name}.{cnt}"
+            self.register_hook(key=name, func=step)
+
+    @backend_access
+    def replace_step(self, step_name: str, step: Step):
+        """Replace the already registered step function at this step with the new one.
+        NOTE: Be careful to call this function! If step_name is 'XXX.cnt' formot, we will delete it first and then add this new one.
+        If step_name is 'XXX', we will first remove all the step function and add this new one.
+        NOTE: if step is a multi-step function, this function will register it to other step at the some time.
+
+        This function is useful if you want to replace the default BeforeUpload with Dispatch function.
+        """
+        if len(step_name.split('.')) == 2:
+            assert step_name in self.hook_dict
+            del self.hook_dict[step_name]
+        else:
+            del_keys = [key.startswith(step_name) for key in self.hook_dict]
+            for d_key in del_keys:
+                del self.hook_dict[d_key]
+        self.register_step(step)
 
     @backend_access
     def step(self, step_name: str, *args, **kwargs) -> Union[None, bool]:
