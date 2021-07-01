@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Union
 
 from torch import Tensor
 
-from .aggregator import Aggregator
+from ..base import Aggregator
 
 
 class ElasticAggregator(Aggregator):

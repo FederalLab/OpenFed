@@ -9,7 +9,7 @@ from torch._C._distributed_c10d import Work
 
 from ..core.functional import gather_object
 from ..space import Country, ProcessGroup, World
-from .functional import Cypher, FormotCheck
+from .cypher import Cypher, FormotCheck
 
 
 class Delivery(Package, Hook):

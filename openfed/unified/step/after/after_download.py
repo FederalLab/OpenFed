@@ -23,6 +23,8 @@ class AfterDownload(Step):
 
             # Increase the total number of received models
             backend.received_numbers += 1
+            # Record current reign_task_info, which can be used in the following steps.
+            backend.reign_task_info = task_info
 
             logger.info(f"{backend.received_numbers} at v.{backend.version} from {backend.nick_name}.")
         else:

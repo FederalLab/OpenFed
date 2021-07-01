@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Union
 import torch
 from torch import Tensor
 
-from .aggregator import Aggregator
+from ..base import Aggregator
 
 
 class AverageAggregator(Aggregator):

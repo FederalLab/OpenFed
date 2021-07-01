@@ -1,10 +1,10 @@
 import time
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 import openfed
 from openfed.aggregate import Aggregator
 from openfed.common import (MAX_TRY_TIMES, Address, Hook, SafeTread,
-                            default_address, logger)
+                            default_address, logger, TaskInfo)
 from openfed.federated import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.utils import openfed_class_fmt
 from torch import Tensor
@@ -24,7 +24,11 @@ class Backend(Unify, SafeTread, Hook):
     aggregator: List[Aggregator]
     optimizer: List[Optimizer]
 
-    task_info_list: List[Dict]
+    # A List to record all task info aggregated by this backend
+    task_info_list: List[TaskInfo]
+
+    # A dictionary to record the task info message of current reign.
+    reign_task_info: TaskInfo
 
     loop_times: int
 
@@ -225,6 +229,7 @@ class Backend(Unify, SafeTread, Hook):
         output = []
         for name, hook in self.hook_dict.items():
             if name.startswith(step_name):
+                hook.current_step = step_name
                 output.append(hook(self, *args, **kwargs))
         if not output:
             return None

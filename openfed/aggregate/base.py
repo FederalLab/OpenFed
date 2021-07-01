@@ -6,8 +6,10 @@ from itertools import chain
 from typing import Any, Callable, Dict, List
 
 import torch
-from openfed.common import Hook, Package, Wrapper
+from openfed.common import Hook, Package, TaskInfo, Wrapper
 from torch import Tensor
+
+from .reducer import Reducer
 
 
 class _RequiredParameter(object):
@@ -23,7 +25,7 @@ required = _RequiredParameter()
 class Aggregator(Package, Wrapper, Hook):
     r"""Base class for Aggregator.
     """
-    _received_infos: List[Dict]
+    _received_infos: List[TaskInfo]
 
     def __init__(self,
                  params,
@@ -282,20 +284,20 @@ class Aggregator(Package, Wrapper, Hook):
             if key not in received_info:
                 raise KeyError(f"{key} is needed, but not returned.")
 
-    def register_auto_reduce_hook(self, func: Callable):
+    def register_auto_reduce_hook(self, func: Reducer):
         """
         Args:
             func: func will take in a list of dict infos and return the processed values.
         """
         self.register_hook(func=func)
 
-    def _auto_reduce(self) -> List[Any]:
+    def _auto_reduce(self) -> List[TaskInfo]:
         returns = []
         for fn in self.hook_list:
             returns.append(fn(self._received_infos))
         return returns
 
-    def aggregate(self, clear_buffer: bool = True) -> Dict:
+    def aggregate(self, clear_buffer: bool = True) -> List[TaskInfo]:
         r"""Performs a single aggregation step (parameter update).
 
         Args: 

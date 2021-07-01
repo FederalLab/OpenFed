@@ -1,5 +1,5 @@
 from .delivery import Delivery
-from .functional import Cypher
+from .cypher import Cypher
 
 del delivery
-del functional
+del cypher

@@ -1,5 +1,5 @@
-from .functional import Collector
+from .collector import Collector
 from .informer import Informer
 
-del functional
+del collector
 del informer

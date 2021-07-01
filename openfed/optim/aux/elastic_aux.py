@@ -1,5 +1,6 @@
 import torch
-from .aux import Aux
+
+from .base import Aux
 
 
 class ElasticAux(Aux):

@@ -3,7 +3,7 @@ from enum import Enum, unique
 from typing import Any, Callable, Dict
 
 import openfed.utils as utils
-from openfed.common import Hook, logger
+from openfed.common import Hook, logger, TaskInfo
 from openfed.utils import openfed_class_fmt
 from random_words import RandomWords
 
@@ -11,7 +11,7 @@ from ..space import Country, Store, World
 from ..utils import auto_filterout, auto_offline
 from ..utils.exception import (BuildReignFailed, InvalidStoreReading,
                                InvalidStoreWriting)
-from .functional import Collector, GPUInfo, Register, SystemInfo
+from .collector import Collector, GPUInfo, Register, SystemInfo
 
 rw = RandomWords()
 
@@ -92,7 +92,7 @@ class Informer(Hook):
             safe_store_set(self.store, NICK_NAME, rw.random_word())
 
         # pre-write task_info keys.
-        self.set_task_info({})
+        self.set_task_info(TaskInfo().as_dict())
 
         # register a default collector
         self.register_collector(SystemInfo())
@@ -198,11 +198,11 @@ class Informer(Hook):
 
     @property
     @_must_fresh_read
-    def task_info(self) -> Dict[str, Any]:
-        return self.get(OPENFED_TASK_INFO)
+    def task_info(self) ->TaskInfo:
+        return TaskInfo().load_dict(self.get(OPENFED_TASK_INFO))
 
-    def set_task_info(self, task_info: Dict[str, Any]):
-        self.set(OPENFED_TASK_INFO, task_info)
+    def set_task_info(self, task_info: TaskInfo):
+        self.set(OPENFED_TASK_INFO, task_info.as_dict())
 
     def _get_state(self) -> STATUS:
         state = self.get(OPENFED_STATUS)

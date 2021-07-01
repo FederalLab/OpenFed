@@ -45,13 +45,18 @@ class Aggregate(AtLast):
             aggregator.clear_buffer()
 
         backend.task_info_list = task_info_list
+
+        for task_info in task_info_list:
+            logger.info(task_info)
+
         # update learning rate
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
 
         # Reset same flags
         backend.received_numbers = 0
-        logger.info(f"Update version from @{backend.version} to @{backend.version+1}.")
+        logger.info(
+            f"Update version from @{backend.version} to @{backend.version+1}.")
         backend.version += 1
 
         if self.checkpoint:

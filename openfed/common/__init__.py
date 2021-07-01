@@ -7,6 +7,7 @@ from .hook import Hook
 from .logging import logger
 from .package import Package
 from .parser import parser
+from .task_info import TaskInfo
 from .thread import SafeTread
 from .vars import *
 from .wrapper import Wrapper
@@ -22,3 +23,4 @@ del vars
 del wrapper
 del logging
 del exception
+del task_info
