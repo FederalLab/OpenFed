@@ -57,5 +57,20 @@
         "tolist",
         "unsqueeze"
     ],
-    "restructuredtext.confPath": "${workspaceFolder}/docs"
+    "restructuredtext.confPath": "${workspaceFolder}/docs",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/openfed.egg-info": true,
+        "*.egg-info": true,
+        "openfed.egg-info": true,
+        "**/*.egg-info": true,
+        "**/__pycache__": true,
+        "build": true,
+        "dist": true
+    },
+    "explorerExclude.backup": null
 }
