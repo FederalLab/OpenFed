@@ -125,6 +125,7 @@ class StopAtVersion(AtLast):
 
     def step(self, backend: Backend, *args, **kwargs) -> None:
         if backend.version >= self.max_version:
+            logger.info("Finished all rounds.")
             backend.manual_stop()
         else:
             pass

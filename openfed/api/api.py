@@ -129,7 +129,7 @@ class API(SafeTread, Hook, Peeper):
     def set_state_dict(self, state_dict: Dict[str, Tensor]):
         self.state_dict = state_dict
 
-    def __repr__(self):
+    def __str__(self):
         return openfed_class_fmt.format(
             class_name="OpenFedAPI",
             description=f"{'Frontend' if self.frontend else 'Backend'}."
@@ -330,7 +330,7 @@ class API(SafeTread, Hook, Peeper):
 
             # left some time to maintainer lock
             time.sleep(0.1)
-        self.finish()
+        self.finish(auto_exit=True)
         return "Backend exited."
 
     def register_step(self, step: Step):

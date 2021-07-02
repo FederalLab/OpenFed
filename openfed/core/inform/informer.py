@@ -282,7 +282,7 @@ class Informer(Hook):
                 cdict[k] = f()
         self._update(cdict)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Informer",
             description=str(list(self.hook_dict.keys())),

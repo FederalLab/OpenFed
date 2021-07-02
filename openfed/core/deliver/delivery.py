@@ -158,7 +158,7 @@ class Delivery(Package, Hook):
             self.packages, None, dst=rank,
             group=self.pg, async_op=ASYNC_OP.is_async_op, country=self.country, global_rank=False)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Delivery",
             description=str(list(self.key_tensor_bidict.keys()))

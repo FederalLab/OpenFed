@@ -784,7 +784,7 @@ class Country(object):
                     pg_list.append(pg)
         return pg_list
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Country",
             description=f"Belongs to\n{self.world}"

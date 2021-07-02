@@ -177,7 +177,7 @@ class Reign(Informer, Delivery):
         else:
             return self.transfer(to=False)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Reign",
             description=tablist(

@@ -101,7 +101,7 @@ class World(Array):
     def is_valid_process_group(self, pg: ProcessGroup) -> bool:
         return pg is not self._NULL_GP and pg in self._pg_mapping
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="World",
             description=(

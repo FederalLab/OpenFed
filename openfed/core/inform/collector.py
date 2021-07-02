@@ -102,7 +102,7 @@ class Collector(Clone):
 
         return output
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name=self.bounding_name,
             description=self.better_read()

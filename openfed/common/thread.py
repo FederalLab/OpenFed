@@ -37,7 +37,7 @@ class SafeTread(Thread):
         )
         del _thread_pool[self]
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="SafeThread",
         )

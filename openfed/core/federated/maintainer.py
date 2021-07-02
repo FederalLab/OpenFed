@@ -182,7 +182,7 @@ class Maintainer(Array, SafeTread):
         else:
             Joint(address, self.world)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Maintainer",
             description=tablist(
