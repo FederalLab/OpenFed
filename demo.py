@@ -6,8 +6,8 @@ import torch.optim as optim
 
 # >>> Import OpenFed
 import openfed
-from openfed.container.aggregator import AverageAggregator
 from openfed.api import StepAt
+from openfed.container.aggregator import AverageAggregator
 from openfed.utils import time_string
 
 # >>> set log level

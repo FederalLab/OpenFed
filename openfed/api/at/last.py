@@ -48,7 +48,8 @@ class Aggregate(AtLast):
         backend.task_info_list = task_info_list
 
         for task_info in task_info_list:
-            logger.info("Received task info: %s" % task_info)
+            for ti in task_info:
+                logger.info(f"Aggregate:\n{ti}")
 
         # update learning rate
         if self.lr_scheduler is not None:

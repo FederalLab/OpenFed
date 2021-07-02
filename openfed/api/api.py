@@ -2,9 +2,9 @@ import time
 from typing import Any, Callable, Dict, List, Union
 
 import openfed
-from openfed.container import Aggregator
 from openfed.common import (Address, Hook, SafeTread, TaskInfo,
                             default_address, logger)
+from openfed.container import Aggregator
 from openfed.core import (Destroy, Maintainer, Peeper, Reign, World,
                           openfed_lock)
 from openfed.core.utils import DeviceOffline
@@ -122,10 +122,6 @@ class API(SafeTread, Hook, Peeper):
         self.reign.collect()
         self.reign.scatter()
 
-        # 3. task info
-        self.reign.set_task_info(self.reign_task_info)
-        self.reign_task_info = self.reign.task_info
-
         # 4. set state dict
         assert self.state_dict
         self.reign.reset_state_dict(self.state_dict)
@@ -202,6 +198,7 @@ class API(SafeTread, Hook, Peeper):
         """
         self.init_reign()
 
+        self.reign.set_task_info(self.reign_task_info)
         # unpack state
         [self.pack_state(ft_opt) for ft_opt in self.ft_optimizer]
 
@@ -222,6 +219,9 @@ class API(SafeTread, Hook, Peeper):
                 [self.unpack_state(ft_opt)
                  for ft_opt in self.ft_optimizer]
                 self.version = self.reign.upload_version
+                self.reign_task_info = self.reign.task_info
+        if flag:
+            callback()
 
         return flag if flag or self.backend else self._wait_handler(callback)
 

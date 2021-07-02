@@ -35,6 +35,15 @@ class Dispatch(MultiStep):
         """
 
     def __init__(self, total_parts: int, samples: int = None,  sample_ratio: float = None):
+        # Count the finished parts
+        # If finished all parts in this round, reset inner part buffer.
+        self._after_download()
+        # Dispatch a part to be finished.
+        self._before_upload()
+
+        # Support auto register method.
+        super().__init__()
+
         assert not (
             samples is None and sample_ratio is None), "one of samples or sample_ratio must be specified."
 
@@ -43,12 +52,6 @@ class Dispatch(MultiStep):
 
         # Initialize queue
         self.reset()
-
-        # Count the finished parts
-        # If finished all parts in this round, reset inner part buffer.
-        self._after_download()
-        # Dispatch a part to be finished.
-        self._before_upload()
 
     def _permutation(self):
         return [int(x) for x in np.random.permutation(self.total_parts)[
@@ -62,7 +65,7 @@ class Dispatch(MultiStep):
     def after_download(self, backend: Backend, flag: bool):
         if flag:
             task_info = backend.reign_task_info
-            part_id = task_info.get_info("part_id")
+            part_id = task_info.get("part_id")
 
             logger.debug(f"Download a model from {backend.nick_name}.")
 
@@ -89,8 +92,8 @@ class Dispatch(MultiStep):
 
             # generate task_info
             task_info = TaskInfo()
-            task_info.add_info('part_id', int(part_id))
-            task_info.add_info('version', backend.version)
+            task_info.set('part_id', int(part_id))
+            task_info.set('version', backend.version)
 
             # set task_info
             backend.set_task_info(task_info)

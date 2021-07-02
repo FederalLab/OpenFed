@@ -16,14 +16,14 @@ class TaskInfo(object):
 
         self._info_dict = {}
 
-    def add_info(self, key: str, value: Any):
+    def set(self, key: str, value: Any):
         if key in self._info_dict:
             logger.debug(f"Reset {key} {self._info_dict[key]} as {value}")
         self._info_dict[key] = value
         # check value is valid or not
         json.dumps(self._info_dict)
 
-    def get_info(self, key: str):
+    def get(self, key: str):
         return self._info_dict[key]
 
     def as_dict(self):
