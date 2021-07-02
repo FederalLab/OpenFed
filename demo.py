@@ -22,7 +22,7 @@ openfed_api = openfed.API(frontend=args.rank > 0)
 # >>> Specify a aggregate trigger
 # It means that every 10 received models will make an aggregate operation.
 aggregate_trigger = openfed.api.AggregateCount(
-    count=2, checkpoint="/tmp/openfed-model")
+    count=args.world_size-1, checkpoint="/tmp/openfed-model")
 
 # >>> Set the aggregate trigger
 openfed_api.set_aggregate_triggers(aggregate_trigger)
@@ -60,7 +60,7 @@ with openfed_api:
     # >>> If openfed_api is a backend, call `run()` will go into the loop ring.
     # >>> Call `start()` will run it as a thread.
     # >>> If openfed_api is a frontend, call `run()` will directly skip this function automatically.
-    openfed_api.run()
+    openfed_api.backend_loop()
 
     # Do simulation random times at [10, 70].
     for i in range(1, random.randint(10, 70)):
@@ -80,15 +80,15 @@ with openfed_api:
         net(torch.randn(128, 1, 1)).sum().backward()
         optimizer.step()
 
+        # >>> Update inner model version
+        openfed_api.update_version()
+
         # Upload trained model
         print(f"{time_string()}: Uploading trained model to server.")
         if not openfed_api.upload():
             print("Uploading failed.")
             break
         print(f"{time_string()}: Uploaded!")
-
-        # >>> Update inner model version
-        openfed_api.update_version()
 
 # >>> Finished
 openfed_api.finish()

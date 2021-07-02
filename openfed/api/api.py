@@ -253,6 +253,7 @@ class API(SafeTread, Hook, Peeper):
                 # unpack state
                 for ft_opt in self.frontend_optimizer:
                     self.unpack_state(ft_opt)
+                self.version = self.reign.upload_version
 
         if flag:
             callback()

@@ -80,15 +80,14 @@ class Informer(Hook):
 
     def __init__(self):
         self._do_not_access_backup_info = {}
-        # write self._i_key to initialize the key value store.
-        safe_store_set(self.store, self._i_key, {OPENFED_STATUS: zombie})
 
-        # set nick name if leader
+        # set nick name first!
         if self.world.leader:
             safe_store_set(self.store, NICK_NAME, rw.random_word())
 
-        # pre-write task_info keys.
-        self.set_task_info(TaskInfo())
+        # write self._i_key to initialize the key value store.
+        safe_store_set(self.store, self._i_key, {
+                       OPENFED_STATUS: zombie, OPENFED_TASK_INFO: TaskInfo().as_dict()})
 
         # register a default collector
         self.register_collector(SystemInfo())

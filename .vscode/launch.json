@@ -12,20 +12,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python: client-2",
-            "type": "python",
-            "request": "launch",
-            "program": "demo.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--rank",
-                "2",
-                "--world_size",
-                "3"
-            ]
-        },
-        {
-            "name": "Python: client-1",
+            "name": "Python: client",
             "type": "python",
             "request": "launch",
             "program": "demo.py",
@@ -34,7 +21,7 @@
                 "--rank",
                 "1",
                 "--world_size",
-                "3"
+                "2"
             ]
         },
         {
@@ -47,8 +34,8 @@
                 "--rank",
                 "0",
                 "--world_size",
-                "3"
+                "2"
             ]
-        }
+        },
     ]
 }

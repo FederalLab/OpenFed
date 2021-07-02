@@ -121,14 +121,17 @@ class Reign(Informer, Delivery):
         """
         if self.upload_hang_up:
             handler, step_func, tic = self._upload_hang_up
-            flag = self.transfer(to=True, handler=handler,
-                                 tic=tic, step_func=step_func)
-
+            to = True
         elif self.download_hang_up:
             handler, step_func, tic = self._download_hang_up
-            flag = self.transfer(to=False, handler=handler,
-                                 tic=tic, step_func=step_func)
+            to = False
         else:
+            return False
+
+        try:
+            flag = self.transfer(to=to, handler=handler,
+                                 tic=tic, step_func=step_func)
+        except WrongState as e:
             return False
 
         if handler.is_completed():
