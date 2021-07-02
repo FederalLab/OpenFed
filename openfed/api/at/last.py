@@ -21,6 +21,7 @@ class Aggregate(AtLast):
     checkpoint: str
 
     def __init__(self, lr_scheduler: _LRScheduler = None):
+        super().__init__()
         self.lr_scheduler = lr_scheduler
 
     def aggregate(self, backend: Backend, *args, **kwargs):

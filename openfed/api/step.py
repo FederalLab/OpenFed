@@ -71,8 +71,6 @@ class StepAt(object):
 
 class Step(Clone):
     step_name: StepName
-    # set when call hooks
-    current_step: StepName
 
     def __init__(self):
         # automatically register step hooks to backend
@@ -167,8 +165,8 @@ class MultiStep(Step):
         raise NotImplementedError
 
     def __call__(self, backend: Backend, *args, **kwargs):
-        if self.current_step in self.step_name:
-            func = getattr(self, self.current_step.lower())
+        if backend.current_step in self.step_name:
+            func = getattr(self, backend.current_step.lower())
             return func(backend, *args, **kwargs)
         else:
             return None

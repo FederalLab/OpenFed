@@ -27,12 +27,12 @@ def del_maintainer_lock(maintainer: Maintainer):
 
 
 def acquire_all():
-    for maintainer_lock in _maintainer_lock_dict.values():
-        maintainer_lock.acquire()
+    for mt_lock in _maintainer_lock_dict.values():
+        mt_lock.acquire()
     openfed_lock.acquire()
 
 
 def release_all():
-    for maintainer_lock in _maintainer_lock_dict.values():
-        maintainer_lock.release()
+    for mt_lock in _maintainer_lock_dict.values():
+        mt_lock.release()
     openfed_lock.release()

@@ -27,7 +27,7 @@ class Maintainer(Array, SafeTread):
     # Address -> [last try time, try_cnt]
     discard_queue: Dict[str, List[Union[float, int, Address]]]
 
-    maintainer_lock: Lock
+    mt_lock: Lock
     # The shared information among all country in this maintainer.
     world: World
 
@@ -47,8 +47,8 @@ class Maintainer(Array, SafeTread):
 
         Array.__init__(self, self.pending_queue)
 
-        self.maintainer_lock = Lock()
-        add_maintainer_lock(self, self.maintainer_lock)
+        self.mt_lock = Lock()
+        add_maintainer_lock(self, self.mt_lock)
 
         self.world = world
 

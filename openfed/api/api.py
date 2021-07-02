@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Union
 
 import openfed
 from openfed.aggregate import Aggregator
-from openfed.common import (MAX_TRY_TIMES, Address, Hook, SafeTread, TaskInfo,
+from openfed.common import (Address, Hook, SafeTread, TaskInfo,
                             default_address, logger)
 from openfed.federated import (Destroy, Maintainer, Peeper, Reign, World,
                                openfed_lock)
@@ -12,8 +12,6 @@ from openfed.utils import keyboard_interrupt_handle, openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
 
-from .after import AfterDownload
-from .before import BeforeUpload
 from .step import (Step, after_destroy, after_download, after_upload,
                    at_failed, at_first, at_invalid_state, at_last,
                    at_new_episode, at_zombie, before_destroy, before_download,
@@ -27,43 +25,6 @@ def convert_to_list(x):
 class API(SafeTread, Hook, Peeper):
     """Provide a unified api for backend and frontend.
     """
-    maintainer: Maintainer = None
-
-    reign: Reign = None
-
-    world: World = None
-
-    version: int = 0
-
-    frontend: bool = True
-    # fontend xor backward == True
-    backend: bool = False
-
-    # backend is True default, frontend is False default.
-    async_op: bool = False
-
-    dal: bool = True
-
-    state_dict: List[Dict[str, Tensor]] = None
-
-    _hooks_for_informers: List[Callable] = None
-    _hooks_for_delivers: List[Callable] = None
-
-    aggregator: List[Aggregator]
-    optimizer: List[Optimizer]
-
-    # A List to record all task info aggregated by this backend
-    task_info_list: List[TaskInfo]
-
-    # A dictionary to record the task info message of current reign.
-    reign_task_info: TaskInfo
-
-    loop_times: int
-
-    received_numbers: int
-
-    # A flag to indicate whether set the triggered step for backend.
-    aggregate_triggers: bool
 
     def __init__(self,
                  frontend: bool = True,
@@ -75,55 +36,58 @@ class API(SafeTread, Hook, Peeper):
         # Call SafeThread init function.
         super().__init__(self)
 
-        self.frontend = frontend
+        self.dal: bool = dal
+        self.frontend: bool = frontend
+
         # Set a flag for backend.
-        self.backend = not self.frontend
+        self.backend: bool = not self.frontend
         keyboard_interrupt_handle()
 
-        self.async_op = self.backend
-        self.dal = dal
+        # Enable async_op if this is backend.
+        self.async_op: bool = self.backend
 
         # Set default value
-        self.version = 0
+        self.version: int = 0
 
-        self._hooks_for_delivers = []
-        self._hooks_for_informers = []
+        self._hooks_del: List[Callable] = []
+        self._hooks_inf: List[Callable] = []
 
-        # Set default value.
-        self.stopped = False
-        self.received_numbers = 0
-        self.last_aggregate_time = time.time()
+        self.stopped: bool = False
+        self.received_numbers: int = 0
+        self.last_aggregate_time: float = time.time()
+        self.reign_task_info: TaskInfo = TaskInfo()
+        self.task_info_list: List[TaskInfo] = []
 
-        # Initialize properties
-        self.aggregator = None
-        self.optimizer = None
-        self.state_dict = None
-        self.maintainer = None
-        self.reign = None
-        self.reign_task_info = TaskInfo()
+        # Communication related
+        self.maintainer: Maintainer = None
+        self.reign: Reign = None
 
-        self.register_step(AfterDownload())
-        self.register_step(BeforeUpload())
+        # Data handle
+        self.state_dict: List[Dict[str, Tensor]] = None
+        self.aggregator: List[Aggregator] = None
+        self.optimizer: List[Optimizer] = None
+        self.ft_optimizer: List[Optimizer] = None
+
+        # how many times for backend waiting for connections.
+        self.max_try_times: int = 5
 
     def add_informer_hook(self, hook: Callable):
-        self._hooks_for_informers.append(hook)
+        self._hooks_inf.append(hook)
 
     def add_deliver_hook(self, hook: Callable):
-        self._hooks_for_delivers.append(hook)
+        self._hooks_del.append(hook)
 
     def _add_hook_to_reign(self):
-        for hook in self._hooks_for_informers:
-            if hook.bounding_name not in self.reign._hook_dict:
-                # register a clone of informer hook.
-                # informer hook may contain some inner variable, which is not allowed
-                # to share with each other.
-                self.reign.register_collector(hook.clone())
-        for hook in self._hooks_for_delivers:
-            if hook not in self.reign._hook_list:
-                # register the hook directly.
-                # deliver hook is not allowed to have inner parameters.
-                # it can be used among all reign.
-                self.reign.register_cypher(hook)
+        # register a clone of informer hook.
+        # informer hook may contain some inner variable, which is not allowed
+        # to share with each other.
+        [self.reign.register_collector(hook.clone(
+        )) for hook in self._hooks_inf if hook.bounding_name not in self.reign._hook_dict]
+        # register the hook directly.
+        # deliver hook is not allowed to have inner parameters.
+        # it can be used among all reign.
+        [self.reign.register_cypher(
+            hook) for hook in self._hooks_del if hook not in self.reign._hook_list]
 
     @property
     def nick_name(self) -> str:
@@ -134,7 +98,6 @@ class API(SafeTread, Hook, Peeper):
         # Check identity
         assert world.leader == self.backend
         assert world.follower == self.frontend
-        self.world = world
 
         address = default_address if address is None and address_file is None else address
 
@@ -180,17 +143,12 @@ class API(SafeTread, Hook, Peeper):
         )
 
     def finish(self, auto_exit: bool = True):
-        Destroy.destroy_all_in_a_world(self.world)
         if self.maintainer:
+            Destroy.destroy_all_in_a_world(self.maintainer.world)
             self.maintainer.manual_stop()
 
         if auto_exit and self.backend:
             exit(0)
-
-    # @backend_access
-    # @after_connection
-    # def run(self, *args, **kwargs):
-    #     return SafeTread.run(self, *args, **kwargs)
 
     def backend_loop(self):
         return self.run() if self.backend else None
@@ -248,8 +206,7 @@ class API(SafeTread, Hook, Peeper):
         self.init_reign()
 
         # unpack state
-        for ft_opt in self.frontend_optimizer:
-            self.pack_state(ft_opt)
+        [self.pack_state(ft_opt) for ft_opt in self.ft_optimizer]
 
         flag = self.reign.upload(self.version)
         return flag if flag or self.backend else self._wait_handler()
@@ -265,8 +222,8 @@ class API(SafeTread, Hook, Peeper):
         def callback():
             if self.frontend:
                 # unpack state
-                for ft_opt in self.frontend_optimizer:
-                    self.unpack_state(ft_opt)
+                [self.unpack_state(ft_opt)
+                 for ft_opt in self.ft_optimizer]
                 self.version = self.reign.upload_version
 
         return flag if flag or self.backend else self._wait_handler(callback)
@@ -276,9 +233,10 @@ class API(SafeTread, Hook, Peeper):
             while not self.reign.deal_with_hang_up():
                 if self.reign.is_offline:
                     return False
-                time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
-            callback()
-            return True
+                time.sleep(0.1)
+            else:
+                callback()
+                return True
         else:
             return False
 
@@ -288,31 +246,28 @@ class API(SafeTread, Hook, Peeper):
     def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
         self.reign.unpack_state(obj, keys)
 
-    def set_aggregate_triggers(self, trigger: Step):
-        self.register_step(trigger)
-        self.aggregate_triggers = True
-
     def set_aggregator_and_optimizer(self,
                                      aggregator: Union[Aggregator, List[Aggregator]],
                                      optimizer: Union[Optimizer, List[Optimizer]],
-                                     frontend_optimizer: Union[Optimizer, List[Optimizer]] = None):
+                                     ft_optimizer: Union[Optimizer, List[Optimizer]] = None):
         """
         Args:
             We will set the same optimizer for frontend and backend.
             If you have specified different optimizer for frontend, we will use it.
 
-            Actually, you can put the pipe_optimizer to frontend_optimizer, it will automatically 
+            Actually, you can put the pipe_optimizer to ft_optimizer, it will automatically 
             pack the state before upload and unpack state after download.
         """
         aggregator = convert_to_list(aggregator)
         optimizer = convert_to_list(optimizer)
-        frontend_optimizer = frontend_optimizer if frontend_optimizer is not None else optimizer
+        ft_optimizer = convert_to_list(
+            ft_optimizer) if ft_optimizer is not None else optimizer
 
         assert len(aggregator) == len(optimizer)
         self.aggregator = aggregator
         self.optimizer = optimizer
 
-        self.frontend_optimizer = frontend_optimizer
+        self.ft_optimizer = ft_optimizer
 
     def safe_run(self):
         """
@@ -325,110 +280,71 @@ class API(SafeTread, Hook, Peeper):
         if openfed.DAL.is_dal:
             openfed_lock.release()
 
-        assert self.aggregate_triggers, "Call `self.set_aggregate_triggers()` first."
-
-        max_try_times = 0
-        self.loop_times = 0
+        try_times = 0
         while not self.stopped:
-            with self.maintainer.maintainer_lock:
+            with self.maintainer.mt_lock:
                 self.step(at_new_episode)
                 rg = Reign.reign_generator()
                 cnt = 0
-                self.loop_times += 1
                 for reign in rg:
-                    if not self.stopped and reign is not None:
-                        # assign reign to self first.
-                        self.reign = reign
+                    if self.stopped or reign is None:
+                        break
+                    # assign reign to self first.
+                    self.reign = reign
 
-                        # register hook to reign if necessary.
-                        self._add_hook_to_reign()
+                    # register hook to reign if necessary.
+                    self._add_hook_to_reign()
 
-                        cnt += 1
-                        self.step(at_first)
-                        if reign.is_offline:
-                            # Destroy process
-                            if self.step(before_destroy):
-                                self.step(after_destroy,
-                                          Destroy.destroy_reign(reign))
-                            else:
-                                self.step(at_failed)
-                        elif reign.upload_hang_up:
-                            self.step(after_upload,
-                                      reign.deal_with_hang_up())
-                        elif reign.download_hang_up:
-                            self.step(after_download,
-                                      reign.deal_with_hang_up())
-                        elif reign.is_zombie:
-                            self.step(at_zombie)
-                        elif reign.is_pushing:
-                            # Client want to push data to server, we need to download.
-                            if self.step(before_download):
-                                self.step(after_download,
-                                          self.download())
-                            else:
-                                self.step(at_failed)
-                        elif reign.is_pulling:
-                            # Client want to pull data from server, we need to upload
-                            # if self.step_before_upload():
-                            if self.step(before_upload):
-                                self.step(after_upload,
-                                          self.upload())
-                            else:
-                                self.step(at_failed)
-                        else:
-                            self.step(at_invalid_state)
+                    cnt += 1
+                    self.step(at_first)
+                    if reign.is_offline:
+                        [self.step(after_destroy, Destroy.destroy_reign(reign)) if self.step(
+                            before_destroy) else self.step(at_failed)]
+                    elif reign.upload_hang_up:
+                        self.step(after_upload,
+                                  reign.deal_with_hang_up())
+                    elif reign.download_hang_up:
+                        self.step(after_download,
+                                  reign.deal_with_hang_up())
+                    elif reign.is_zombie:
+                        self.step(at_zombie)
+                    elif reign.is_pushing:
+                        # Client want to push data to server, we need to download.
+                        [self.step(after_download, self.download()) if self.step(
+                            before_download) else self.step(at_failed)]
+                    elif reign.is_pulling:
+                        # Client want to pull data from server, we need to upload
+                        [self.step(after_upload, self.upload()) if self.step(
+                            before_upload) else self.step(at_failed)]
+                    else:
+                        self.step(at_invalid_state)
                     # update regularly.
                     self.step(at_last)
-                else:
-                    del rg
-            if cnt == 0:
-                max_try_times += 1
-                logger.debug(
-                    f"Max Try Times: {max_try_times}/{MAX_TRY_TIMES}")
-                logger.debug(f"Empty Reign\n{self}")
-                time.sleep(openfed.SLEEP_LONG_TIME.seconds)
-            else:
-                max_try_times = 0
 
-            if max_try_times >= MAX_TRY_TIMES:
+            try_times = 0 if cnt else try_times + 1
+
+            if cnt == 0:
+                logger.info(
+                    f"Empty reign, waiting {try_times}/{self.max_try_times}...")
+                time.sleep(5.0)
+
+            if try_times >= self.max_try_times:
                 self.manual_stop()
 
             # left some time to maintainer lock
-            time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
+            time.sleep(0.1)
         self.finish()
         return "Backend exited."
 
     def register_step(self, step: Step):
         """Register the step function to step possition call."""
-        names = step.step_name
-        if isinstance(names, str):
-            names = [names]
-
-        for name in names:
+        for name in convert_to_list(step.step_name):
             cnt = 0
             for n in self.hook_dict.keys():
                 if n.startswith(name):
                     cnt = max(cnt, int(n.split(".")[-1]))
-            name = f"{name}.{cnt+1}"
-            self.register_hook(key=name, func=step)
-
-    def replace_step(self, step_name: str, step: Step):
-        """Replace the already registered step function at this step with the new one.
-        NOTE: Be careful to call this function! If step_name is 'XXX.cnt' formot, we will delete it first and then add this new one.
-        If step_name is 'XXX', we will first remove all the step function and add this new one.
-        NOTE: if step is a multi-step function, this function will register it to other step at the some time.
-
-        This function is useful if you want to replace the default BeforeUpload with Dispatch function.
-        """
-        if len(step_name.split('.')) == 2:
-            assert step_name in self.hook_dict
-            del self.hook_dict[step_name]
-        else:
-            del_keys = [
-                key for key in self.hook_dict if key.startswith(step_name)]
-            for d_key in del_keys:
-                del self.hook_dict[d_key]
-        self.register_step(step)
+            else:
+                self.register_hook(key=f"{name}.{cnt+1}", func=step)
 
     def step(self, step_name: str, *args, **kwargs) -> Union[None, bool]:
         """
@@ -438,17 +354,14 @@ class API(SafeTread, Hook, Peeper):
             If None is returned, we will return `None` directly.
             You should directly store other variables in self object.
         """
-        output = []
-        for name, hook in self.hook_dict.items():
-            if name.startswith(step_name):
-                hook.current_step = step_name
-                output.append(hook(self, *args, **kwargs))
+        self.current_step = step_name
+        output = [hook(self, *args, **kwargs) for name,
+                  hook in self.hook_dict.items() if name.startswith(step_name)]
 
         # reduce output
         if None in output:
             return None
-
-        if False in output:
+        elif False in output:
             return False
-
-        return True
+        else:
+            return True
