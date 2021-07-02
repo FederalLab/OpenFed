@@ -7,6 +7,7 @@ from openfed.common import (MAX_TRY_TIMES, Address, Hook, SafeTread, TaskInfo,
                             default_address, logger)
 from openfed.federated import (Destroy, Maintainer, Peeper, Reign, World,
                                openfed_lock)
+from openfed.federated.utils import DeviceOffline
 from openfed.utils import keyboard_interrupt_handle, openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
@@ -227,6 +228,18 @@ class API(SafeTread, Hook, Peeper):
     def get(self, key: str) -> Any:
         return self.reign.get(key)
 
+    def _device_offline_care(func):
+        def wrapper(self, *args, **kwargs):
+            try:
+                flag = func(self, *args, **kwargs)
+            except DeviceOffline as e:
+                logger.error("Error downloading, device offline.")
+                flag = False
+            finally:
+                return flag
+        return wrapper
+
+    @_device_offline_care
     def upload(self) -> bool:
         """As for frontend, it is much easier for us to judge the new version.
         A download and upload is build a version updating.
@@ -241,6 +254,7 @@ class API(SafeTread, Hook, Peeper):
         flag = self.reign.upload(self.version)
         return flag if flag or self.backend else self._wait_handler()
 
+    @_device_offline_care
     def download(self) -> bool:
         """In frontend, the frontend optimizer state dict will automatically unpack after download.
         But, in backend, it won't. You should deal with this in hook step.
@@ -254,9 +268,6 @@ class API(SafeTread, Hook, Peeper):
                 for ft_opt in self.frontend_optimizer:
                     self.unpack_state(ft_opt)
                 self.version = self.reign.upload_version
-
-        if flag:
-            callback()
 
         return flag if flag or self.backend else self._wait_handler(callback)
 
