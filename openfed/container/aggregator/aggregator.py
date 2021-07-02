@@ -3,13 +3,13 @@ from collections import abc as container_abcs
 from collections import defaultdict
 from copy import deepcopy
 from itertools import chain
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
 import torch
 from openfed.common import Hook, Package, TaskInfo, Wrapper
 from torch import Tensor
 
-from .reducer import Reducer
+from ..reducer import Reducer
 
 
 class _RequiredParameter(object):
@@ -194,9 +194,6 @@ class Aggregator(Package, Wrapper, Hook):
                 (in one case it does the step with a gradient of 0 and in the other it skips
                 the step altogether).
         """
-        # Clear buffers
-        self._received_infos = []
-
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is not None:
@@ -208,11 +205,6 @@ class Aggregator(Package, Wrapper, Hook):
                         else:
                             p.grad.requires_grad_(False)
                         p.grad.zero_()
-                # Clear buffer
-                state = self.state[p]
-                for k in group["pipe_keys"]:
-                    if k in state:
-                        del state[k]
 
     def clear_buffer(self):
         r"""clear cached data.
@@ -292,10 +284,7 @@ class Aggregator(Package, Wrapper, Hook):
         self.register_hook(func=func)
 
     def _auto_reduce(self) -> List[TaskInfo]:
-        returns = []
-        for fn in self.hook_list:
-            returns.append(fn(self._received_infos))
-        return returns
+        return [fn(self._received_infos) for fn in self.hook_list]
 
     def aggregate(self, clear_buffer: bool = True) -> List[TaskInfo]:
         r"""Performs a single aggregation step (parameter update).

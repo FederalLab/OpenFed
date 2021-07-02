@@ -76,7 +76,7 @@ class Dispatch(MultiStep):
             if len(self.running_queue) == 0 and len(self.pending_queue) == 0:
                 # Reset
                 self.reset()
-                logger.debug(f"Finished a round.")
+                logger.info(f"Start a new round.")
             else:
                 logger.debug(self)
 
@@ -115,7 +115,7 @@ class Dispatch(MultiStep):
         elif len(self.running_queue) > 0:
             # waiting other client to be finished.
             logger.debug(
-                f"Waiting following client to submit there task: {list(self.running_queue.values())}.")
+                f"Waiting following client to submit there tasks: {list(self.running_queue.values())}.")
             return False
         else:
             # unknown case.

@@ -2,13 +2,14 @@ import time
 from typing import Any, Callable, Dict, List, Union
 
 import openfed
-from openfed.aggregate import Aggregator
+from openfed.container import Aggregator
 from openfed.common import (Address, Hook, SafeTread, TaskInfo,
                             default_address, logger)
-from openfed.federated import (Destroy, Maintainer, Peeper, Reign, World,
-                               openfed_lock)
-from openfed.federated.utils import DeviceOffline
-from openfed.utils import keyboard_interrupt_handle, openfed_class_fmt
+from openfed.core import (Destroy, Maintainer, Peeper, Reign, World,
+                          openfed_lock)
+from openfed.core.utils import DeviceOffline
+from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
+                           openfed_class_fmt)
 from torch import Tensor
 from torch.optim import Optimizer
 
@@ -16,10 +17,6 @@ from .step import (Step, after_destroy, after_download, after_upload,
                    at_failed, at_first, at_invalid_state, at_last,
                    at_new_episode, at_zombie, before_destroy, before_download,
                    before_upload)
-
-
-def convert_to_list(x):
-    return x if isinstance(x, (list, tuple)) else [x]
 
 
 class API(SafeTread, Hook, Peeper):

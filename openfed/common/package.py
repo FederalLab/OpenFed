@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Union
 
+from openfed.utils import convert_to_list
 from torch import Tensor
 from torch.optim import Optimizer
 
@@ -8,8 +9,12 @@ class Aggregator():
     ...
 
 
+class Pipe():
+    ...
+
+
 def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
-    keys = [keys] if isinstance(keys, str) else keys
+    keys = convert_to_list(keys)
 
     keys = keys if keys else getattr(obj, mode, None)
 
@@ -20,7 +25,7 @@ class Package(object):
     """Provide function to pack and unpack state dict, like Optimizer...
     """
 
-    def pack_state(self, obj: Union[Aggregator, Optimizer], keys: Union[str, List[str]] = None) -> None:
+    def pack_state(self, obj: Union[Aggregator, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
         """If keys is not given, we will try to load pack_key_list attribute.
         """
         keys = _check_state_keys(obj, keys, mode='pack_key_list')
@@ -31,7 +36,7 @@ class Package(object):
                     rdict = {k: state[k] for k in keys}
                     self.pack(p, rdict)
 
-    def unpack_state(self, obj: Union[Aggregator, Optimizer], keys: Union[str, List[str]] = None) -> None:
+    def unpack_state(self, obj: Union[Aggregator, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
         """If keys is not given, we will try to load pack_key_list attribute.
         """
         keys = _check_state_keys(obj, keys, mode="unpack_key_list")

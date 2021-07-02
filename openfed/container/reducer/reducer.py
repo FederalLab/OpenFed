@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import List, Union
 
 from openfed.common import TaskInfo
+from openfed.utils import convert_to_list
 
 
 class Reducer(object):
@@ -30,10 +31,8 @@ class AutoReducer(Reducer):
                 weight_keys must be in the returned task_info_dict.
         """
         super().__init__()
-
-        if isinstance(reduce_keys, str):
-            reduce_keys = (reduce_keys)
-        self.reduce_keys = reduce_keys
+        self.reduce_keys = [] if reduce_keys is None else convert_to_list(
+            reduce_keys)
         self.weight_key = weight_key
 
     def reduce(self, task_info_list: List[TaskInfo]) -> TaskInfo:

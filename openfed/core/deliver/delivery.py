@@ -7,7 +7,7 @@ from openfed.utils import openfed_class_fmt
 from torch import Tensor
 from torch._C._distributed_c10d import Work
 
-from ..core.functional import gather_object
+from ..federated.functional import gather_object
 from ..space import Country, ProcessGroup, World
 from .cypher import Cypher, FormotCheck
 
@@ -23,18 +23,13 @@ class Delivery(Package, Hook):
     key_tensor_bidict: bidict
     packages: Dict[str, Dict[str, Tensor]]
 
+    leader_rank: int = 0
+    follower_rank: int = 1
+
     def __init__(self) -> None:
         self.key_tensor_bidict = bidict()
         self.packages = defaultdict(dict)
         self.register_cypher(FormotCheck())
-
-    @property
-    def king_rank(self) -> int:
-        return 0
-
-    @property
-    def queen_rank(self) -> int:
-        return 1
 
     def register_cypher(self, cypher: Cypher) -> None:
         """Register a cypher to encrypt/decrypt the Tensor.
@@ -52,8 +47,7 @@ class Delivery(Package, Hook):
     def set_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
         """Add a state_dict to package.
         """
-        for k, v in state_dict.items():
-            self.key_tensor_map(k, v)
+        [self.key_tensor_map(k, v) for k, v in state_dict.items()]
 
     def reset_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
         """Call reset() and set_state_dict() in a single step.
@@ -116,8 +110,8 @@ class Delivery(Package, Hook):
 
         received = [None, None]
 
-        rank = self.king_rank if self.world.leader else self.queen_rank
-        other_rank = self.queen_rank if self.world.leader else self.king_rank
+        rank = self.leader_rank if self.world.leader else self.follower_rank
+        other_rank = self.follower_rank if self.world.leader else self.leader_rank
 
         def _op_after_gather(*args):
             r_packages = received[other_rank]
@@ -153,7 +147,7 @@ class Delivery(Package, Hook):
         assert self.country._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
-        rank = self.queen_rank if self.world.leader else self.king_rank
+        rank = self.follower_rank if self.world.leader else self.leader_rank
 
         # encrypt data
         for hook in self.hook_list:

@@ -1,6 +1,7 @@
 from typing import Any, List
 
 from prettytable import PrettyTable
+import os
 
 
 def _string_trim(string: str, length: int = 15):
@@ -12,14 +13,16 @@ def _string_trim(string: str, length: int = 15):
     else:
         string = str(string)
     if len(string) > length + 3:
-        return string[:15]+"..."
+        return string[:length]+"..."
     else:
         return string
 
 
 def _tablist(head: List[Any], data: List[Any]) -> str:
-    table = PrettyTable([_string_trim(h) for h in head])
-    table.add_row([_string_trim(d) for d in data])
+    rows, columns = os.popen('stty size', 'r').read().split()
+    length = (int(columns) - len(head) * 3 - 1) // len(head)
+    table = PrettyTable([_string_trim(h, length) for h in head])
+    table.add_row([_string_trim(d, length) for d in data])
 
     return str(table)
 

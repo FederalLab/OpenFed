@@ -1,8 +1,9 @@
 from typing import Any, Dict, List, Union
 
+from openfed.utils import convert_to_list
 from torch import Tensor
 
-from ..base import Aggregator
+from .aggregator import Aggregator
 
 
 class NaiveAggregator(Aggregator):
@@ -13,10 +14,7 @@ class NaiveAggregator(Aggregator):
                  params,
                  other_keys: Union[str, List[str]] = None,
                  legacy: bool = True):
-        if isinstance(other_keys, str):
-            other_keys = [other_keys]
-        if other_keys is None:
-            other_keys = []
+        other_keys = [] if other_keys is None else convert_to_list(other_keys)
 
         info_keys: List[str] = ['train_instances']
         pipe_keys: List[str] = ["step", "received_params", "param"]
@@ -43,11 +41,8 @@ class NaiveAggregator(Aggregator):
 
         for key in group['pipe_keys']:
             if key in r_p:
-                if key not in state:
-                    state[key] = r_p[key]
-                else:
-                    state[key] = (state[key] * step +
-                                  r_p[key] * train_instances) / (step + train_instances)
+                state[key] = r_p[key] if key not in state else (
+                    state[key] * step + r_p[key] * train_instances) / (step + train_instances)
         state['step'] += train_instances
 
     def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, **unused) -> Any:

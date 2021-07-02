@@ -6,12 +6,12 @@ import torch.optim as optim
 
 # >>> Import OpenFed
 import openfed
-import openfed.aggregate as aggregate
+from openfed.container.aggregator import AverageAggregator
 from openfed.api import StepAt
 from openfed.utils import time_string
 
 # >>> set log level
-openfed.logger.log_level(level="INFO")
+openfed.logger.log_level(level="DEBUG")
 
 # >>> Get default arguments from OpenFed
 args = openfed.parser.parse_args()
@@ -41,7 +41,7 @@ net = nn.Linear(1, 1)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 
 # Define aggregator (actually, this is only used for server end): FedAvg, ElasticAggregator
-aggregator = aggregate.AverageAggregator(net.parameters())
+aggregator = AverageAggregator(net.parameters())
 
 # >>> Set optimizer and aggregator for federated learning.
 openfed_api.set_aggregator_and_optimizer(aggregator, optimizer)

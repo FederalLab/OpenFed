@@ -6,7 +6,7 @@ def keyboard_interrupt_handle():
     """
     # import here to avoid circular import Error
     from openfed.common import logger
-    from openfed.federated import Destroy
+    from openfed.core import Destroy
     old_excepthook = sys.excepthook
 
     def keyboard_interrupt_hook(type, value, traceback):

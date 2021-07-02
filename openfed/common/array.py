@@ -37,12 +37,10 @@ class Array(object):
         return wrapper
 
     @property
-    @_check_initialized_called
     def default_keys(self):
         return self[0][0]
 
     @property
-    @_check_initialized_called
     def default_values(self):
         return self[0][1]
 
@@ -61,11 +59,9 @@ class Array(object):
             return list(self._default_mapping.keys())[index],\
                 list(self._default_mapping.values())[index]
 
-    @_check_initialized_called
     def __iter__(self):
         return self
 
-    @_check_initialized_called
     def __next__(self):
         self.tmp_index += 1
         if self.tmp_index >= len(self):

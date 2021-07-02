@@ -24,9 +24,7 @@ class Wrapper(object):
         self.unpack_key_list.append(key)
 
     def add_pack_key_list(self, keys: List[str]):
-        for key in keys:
-            self.add_pack_key(key)
+        [self.add_pack_key(key) for key in keys]
 
     def add_unpack_key_list(self, keys: List[str]):
-        for key in keys:
-            self.add_unpack_key(key)
+        [self.add_unpack_key(key) for key in keys]
