@@ -11,10 +11,12 @@ from openfed.utils import keyboard_interrupt_handle, openfed_class_fmt
 from torch import Tensor
 from torch.optim import Optimizer
 
-from .step import (AfterDownload, BeforeUpload, Step, after_destroy,
-                   after_download, after_upload, at_failed, at_first,
-                   at_invalid_state, at_last, at_new_episode, at_zombie,
-                   before_destroy, before_download, before_upload)
+from .after import AfterDownload
+from .before import BeforeUpload
+from .step import (Step, after_destroy, after_download, after_upload,
+                   at_failed, at_first, at_invalid_state, at_last,
+                   at_new_episode, at_zombie, before_destroy, before_download,
+                   before_upload)
 
 
 def convert_to_list(x):
@@ -161,7 +163,7 @@ class API(SafeTread, Hook, Peeper):
 
         # 3. task info
         self.reign.set_task_info(self.reign_task_info)
-        self.reign_task_info = self.reign.get_task_info()
+        self.reign_task_info = self.reign.task_info
 
         # 4. set state dict
         assert self.state_dict

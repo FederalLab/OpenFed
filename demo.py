@@ -7,7 +7,7 @@ import torch.optim as optim
 # >>> Import OpenFed
 import openfed
 import openfed.aggregate as aggregate
-from openfed.unified.step import StepAt
+from openfed.api import StepAt
 from openfed.utils import time_string
 
 # >>> set log level
@@ -21,7 +21,7 @@ openfed_api = openfed.API(frontend=args.rank > 0)
 
 # >>> Specify a aggregate trigger
 # It means that every 10 received models will make an aggregate operation.
-aggregate_trigger = openfed.AggregateCount(
+aggregate_trigger = openfed.api.AggregateCount(
     count=2, checkpoint="/tmp/openfed-model")
 
 # >>> Set the aggregate trigger
@@ -33,7 +33,7 @@ openfed_api.set_aggregate_triggers(aggregate_trigger)
 # openfed_api.register_step(stop_at_version)
 # Or use the with context to add a sequence of step function to openfed_api automatically.
 with StepAt(openfed_api):
-    openfed.StopAtVersion(max_version=3)
+    openfed.api.StopAtVersion(max_version=3)
 
 # >>> Connect to Address.
 openfed_api.build_connection(address=openfed.Address(args=args))

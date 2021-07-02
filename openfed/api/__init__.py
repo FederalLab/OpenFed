@@ -10,9 +10,6 @@ from .step import (Step, StepAt, after_destroy, after_download, after_upload,
 
 del step
 del api
-
-
-del step
 del at
 del after
 del before

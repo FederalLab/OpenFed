@@ -3,6 +3,3 @@ __version__ = "0.0.0"
 
 from .api import API
 from .common import *
-
-del api
-del common
