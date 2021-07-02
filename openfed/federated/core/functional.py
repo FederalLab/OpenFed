@@ -18,7 +18,8 @@ def isend(tensor,
           dst,
           group=None,
           tag=0,
-          country=None):
+          country=None, 
+          global_rank=True):
     """
     Sends a tensor asynchronously.
 
@@ -45,8 +46,8 @@ def isend(tensor,
         default_pg = country._get_default_group()
         return default_pg.send([tensor], dst, tag)
     else:
-        # group_dst_rank = country._get_group_rank(group, dst)
-        # return group.send([tensor], group_dst_rank, tag)
+        if global_rank:
+            dst = country._get_group_rank(group, dst)
         return group.send([tensor], dst, tag)
 
 
@@ -54,7 +55,8 @@ def irecv(tensor,
           src,
           group=None,
           tag=0,
-          country=None):
+          country=None,
+          global_rank=True):
     """
     Receives a tensor asynchronously.
 
@@ -89,8 +91,9 @@ def irecv(tensor,
         if pg is country.WORLD:
             return pg.recv([tensor], src, tag)
         else:
-            # group_src_rank = country._get_group_rank(pg, src)
-            # return pg.recv([tensor], group_src_rank, tag)
+            if global_rank:
+                src = country._get_group_rank(pg, src)
+
             return pg.recv([tensor], src, tag)
 
 
@@ -98,7 +101,8 @@ def send(tensor,
          dst,
          group=None,
          tag=0,
-         country=None):
+         country=None,
+         global_rank=True):
     """
     Sends a tensor synchronously.
 
@@ -121,8 +125,8 @@ def send(tensor,
         default_pg = country._get_default_group()
         default_pg.send([tensor], dst, tag).wait()
     else:
-        # group_dst_rank = country._get_group_rank(group, dst)
-        # group.send([tensor], group_dst_rank, tag).wait()
+        if global_rank:
+            dst = country._get_group_rank(group, dst)
         group.send([tensor], dst, tag).wait()
 
 
@@ -130,7 +134,8 @@ def recv(tensor,
          src,
          group=None,
          tag=0,
-         country=None):
+         country=None,
+         global_rank=True):
     """
     Receives a tensor synchronously.
 
@@ -171,8 +176,8 @@ def recv(tensor,
         if group is None or group is country.WORLD:
             pg.recv([tensor], src, tag).wait()
         else:
-            # group_src_rank = country._get_group_rank(pg, src)
-            # pg.recv([tensor], group_src_rank, tag).wait()
+            if global_rank:
+                src = country._get_group_rank(pg, src)
             pg.recv([tensor], src, tag).wait()
         return src
 
@@ -182,7 +187,8 @@ def broadcast_multigpu(tensor_list,
                        group=None,
                        async_op=False,
                        src_tensor=0,
-                       country=None):
+                       country=None,
+                       global_rank=True):
     """
     Broadcasts the tensor to the whole group with multiple GPU tensors
     per node.
@@ -227,8 +233,9 @@ def broadcast_multigpu(tensor_list,
         default_pg = country._get_default_group()
         work = default_pg.broadcast(tensor_list, opts)
     else:
-        # group_src_rank = country._get_group_rank(group, src)
-        # opts.rootRank = group_src_rank
+        if global_rank:
+            group_src_rank = country._get_group_rank(group, src)
+            opts.rootRank = group_src_rank
         work = group.broadcast(tensor_list, opts)
     if async_op:
         return work
@@ -240,7 +247,8 @@ def broadcast(tensor,
               src,
               group=None,
               async_op=False,
-              country=None):
+              country=None,
+              global_rank=True):
     """
     Broadcasts the tensor to the whole group.
 
@@ -274,8 +282,9 @@ def broadcast(tensor,
         default_pg = country._get_default_group()
         work = default_pg.broadcast([tensor], opts)
     else:
-        # group_src_rank = country._get_group_rank(group, src)
-        # opts.rootRank = group_src_rank
+        if global_rank:
+            group_src_rank = country._get_group_rank(group, src)
+            opts.rootRank = group_src_rank
         work = group.broadcast([tensor], opts)
     if async_op:
         return work
@@ -490,7 +499,8 @@ def reduce_multigpu(tensor_list,
                     group=None,
                     async_op=False,
                     dst_tensor=0,
-                    country=None):
+                    country=None,
+                    global_rank=True):
     """
     Reduces the tensor data on multiple GPUs across all machines. Each tensor
     in ``tensor_list`` should reside on a separate GPU
@@ -535,8 +545,9 @@ def reduce_multigpu(tensor_list,
         default_pg = country._get_default_group()
         work = default_pg.reduce(tensor_list, opts)
     else:
-        # group_dst_rank = country._get_group_rank(group, dst)
-        # opts.rootRank = group_dst_rank
+        if global_rank:
+            group_dst_rank = country._get_group_rank(group, dst)
+            opts.rootRank = group_dst_rank
         work = group.reduce(tensor_list, opts)
 
     if async_op:
@@ -550,7 +561,8 @@ def reduce(tensor,
            op=ReduceOp.SUM,
            group=None,
            async_op=False,
-           country=None):
+           country=None,
+           global_rank=True):
     """
     Reduces the tensor data across all machines.
 
@@ -586,8 +598,9 @@ def reduce(tensor,
         default_pg = country._get_default_group()
         work = default_pg.reduce([tensor], opts)
     else:
-        # group_dst_rank = country._get_group_rank(group, dst)
-        # opts.rootRank = group_dst_rank
+        if global_rank:
+            group_dst_rank = country._get_group_rank(group, dst)
+            opts.rootRank = group_dst_rank
         work = group.reduce([tensor], opts)
 
     if async_op:
@@ -758,7 +771,7 @@ def all_gather_object(object_list, obj, group=None, country=None):
         object_list[i] = _tensor_to_object(tensor, tensor_size)
 
 
-def gather_object(obj, object_gather_list=None, dst=0, group=None, async_op=False, country=None):
+def gather_object(obj, object_gather_list=None, dst=0, group=None, async_op=False, country=None, global_rank=True):
     """
     Gathers picklable objects from the whole group in a single process.
     Similar to :func:`gather`, but Python objects can be passed in. Note that the
@@ -854,6 +867,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None, async_op=Fals
             group=group,
             async_op=False,
             country=country,
+            global_rank=global_rank
         )
 
         if my_rank != dst:
@@ -981,7 +995,8 @@ def scatter_object_list(scatter_object_output_list,
                         scatter_object_input_list,
                         src=0,
                         group=None,
-                        country=None):
+                        country=None,
+                        global_rank=True):
     """
     Scatters picklable objects in ``scatter_object_input_list`` to the whole
     group. Similar to :func:`scatter`, but Python objects can be passed in. On
@@ -1063,7 +1078,7 @@ def scatter_object_list(scatter_object_output_list,
     else:
         max_tensor_size = torch.LongTensor([0])
     broadcast(max_tensor_size, src=src, group=group,
-              country=country)
+              country=country, global_rank=global_rank)
 
     # Scatter actual serialized objects
     output_tensor = torch.ByteTensor(max_tensor_size.item())
@@ -1072,6 +1087,7 @@ def scatter_object_list(scatter_object_output_list,
         scatter_list=None if my_rank != src else tensor_list,
         src=src,
         group=group,
+        global_rank=global_rank,
     )
 
     # Scatter per-object sizes to trim tensors when deserializing back to object
@@ -1080,6 +1096,7 @@ def scatter_object_list(scatter_object_output_list,
         scatter_list=None if my_rank != src else tensor_sizes,
         src=src,
         group=group,
+        global_rank=global_rank
     )
 
     # Deserialize back to object
@@ -1247,7 +1264,8 @@ def gather(tensor,
            dst=0,
            group=None,
            async_op=False,
-           country=None):
+           country=None,
+           global_rank=True):
     """
     Gathers a list of tensors in a single process.
 
@@ -1297,8 +1315,9 @@ def gather(tensor,
         work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
         # https://github.com/pytorch/pytorch/issues/60356
-        # group_dst_rank = country._get_group_rank(group, dst)
-        # opts.rootRank = group_dst_rank
+        if global_rank:
+            group_dst_rank = country._get_group_rank(group, dst)
+            opts.rootRank = group_dst_rank
         work = group.gather(output_tensors, input_tensors, opts)
 
     if async_op:
@@ -1312,7 +1331,8 @@ def scatter(tensor,
             src=0,
             group=None,
             async_op=False,
-            country=None):
+            country=None,
+            global_rank=True):
     """
     Scatters a list of tensors to all processes in a group.
 
@@ -1371,8 +1391,9 @@ def scatter(tensor,
         default_pg = country._get_default_group()
         work = default_pg.scatter(output_tensors, input_tensors, opts)
     else:
-        # group_src_rank = country._get_group_rank(group, src)
-        # opts.rootRank = group_src_rank
+        if global_rank:
+            group_src_rank = country._get_group_rank(group, src)
+            opts.rootRank = group_src_rank
         work = group.scatter(output_tensors, input_tensors, opts)
 
     if async_op:

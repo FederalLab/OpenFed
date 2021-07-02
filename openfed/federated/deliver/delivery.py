@@ -138,7 +138,7 @@ class Delivery(Package, Hook):
         returns = gather_object(
             None, received, dst=rank, group=self.pg,
             async_op=ASYNC_OP.is_async_op,
-            country=self.country)
+            country=self.country, global_rank=False)
 
         if ASYNC_OP.is_async_op:
             handler, step_func = returns
@@ -162,7 +162,7 @@ class Delivery(Package, Hook):
 
         return gather_object(
             self.packages, None, dst=rank,
-            group=self.pg, async_op=ASYNC_OP.is_async_op, country=self.country)
+            group=self.pg, async_op=ASYNC_OP.is_async_op, country=self.country, global_rank=False)
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
