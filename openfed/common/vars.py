@@ -17,30 +17,30 @@ class Vars(object):
         )
 
 
-class _DYNAMIC_ADDRESS_LOADING(Vars):
+class _DAL(Vars):
     def __init__(self):
         self.flag = True
 
-    def set_dynamic_address_loading(self):
+    def set_dal(self):
         self.flag = True
 
-    def unset_dynamic_address_loading(self):
+    def unset_dal(self):
         self.flag = False
 
     @property
-    def is_dynamic_address_loading(self) -> bool:
+    def is_dal(self) -> bool:
         return self.flag
 
     def __repr__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="DYNAMIC_ADDRESS_LOADING",
-            description="If dynamic_address_loading is enabled, a thread will be created to maintain new connection."
+            class_name="DAL",
+            description="If dal is enabled, a thread will be created to maintain new connection."
                         "Otherwise, OpenFed will get stuck until all address are correctly jointed."
-                        "Call set_dynamic_address_loading() to set dynamic_address_loading, unset_dynamic_address_loading to disable it."
+                        "Call set_dal() to set dal, unset_dal to disable it."
         )
 
 
-DYNAMIC_ADDRESS_LOADING = _DYNAMIC_ADDRESS_LOADING()
+DAL = _DAL()
 
 
 class _ASYNC_OP(Vars):

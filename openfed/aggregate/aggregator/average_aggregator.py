@@ -24,19 +24,19 @@ class AverageAggregator(Aggregator):
             other_keys = []
 
         info_keys: List[str] = []
-        aux_keys: List[str] = ["step", "received_params", "param"]
+        pipe_keys: List[str] = ["step", "received_params", "param"]
 
         for k in other_keys:
-            if k in aux_keys:
+            if k in pipe_keys:
                 raise ValueError(f"Duplicate key: {k}")
 
-        aux_keys.extend(other_keys)
+        pipe_keys.extend(other_keys)
         defaults = dict()
         super().__init__(
             params,
             defaults,
             info_keys=info_keys,
-            aux_keys=aux_keys,
+            pipe_keys=pipe_keys,
             legacy=legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
@@ -45,7 +45,7 @@ class AverageAggregator(Aggregator):
             state['step'] = 0
         step = state['step']
 
-        for key in group['aux_keys']:
+        for key in group['pipe_keys']:
             if key in r_p:
                 if key not in state:
                     state[key] = r_p[key]
@@ -62,9 +62,9 @@ class AverageAggregator(Aggregator):
 
     def _merge_aggregate(self, p: torch.Tensor, group: Dict):
         state = self.state[p]
-        aux_keys = group['aux_keys']
+        pipe_keys = group['pipe_keys']
 
-        for key in aux_keys:
+        for key in pipe_keys:
             if key in state:
                 new_p = state[key]
                 if key == "param":
@@ -85,8 +85,8 @@ class AverageAggregator(Aggregator):
                 l.append(data[k])
             return torch.stack(l, dim=0).mean(dim=0, keepdims=False)
 
-        aux_keys = group['aux_keys']
-        for key in aux_keys:
+        pipe_keys = group['pipe_keys']
+        for key in pipe_keys:
             if key in state['received_params'][0]:
                 new_p = aggregate(state["received_params"], key)
                 if key == "param":

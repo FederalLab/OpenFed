@@ -10,7 +10,6 @@ from torch._C._distributed_c10d import Work
 from .deliver import Delivery
 from .inform import Informer
 from .space import Country, ProcessGroup, Store, World
-from .utils import auto_offline
 from .utils.exception import ConnectTimeout, DeviceOffline, WrongState
 from .utils.register import register
 
@@ -117,7 +116,6 @@ class Reign(Informer, Delivery):
         self.zombie()
         return True
 
-    @auto_offline
     def deal_with_hang_up(self) -> bool:
         """Dealing with the handler for hang up operations.
         """
@@ -147,7 +145,6 @@ class Reign(Informer, Delivery):
                 # keep waiting
                 return False
 
-    @auto_offline
     def upload(self, version: int) -> bool:
         """Upload packages date to the other end.
         """
@@ -163,7 +160,6 @@ class Reign(Informer, Delivery):
         else:
             return self.transfer(to=True)
 
-    @auto_offline
     def download(self, version: int) -> bool:
         """Download packages from other end.
         """

@@ -31,7 +31,8 @@ class SafeTread(Thread):
         logger.debug("\n"+
             tablist(
                 head=["Exited thread", "MSG", "Create time", "Exited time"],
-                data=[self, msg, _thread_pool[self], time_string()]
+                data=[self, msg, _thread_pool[self], time_string()],
+                force_in_one_row=True,
             )
         )
         del _thread_pool[self]

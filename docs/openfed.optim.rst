@@ -6,7 +6,7 @@ Subpackages
 
 .. toctree::
 
-    openfed.optim.aux
+    openfed.optim.pipe
 
 Submodules
 ----------

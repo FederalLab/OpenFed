@@ -1,0 +1,11 @@
+from openfed.common.logging import logger
+
+from ..step import Backend, Step, at_invalid_state
+
+
+class AtInvalidState(Step):
+    step_name = at_invalid_state
+
+    def step(self, backend: Backend, *args, **kwargs) -> None:
+        # logger.debug("An invalid state was encountered.")
+        ...

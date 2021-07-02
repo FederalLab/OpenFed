@@ -1,29 +1,29 @@
-openfed\.optim\.aux package
+openfed\.optim\.pipe package
 ===========================
 
 Submodules
 ----------
 
-openfed\.optim\.aux\.aux module
+openfed\.optim\.pipe\.pipe module
 -------------------------------
 
-.. automodule:: openfed.optim.aux.aux
+.. automodule:: openfed.optim.pipe.pipe
     :members:
     :undoc-members:
     :show-inheritance:
 
-openfed\.optim\.aux\.elastic\_aux module
+openfed\.optim\.pipe\.elastic\_pipe module
 ----------------------------------------
 
-.. automodule:: openfed.optim.aux.elastic_aux
+.. automodule:: openfed.optim.pipe.elastic_pipe
     :members:
     :undoc-members:
     :show-inheritance:
 
-openfed\.optim\.aux\.prox\_aux module
+openfed\.optim\.pipe\.prox\_pipe module
 -------------------------------------
 
-.. automodule:: openfed.optim.aux.prox_aux
+.. automodule:: openfed.optim.pipe.prox_pipe
     :members:
     :undoc-members:
     :show-inheritance:
@@ -32,7 +32,7 @@ openfed\.optim\.aux\.prox\_aux module
 Module contents
 ---------------
 
-.. automodule:: openfed.optim.aux
+.. automodule:: openfed.optim.pipe
     :members:
     :undoc-members:
     :show-inheritance:

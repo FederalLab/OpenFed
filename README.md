@@ -327,11 +327,11 @@ openfed
 ├── launch.py
 ├── optim
 │   ├── __init__.py
-│   ├── aux
+│   ├── pipe
 │   │   ├── __init__.py
 │   │   ├── base.py
-│   │   ├── elastic_aux.py
-│   │   └── prox_aux.py
+│   │   ├── elastic_pipe.py
+│   │   └── prox_pipe.py
 │   └── scaffold.py
 ├── unified
 │   ├── __init__.py

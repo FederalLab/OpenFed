@@ -31,19 +31,19 @@ class Aggregator(Package, Wrapper, Hook):
                  params,
                  defaults: Dict,
                  info_keys: List[str],
-                 aux_keys: List[str],
+                 pipe_keys: List[str],
                  legacy: bool = False):
         """
         Args:
             info_keys: necessary keys saved in returned info dict.
-            aux_keys: other tensor that needed to saved.
+            pipe_keys: other tensor that needed to saved.
             legacy: if True, just stack received data, otherwise will merge them.
         """
         self.legacy = legacy
 
         # add info_keys to defaults
         defaults['info_keys'] = info_keys
-        defaults['aux_keys'] = aux_keys
+        defaults['pipe_keys'] = pipe_keys
         defaults['legacy'] = legacy
 
         self.defaults = defaults
@@ -210,7 +210,7 @@ class Aggregator(Package, Wrapper, Hook):
                         p.grad.zero_()
                 # Clear buffer
                 state = self.state[p]
-                for k in group["aux_keys"]:
+                for k in group["pipe_keys"]:
                     if k in state:
                         del state[k]
 
@@ -224,7 +224,7 @@ class Aggregator(Package, Wrapper, Hook):
             for p in group['params']:
                 # Clear buffer
                 state = self.state[p]
-                for k in group["aux_keys"]:
+                for k in group["pipe_keys"]:
                     if k in state:
                         del state[k]
 

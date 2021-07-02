@@ -69,7 +69,7 @@ class Maintainer(Array, SafeTread):
 
         if self.world.leader:
             self.start()
-            if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
+            if not openfed.DAL.is_dal:
                 self.join()
                 if self.abnormal_exited:
                     # raise error here, but not in self.safe_run()
@@ -148,12 +148,12 @@ class Maintainer(Array, SafeTread):
                                 time.time(), try_cnt, address]
 
             if len(self) == 0:
-                if openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
+                if openfed.DAL.is_dal:
                     time.sleep(openfed.SLEEP_LONG_TIME.seconds)
                 else:
                     return f"Success: {len(self.finished_queue)} new federated world added."
             else:
-                if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading:
+                if not openfed.DAL.is_dal:
                     if len(self.discard_queue) != 0:
                         self.abnormal_exited = True
                         break
@@ -171,7 +171,7 @@ class Maintainer(Array, SafeTread):
         super().manual_stop()
 
     def manual_joint(self, address: Address) -> None:
-        if not openfed.DYNAMIC_ADDRESS_LOADING.is_dynamic_address_loading and self.world.leader:
+        if not openfed.DAL.is_dal and self.world.leader:
             msg = "Dynamic loading is not allowed!"
             logger.error(msg)
             raise RuntimeError(msg)
