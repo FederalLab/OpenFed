@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 
-from ..step import Backend, Step, at_new_episode
+from ..step import Step, at_new_episode
 
 
 class AtNewEpisode(Step):
     step_name = at_new_episode
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         ...

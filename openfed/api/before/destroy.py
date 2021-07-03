@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 
-from ..step import Backend, Step, before_destroy
+from ..step import Step, before_destroy
 
 
 class BeforeDestroy(Step):
     step_name = before_destroy
 
-    def step(self, backend: Backend, *args, **kwargs) -> bool:
+    def step(self, backend, *args, **kwargs) -> bool:
         return True

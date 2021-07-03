@@ -45,6 +45,18 @@ class Peeper(object):
         if obj in self.obj_item_mapping:
             del self.obj_item_mapping[obj]
 
+    def __setattr__(self, name: str, value: Any):
+        if name == "obj_item_mapping":
+            super().__setattr__(name, value)
+        self.add_to_peeper(name, value)
+
+    def __getattribute__(self, name: str) -> Any:
+        if name == "obj_item_mapping":
+            return super().__getattribute__(name)
+        if name in self.obj_item_mapping:
+            return self.obj_item_mapping[name]
+        return super().__getattribute__(name)
+
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Peeper",

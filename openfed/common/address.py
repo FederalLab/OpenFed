@@ -35,7 +35,7 @@ _A = TypeVar("_A", bound='Address_')
 
 
 # address -> create time
-peeper.add_to_peeper('address_pool', dict())
+peeper.address_pool = dict()
 
 
 def cmp_address(add_a: _A, add_b: _A) -> bool:
@@ -55,20 +55,18 @@ def cmp_address(add_a: _A, add_b: _A) -> bool:
 
 def add_address_to_pool(address: _A) -> _A:
     # Check address is in pool or not
-    address_pool = peeper.get_from_peeper('address_pool')
-    for add in address_pool:
+    for add in peeper.address_pool:
         if cmp_address(address, add):
             del address
             return add
     else:
-        address_pool[address] = time.time()
+        peeper.address_pool[address] = time.time()
         return address
 
 
 def remove_address_from_pool(address: _A) -> bool:
-    address_pool = peeper.get_from_peeper('address_pool')
-    if address in address_pool:
-        del address_pool[address]
+    if address in peeper.address_pool:
+        del peeper.address_pool[address]
         return True
     else:
         return False

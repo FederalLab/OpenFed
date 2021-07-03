@@ -29,14 +29,14 @@ import torch
 from openfed.common.logging import logger
 from torch.optim.lr_scheduler import _LRScheduler
 
-from ..step import Backend, Step, at_last
+from ..step import Step, at_last
 
 
 class AtLast(Step):
     step_name = at_last
 
     @abstractmethod
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         ...
 
 
@@ -47,7 +47,7 @@ class Aggregate(AtLast):
         super().__init__()
         self.lr_scheduler = lr_scheduler
 
-    def aggregate(self, backend: Backend, *args, **kwargs):
+    def aggregate(self, backend, *args, **kwargs):
         """Aggregate received models.
         """
         # Aggregate
@@ -103,7 +103,7 @@ class AggregatePeriod(Aggregate):
         self.tic = time.time()
         self.checkpoint = checkpoint
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             logger.info("Aggregate operation triggered by period.")
@@ -127,7 +127,7 @@ class AggregateCount(Aggregate):
         self.count = count
         self.checkpoint = checkpoint
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         if backend.received_numbers >= self.count:
             logger.info("Aggregate operation triggered by count.")
             self.aggregate(backend, *args, **kwargs)
@@ -146,7 +146,7 @@ class StopAtVersion(AtLast):
         super().__init__()
         self.max_version = max_version
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         if backend.version >= self.max_version:
             logger.info("Finished all rounds.")
             backend.manual_stop()
@@ -165,7 +165,7 @@ class StopAtLoopTimes(AtLast):
         super().__init__()
         self.max_loop_times = max_loop_times
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         if backend.loop_times >= self.max_loop_times:
             backend.manual_stop()
         else:

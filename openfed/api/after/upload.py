@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 
-from ..step import Backend, Step, after_upload
+from ..step import Step, after_upload
 
 
 class AfterUpload(Step):
     step_name = after_upload
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         ...

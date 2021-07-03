@@ -25,30 +25,26 @@ from threading import Lock
 
 from openfed.common.base import peeper
 
-peeper.add_to_peeper('mt_locks', dict())
+peeper.mt_locks = dict()
 openfed_lock = Lock()
 
 
 def add_mt_lock(maintainer, lock: Lock):
-    mt_locks = peeper.get_from_peeper('mt_locks')
-    mt_locks[maintainer] = lock
+    peeper.mt_locks[maintainer] = lock
 
 
 def del_maintainer_lock(maintainer):
-    mt_locks = peeper.get_from_peeper('mt_locks')
-    if maintainer in mt_locks:
-        del mt_locks[maintainer]
+    if maintainer in peeper.mt_locks:
+        del peeper.mt_locks[maintainer]
 
 
 def acquire_all():
-    mt_locks = peeper.get_from_peeper('mt_locks')
-    for mt_lock in mt_locks.values():
+    for mt_lock in peeper.mt_locks.values():
         mt_lock.acquire()
     openfed_lock.acquire()
 
 
 def release_all():
-    mt_locks = peeper.get_from_peeper('mt_locks')
-    for mt_lock in mt_locks.values():
+    for mt_lock in peeper.mt_locks.values():
         mt_lock.release()
     openfed_lock.release()

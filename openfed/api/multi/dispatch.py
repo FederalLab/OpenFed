@@ -28,7 +28,7 @@ from openfed.common import TaskInfo, logger
 from openfed.utils import openfed_class_fmt, tablist
 from typing_extensions import overload
 
-from ..step import Backend, MultiStep
+from ..step import MultiStep
 
 
 class Dispatch(MultiStep):
@@ -85,7 +85,7 @@ class Dispatch(MultiStep):
         self.running_queue = dict()
         self.finished_queue = dict()
 
-    def after_download(self, backend: Backend, flag: bool):
+    def after_download(self, backend, flag: bool):
         if flag:
             task_info = backend.reign_task_info
             part_id = task_info.get("part_id")
@@ -106,7 +106,7 @@ class Dispatch(MultiStep):
             else:
                 logger.debug(self)
 
-    def before_upload(self, backend: Backend, *args, **kwargs) -> bool:
+    def before_upload(self, backend, *args, **kwargs) -> bool:
         # version is not used in dispatch mode
         if len(self.pending_queue) > 0:
             # assign a new part id

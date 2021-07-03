@@ -26,38 +26,34 @@ from openfed.common.base import peeper
 from openfed.utils import openfed_class_fmt
 
 # At most case, you are not allowed to modifed this list manually.
-peeper.add_to_peeper('countries', dict())
+peeper.countries = dict()
 
 
 class _Register(Array):
 
     def __init__(self):
-        countries = peeper.get_from_peeper('countries')
-        super(_Register, self).__init__(countries)
+        super(_Register, self).__init__(peeper.countries)
 
     @classmethod
     def register_country(cls, country, world):
-        countries = peeper.get_from_peeper('countries')
-        if country in countries:
+        if country in peeper.countries:
             raise KeyError("Already registered.")
         else:
-            countries[country] = world
+            peeper.countries[country] = world
 
     @classmethod
     def deleted_country(cls, country):
-        countries = peeper.get_from_peeper('countries')
-        if country in countries:
+        if country in peeper.countries:
             if country.is_initialized():
                 country.destroy_process_group(
                     group=country.WORLD)
 
-            del countries[country]
+            del peeper.countries[country]
             del country
 
     @classmethod
     def is_registered(cls, country) -> bool:
-        countries = peeper.get_from_peeper('countries')
-        return country in countries
+        return country in peeper.countries
 
     @property
     def default_country(self):

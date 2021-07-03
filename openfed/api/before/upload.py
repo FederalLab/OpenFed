@@ -23,13 +23,13 @@
 
 from openfed.common.logging import logger
 
-from ..step import Backend, Step, before_upload
+from ..step import Step, before_upload
 
 
 class BeforeUpload(Step):
     step_name = before_upload
 
-    def step(self, backend: Backend, *args, **kwargs) -> bool:
+    def step(self, backend, *args, **kwargs) -> bool:
 
         # Check version requirements
         # upload is to check other download version.

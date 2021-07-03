@@ -21,13 +21,11 @@
 # SOFTWARE.
 
 
-from openfed.common.logging import logger
-
-from ..step import Backend, Step, after_destroy
+from ..step import Step, after_destroy
 
 
 class AfterDestroy(Step):
     step_name = after_destroy
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         ...

@@ -38,7 +38,7 @@ class _ROLE(Enum):
     FOLLOWER = False
 
 
-peeper.add_to_peeper('world_list', list())
+peeper.world_list = list()
 
 
 class Reign():
@@ -78,8 +78,7 @@ class World(Array):
         Args: 
             leader: if True, set the world as leader. Once the role is specified, you cannot change it again.
         """
-        world_list = peeper.get_from_peeper('world_list')
-        world_list.append(self)
+        peeper.world_list.append(self)
 
         self.ALIVE = True
         self.ROLE = _ROLE.FOLLOWER if not leader else _ROLE.LEADER
@@ -93,8 +92,7 @@ class World(Array):
         """Kill all world in _world_list with force.
         It is not safe to call this, but it can make you exit OpenFed env as soon as possible.
         """
-        world_list = peeper.get_from_peeper('world_list')
-        for world in world_list:
+        for world in peeper.world_list:
             world.killed()
 
     def killed(self) -> None:

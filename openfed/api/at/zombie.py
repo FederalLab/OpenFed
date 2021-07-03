@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 
-from ..step import Backend, Step, at_zombie
+from ..step import Step, at_zombie
 
 
 class AtZombie(Step):
     step_name = at_zombie
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         ...

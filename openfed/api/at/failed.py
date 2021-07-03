@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 
-from ..step import Backend, Step, at_failed
+from ..step import Step, at_failed
 
 
 class AtFailed(Step):
     step_name = at_failed
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         ...

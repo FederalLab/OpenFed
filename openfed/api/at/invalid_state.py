@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 
-from ..step import Backend, Step, at_invalid_state
+from ..step import Step, at_invalid_state
 
 
 class AtInvalidState(Step):
     step_name = at_invalid_state
 
-    def step(self, backend: Backend, *args, **kwargs) -> None:
+    def step(self, backend, *args, **kwargs) -> None:
         ...

@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 
-from ..step import Backend, Step, before_download
+from ..step import Step, before_download
 
 
 class BeforeDownload(Step):
     step_name = before_download
 
-    def step(self, backend: Backend, *args, **kwargs) -> bool:
+    def step(self, backend, *args, **kwargs) -> bool:
         return True
