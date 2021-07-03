@@ -1,4 +1,5 @@
-from .address import Address, default_address, default_address_lists
+from .address import (Address, cmp_address, default_address,
+                      default_address_lists, dump_to_file, load_from_file)
 from .array import Array
 from .clone import Clone
 from .constants import *

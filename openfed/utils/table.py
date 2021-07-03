@@ -42,8 +42,8 @@ def _string_trim(string: str, length: int = 15):
 
 
 def _tablist(head: List[Any], data: List[Any]) -> str:
-    rows, columns = os.popen('stty size', 'r').read().split()
-    length = (int(columns) - len(head) * 3 - 1) // len(head)
+    columns = 80
+    length = (columns - len(head) * 3 - 1) // len(head)
     table = PrettyTable([_string_trim(h, length) for h in head])
     table.add_row([_string_trim(d, length) for d in data])
 

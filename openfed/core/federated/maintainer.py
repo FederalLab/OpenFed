@@ -26,7 +26,7 @@ from threading import Lock
 from typing import Dict, List, Union
 
 import openfed
-from openfed.common import Address, Array, SafeTread, logger
+from openfed.common import Address, Array, SafeTread, logger, load_from_file
 from openfed.utils import openfed_class_fmt, tablist
 
 from ..space import World
@@ -116,7 +116,7 @@ class Maintainer(Array, SafeTread):
         if self.address_file is None:
             return
 
-        address_list = Address.load_from_file(self.address_file)
+        address_list = load_from_file(self.address_file)
 
         for add in address_list:
             if str(add) in self.pending_queue:

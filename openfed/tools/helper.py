@@ -25,7 +25,7 @@ import cmd
 import glob
 import os
 
-from openfed.common import Address, parser
+from openfed.common import Address, parser, dump_to_file, load_from_file
 
 
 class Helper(cmd.Cmd):
@@ -55,7 +55,7 @@ class Helper(cmd.Cmd):
             print("Create a new one.")
         self.config_file = arg
 
-        self.address_list = Address.load_from_file(self.config_file)
+        self.address_list = load_from_file(self.config_file)
 
     def do_ls(self, arg):
         """List all config files in current directory.
@@ -91,7 +91,7 @@ class Helper(cmd.Cmd):
         """
         self.do_read()
         if self.config_file is not None:
-            Address.dump_to_file(self.config_file, self.address_list)
+            dump_to_file(self.config_file, self.address_list)
             print(f"Saved address to {self.config_file}.")
 
     def do_read(self, *arg):
