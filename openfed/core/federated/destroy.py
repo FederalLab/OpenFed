@@ -22,11 +22,9 @@
 
 
 from openfed.common import logger
-from openfed.utils import tablist
 
 from ..reign import Reign
 from ..space import ProcessGroup, World
-from ..space.world import _world_list
 from ..utils.register import register
 
 
@@ -72,15 +70,6 @@ class Destroy(object):
     def destroy_all_in_all_world(cls) -> None:
         """A safe way to destroy all country which has been registered.
         """
-        logger.debug(
-            "Destroy OpenFed\n" +
-            tablist(
-                head=["World", "Country", "Reign"],
-                data=[len(_world_list),
-                      len(register),
-                      sum([len(w) for w in _world_list])]
-            )
-        )
         for _, world in register:
             if world is not None:
                 cls.destroy_all_in_a_world(world)

@@ -21,41 +21,34 @@
 # SOFTWARE.
 
 
-from collections import OrderedDict
 from threading import Lock
-from typing import Dict
 
-from openfed.common import logger
+from openfed.common.base import peeper
 
-
-class Maintainer():
-    # define here to avoid circular import error.
-    ...
-
-
-_maintainer_lock_dict: Dict[Maintainer, Lock] = OrderedDict()
-
+peeper.add_to_peeper('mt_locks', dict())
 openfed_lock = Lock()
 
 
-def add_mt_lock(maintainer: Maintainer, lock: Lock):
-    _maintainer_lock_dict[maintainer] = lock
+def add_mt_lock(maintainer, lock: Lock):
+    mt_locks = peeper.get_from_peeper('mt_locks')
+    mt_locks[maintainer] = lock
 
 
-def del_maintainer_lock(maintainer: Maintainer):
-    if maintainer in _maintainer_lock_dict:
-        del _maintainer_lock_dict[maintainer]
-    else:
-        logger.debug("Maintainer lock is already deleted.")
+def del_maintainer_lock(maintainer):
+    mt_locks = peeper.get_from_peeper('mt_locks')
+    if maintainer in mt_locks:
+        del mt_locks[maintainer]
 
 
 def acquire_all():
-    for mt_lock in _maintainer_lock_dict.values():
+    mt_locks = peeper.get_from_peeper('mt_locks')
+    for mt_lock in mt_locks.values():
         mt_lock.acquire()
     openfed_lock.acquire()
 
 
 def release_all():
-    for mt_lock in _maintainer_lock_dict.values():
+    mt_locks = peeper.get_from_peeper('mt_locks')
+    for mt_lock in mt_locks.values():
         mt_lock.release()
     openfed_lock.release()

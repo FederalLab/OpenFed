@@ -29,6 +29,12 @@ from openfed.common import logger
 from openfed.utils import openfed_class_fmt, time_string
 from typing_extensions import final
 
+from .base import peeper
+
+# Record global thread
+# SafeThread -> str
+peeper.add_to_peeper('thread_pool', dict())
+
 
 class SafeTread(Thread):
     stopped: bool
@@ -39,7 +45,8 @@ class SafeTread(Thread):
         self.setDaemon(daemon)
 
         # register to global pool
-        _thread_pool[self] = time_string()
+        thread_pool = peeper.get_from_peeper('thread_pool')
+        thread_pool[self] = time_string()
 
     @final
     def run(self):
@@ -48,12 +55,14 @@ class SafeTread(Thread):
         """
         logger.debug(self.safe_run())
         self.stopped = True
-        del _thread_pool[self]
+        thread_pool = peeper.get_from_peeper('thread_pool')
+        del thread_pool[self]
 
     def __str__(self) -> str:
+        thread_pool = peeper.get_from_peeper('thread_pool')
         return openfed_class_fmt.format(
             class_name="SafeThread",
-            description=f"Created at {_thread_pool[self]}." if self in _thread_pool else "",
+            description=f"Created at {thread_pool[self]}." if self in thread_pool else "",
         )
 
     @abstractmethod
@@ -65,7 +74,3 @@ class SafeTread(Thread):
         """Set stopped to True.
         """
         self.stopped = True
-
-
-# Record global thread
-_thread_pool:  Dict[SafeTread, str] = {}

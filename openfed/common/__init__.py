@@ -2,6 +2,7 @@ from .address import (Address, Address_, cmp_address, default_address,
                       default_address_lists, dump_address_to_file,
                       load_address_from_file, remove_address_from_pool)
 from .array import Array
+from .base import *
 from .clone import Clone
 from .constants import *
 from .exceptions import OpenFedException
@@ -14,6 +15,7 @@ from .thread import SafeTread
 from .vars import *
 from .wrapper import Wrapper
 
+del base
 del clone
 del address
 del array

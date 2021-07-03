@@ -29,11 +29,13 @@ from typing import Dict, List, TypeVar, Union, overload
 
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
+from .base import peeper
+
 _A = TypeVar("_A", bound='Address_')
 
 
 # address -> create time
-_address_pool: Dict[_A, float] = dict()
+peeper.add_to_peeper('address_pool', dict())
 
 
 def cmp_address(add_a: _A, add_b: _A) -> bool:
@@ -53,18 +55,20 @@ def cmp_address(add_a: _A, add_b: _A) -> bool:
 
 def add_address_to_pool(address: _A) -> _A:
     # Check address is in pool or not
-    for add in _address_pool:
+    address_pool = peeper.get_from_peeper('address_pool')
+    for add in address_pool:
         if cmp_address(address, add):
             del address
             return add
     else:
-        _address_pool[address] = time.time()
+        address_pool[address] = time.time()
         return address
 
 
 def remove_address_from_pool(address: _A) -> bool:
-    if address in _address_pool:
-        del _address_pool[address]
+    address_pool = peeper.get_from_peeper('address_pool')
+    if address in address_pool:
+        del address_pool[address]
         return True
     else:
         return False
@@ -126,7 +130,7 @@ class Address_(object):
 
 
 def load_address_from_file(file: str) -> List[_A]:
-    if not os.path.isfile(file):
+    if file is None or not os.path.isfile(file):
         return []
     with open(file, 'r') as f:
         address_dict_list = json.load(f)

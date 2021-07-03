@@ -24,9 +24,10 @@
 import threading
 from collections import OrderedDict
 from enum import Enum, unique
-from typing import Any, Dict, List, TypeVar
+from typing import Any, Dict
 
 from openfed.common import Array
+from openfed.common.base import peeper
 from openfed.utils import openfed_class_fmt
 from torch._C._distributed_c10d import ProcessGroup
 
@@ -37,8 +38,7 @@ class _ROLE(Enum):
     FOLLOWER = False
 
 
-_W = TypeVar("_W", bound="World")
-_world_list: List[_W] = []
+peeper.add_to_peeper('world_list', list())
 
 
 class Reign():
@@ -78,7 +78,8 @@ class World(Array):
         Args: 
             leader: if True, set the world as leader. Once the role is specified, you cannot change it again.
         """
-        _world_list.append(self)
+        world_list = peeper.get_from_peeper('world_list')
+        world_list.append(self)
 
         self.ALIVE = True
         self.ROLE = _ROLE.FOLLOWER if not leader else _ROLE.LEADER
@@ -92,7 +93,8 @@ class World(Array):
         """Kill all world in _world_list with force.
         It is not safe to call this, but it can make you exit OpenFed env as soon as possible.
         """
-        for world in _world_list:
+        world_list = peeper.get_from_peeper('world_list')
+        for world in world_list:
             world.killed()
 
     def killed(self) -> None:

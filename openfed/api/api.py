@@ -28,7 +28,7 @@ import openfed
 from openfed.common import (Address, Hook, SafeTread, TaskInfo,
                             default_address, logger)
 from openfed.container import Aggregator
-from openfed.core import (Destroy, Maintainer, Peeper, Reign, World,
+from openfed.core import (Destroy, Maintainer, Reign, World,
                           openfed_lock)
 from openfed.core.utils import DeviceOffline
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
@@ -42,7 +42,7 @@ from .step import (Step, after_destroy, after_download, after_upload,
                    before_upload)
 
 
-class API(SafeTread, Hook, Peeper):
+class API(SafeTread, Hook):
     """Provide a unified api for backend and frontend.
     """
 

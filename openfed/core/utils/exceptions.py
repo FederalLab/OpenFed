@@ -22,7 +22,6 @@
 
 
 from openfed.common import OpenFedException
-from openfed.utils import openfed_class_fmt
 
 
 class ConnectTimeout(OpenFedException):

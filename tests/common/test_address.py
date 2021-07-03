@@ -1,9 +1,10 @@
 from openfed.common.address import *
-from openfed.common.address import _address_pool
+from openfed.common.base import peeper
 from openfed.common.parser import parser
 
 
 def test_address():
+    address_pool = peeper.get_from_peeper('address_pool')
     # Build Address from parser
     args = parser.parse_args()
     address = Address(args=args)
@@ -19,9 +20,9 @@ def test_address():
     print(repr(address))
     print(str(address))
 
-    assert address in _address_pool
-    assert load_address in _address_pool
+    assert address in address_pool
+    assert load_address in address_pool
     assert id(address) == id(load_address)
 
     remove_address_from_pool(address)
-    assert address not in _address_pool
+    assert address not in address_pool

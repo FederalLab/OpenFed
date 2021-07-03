@@ -21,60 +21,52 @@
 # SOFTWARE.
 
 
-from collections import OrderedDict
-from typing import Dict
-
-from openfed.common import Array, logger
+from openfed.common import Array
+from openfed.common.base import peeper
 from openfed.utils import openfed_class_fmt
 
-
-class Country():
-    ...
-
-
-class World():
-    ...
-
-
 # At most case, you are not allowed to modifed this list manually.
-_country: Dict[Country, World] = OrderedDict()
+peeper.add_to_peeper('countries', dict())
 
 
 class _Register(Array):
 
     def __init__(self):
-        super(_Register, self).__init__(_country)
+        countries = peeper.get_from_peeper('countries')
+        super(_Register, self).__init__(countries)
 
     @classmethod
-    def register_country(cls, country: Country, world: World):
-        if country in _country:
+    def register_country(cls, country, world):
+        countries = peeper.get_from_peeper('countries')
+        if country in countries:
             raise KeyError("Already registered.")
         else:
-            _country[country] = world
+            countries[country] = world
 
     @classmethod
-    def deleted_country(cls, country: Country):
-        if country in _country:
+    def deleted_country(cls, country):
+        countries = peeper.get_from_peeper('countries')
+        if country in countries:
             if country.is_initialized():
-                logger.debug(f"Force to delete country: {country}")
                 country.destroy_process_group(
                     group=country.WORLD)
 
-            del _country[country]
+            del countries[country]
             del country
 
     @classmethod
-    def is_registered(cls, country: Country) -> bool:
-        return country in _country
+    def is_registered(cls, country) -> bool:
+        countries = peeper.get_from_peeper('countries')
+        return country in countries
 
     @property
-    def default_country(self) -> Country:
+    def default_country(self):
         """ If not exists, return None
         """
         return self.default_key
 
     @property
-    def default_world(self) -> World:
+    def default_world(self):
         """If not exists, return None
         """
         return self.default_value
@@ -82,7 +74,7 @@ class _Register(Array):
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Register",
-            description=f"{len(self)} country have been registed."
+            description=f"Contains {len(self)} countries."
         )
 
 

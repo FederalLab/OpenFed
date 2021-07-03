@@ -20,25 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from typing import Any, Dict
 
-from openfed.common.thread import _thread_pool
-from openfed.utils import tablist
-
-from ..space.world import _world_list
-from ..utils.lock import _maintainer_lock_dict
-from ..utils.register import _country
+from openfed.utils import openfed_class_fmt
 
 
 class Peeper(object):
     """
     Collect the state of whole openfed.
     """
+    obj_item_mapping: Dict[Dict, Any]
 
-    @classmethod
-    def openfed_digest(cls):
-        return tablist(
-            head=['World', 'Country', 'Maintainer', 'Thread'],
-            data=[len(_world_list), len(_country), len(
-                _maintainer_lock_dict), len(_thread_pool)],
-            force_in_one_row=True
+    def __init__(self):
+        self.obj_item_mapping = dict()
+
+    def add_to_peeper(self, obj: Any, item: Any) -> None:
+        if obj not in self.obj_item_mapping:
+            self.obj_item_mapping[obj] = item
+
+    def get_from_peeper(self, obj: Any) -> Any:
+        return self.obj_item_mapping[obj]
+
+    def remove_from_peeper(self, obj: Any) -> None:
+        if obj in self.obj_item_mapping:
+            del self.obj_item_mapping[obj]
+
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="Peeper",
+            description=self.obj_item_mapping
         )
+
+
+peeper = Peeper()
