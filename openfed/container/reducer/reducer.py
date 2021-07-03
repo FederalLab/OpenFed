@@ -60,7 +60,7 @@ class AutoReducer(Reducer):
     def reduce(self, task_info_list: List[TaskInfo]) -> TaskInfo:
         rdict = defaultdict(lambda: 0.0)
         if self.weight_key is not None:
-            task_info = task_info_list[0].as_dict()
+            task_info = task_info_list[0].as_dict
             assert self.weight_key in task_info, "weight key is not contained in task info."
 
             demo = sum([ti.get(self.weight_key) for ti in task_info_list])
@@ -72,7 +72,7 @@ class AutoReducer(Reducer):
                       for _ in range(len(task_info_list))]
 
         for w, ti in zip(weight, task_info_list):
-            ti = ti.as_dict()
+            ti = ti.as_dict
             for k, v in ti.items():
                 if k == self.weight_key:
                     # skip weight key

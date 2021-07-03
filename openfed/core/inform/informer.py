@@ -110,7 +110,7 @@ class Informer(Hook):
 
         # write self._i_key to initialize the key value store.
         safe_store_set(self.store, self._i_key, {
-                       OPENFED_STATUS: zombie, OPENFED_TASK_INFO: TaskInfo().as_dict()})
+                       OPENFED_STATUS: zombie, OPENFED_TASK_INFO: TaskInfo().as_dict})
 
         # register a default collector
         self.register_collector(SystemInfo())
@@ -224,7 +224,7 @@ class Informer(Hook):
         return TaskInfo().load_dict(self.get(OPENFED_TASK_INFO))
 
     def set_task_info(self, task_info: TaskInfo):
-        self.set(OPENFED_TASK_INFO, task_info.as_dict())
+        self.set(OPENFED_TASK_INFO, task_info.as_dict)
 
     def _get_state(self) -> str:
         return self.get(OPENFED_STATUS)

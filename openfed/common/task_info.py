@@ -32,6 +32,8 @@ _T = TypeVar("_T", bound='TaskInfo')
 
 
 class TaskInfo(object):
+    r"""Provide same methods for better management of task info.
+    """
     _info_dict: Dict[str, Any]
 
     def __init__(self, ):
@@ -49,6 +51,7 @@ class TaskInfo(object):
     def get(self, key: str):
         return self._info_dict[key]
 
+    @property
     def as_dict(self):
         return self._info_dict
 
