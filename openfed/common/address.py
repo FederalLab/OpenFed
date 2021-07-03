@@ -23,15 +23,17 @@
 
 import json
 import os
+import time
 from argparse import Namespace
-from typing import List, TypeVar, Union, overload
+from typing import Dict, List, TypeVar, Union, overload
 
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
-_A = TypeVar("_A", bound='_Address')
+_A = TypeVar("_A", bound='Address_')
 
 
-_address_pool: List[_A] = []
+# address -> create time
+_address_pool: Dict[_A, float] = dict()
 
 
 def cmp_address(add_a: _A, add_b: _A) -> bool:
@@ -56,11 +58,19 @@ def add_address_to_pool(address: _A) -> _A:
             del address
             return add
     else:
-        _address_pool.append(address)
+        _address_pool[address] = time.time()
         return address
 
 
-class _Address(object):
+def remove_address_from_pool(address: _A) -> bool:
+    if address in _address_pool:
+        del _address_pool[address]
+        return True
+    else:
+        return False
+
+
+class Address_(object):
     backend: str
     init_method: str = None
     world_size: int = 2
@@ -99,7 +109,7 @@ class _Address(object):
             force_in_one_row=True
         )
         return openfed_class_fmt.format(
-            class_name="_Address",
+            class_name="Address_",
             description=table,
         )
 
@@ -115,7 +125,7 @@ class _Address(object):
         )
 
 
-def load_from_file(file: str) -> List[_A]:
+def load_address_from_file(file: str) -> List[_A]:
     if not os.path.isfile(file):
         return []
     with open(file, 'r') as f:
@@ -124,7 +134,7 @@ def load_from_file(file: str) -> List[_A]:
     return address_list
 
 
-def dump_to_file(file: str, address_list: Union[_A, List[_A]]):
+def dump_address_to_file(file: str, address_list: Union[_A, List[_A]]):
     address_list = convert_to_list(address_list)
     address_dict_list = [address.as_dict for address in address_list]
     with open(file, "w") as f:
@@ -204,7 +214,7 @@ def Address(backend: str,
 
 
 def Address(*args, **kwargs) -> _A:
-    address = _Address(*args, **kwargs)
+    address = Address_(*args, **kwargs)
     return add_address_to_pool(address)
 
 

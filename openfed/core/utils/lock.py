@@ -38,7 +38,7 @@ _maintainer_lock_dict: Dict[Maintainer, Lock] = OrderedDict()
 openfed_lock = Lock()
 
 
-def add_maintainer_lock(maintainer: Maintainer, lock: Lock):
+def add_mt_lock(maintainer: Maintainer, lock: Lock):
     _maintainer_lock_dict[maintainer] = lock
 
 

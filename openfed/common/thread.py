@@ -51,11 +51,11 @@ class SafeTread(Thread):
         self.stopped = True
 
     def safe_exit(self, msg: str):
-        logger.debug("\n" +
+        logger.debug("msg\n" +
                      tablist(
-                         head=["Exited thread", "MSG",
+                         head=["Exited thread",
                                "Create time", "Exited time"],
-                         data=[self, msg, _thread_pool[self], time_string()],
+                         data=[self, _thread_pool[self], time_string()],
                          force_in_one_row=True,
                      )
                      )

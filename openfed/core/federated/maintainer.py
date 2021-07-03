@@ -23,14 +23,15 @@
 
 import time
 from threading import Lock
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import openfed
-from openfed.common import Address, Array, SafeTread, logger, load_from_file
-from openfed.utils import openfed_class_fmt, tablist
+from openfed.common import (Address_, Array, SafeTread, load_address_from_file,
+                            logger, remove_address_from_pool)
+from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
 from ..space import World
-from ..utils.lock import add_maintainer_lock, del_maintainer_lock
+from ..utils.lock import add_mt_lock, del_maintainer_lock
 from .joint import Joint
 
 
@@ -39,16 +40,16 @@ class Maintainer(Array, SafeTread):
     Dynamic build the connection.
     """
     # unfinished address
-    # Address -> [last try time, try_cnt]
-    pending_queue: Dict[str, List[Union[float, int, Address]]]
+    # Address_ -> [create time, try times]
+    pending_queue: Dict[Address_, Tuple[float, int]]
 
     # finished address
-    # Address -> [build time, try_cnt]
-    finished_queue: Dict[str, List[Union[float, int, Address]]]
+    # Address_ -> [connection time, try times]
+    finished_queue: Dict[Address_, Tuple[float, int]]
 
     # discard address
-    # Address -> [last try time, try_cnt]
-    discard_queue: Dict[str, List[Union[float, int, Address]]]
+    # Address_ -> [discarded time, try times]
+    discard_queue: Dict[Address_, Tuple[float, int]]
 
     mt_lock: Lock
     # The shared information among all country in this maintainer.
@@ -58,33 +59,31 @@ class Maintainer(Array, SafeTread):
 
     def __init__(self,
                  world: World,
-                 address: Union[Address, List[Address]] = None,
-                 address_file: str = None) -> None:
+                 address: Union[Address_, List[Address_]] = None,
+                 address_file: str = None,
+                 max_try_times: int = 5,
+                 interval_seconds: float = 10) -> None:
         """
             Only a single valid address is allowed in client.
         """
-        self.pending_queue = dict()
+        self.address_file = address_file
+
+        address_list = convert_to_list(address)
+        self.pending_queue = {address: [time.time(), 0]
+                              for address in address_list} if address_list is not None else {}
         self.finished_queue = dict()
         self.discard_queue = dict()
         self.abnormal_exited = False
 
+        self.max_try_times = max_try_times
+        self.interval_seconds = interval_seconds
+
         Array.__init__(self, self.pending_queue)
 
         self.mt_lock = Lock()
-        add_maintainer_lock(self, self.mt_lock)
+        add_mt_lock(self, self.mt_lock)
 
         self.world = world
-
-        self.address_file = address_file
-
-        if address is not None:
-            if not isinstance(address, (list, tuple)):
-                address = [address]
-        else:
-            address = []
-
-        for add in address:
-            self.pending_queue[str(add)] = [time.time(), 0, add]
 
         self.read_address_from_file()
         # call here
@@ -95,95 +94,76 @@ class Maintainer(Array, SafeTread):
             if not openfed.DAL.is_dal:
                 self.join()
                 if self.abnormal_exited:
-                    # raise error here, but not in self.safe_run()
+                    # Raise RuntimeError in the main thread.
                     raise RuntimeError(
                         "Errors occurred while building connection to new address.")
         else:
-            if len(self) > 1:
-                msg = "Too many fed addr are specified. Only allowed 1."
-                logger.error(msg)
-                raise RuntimeError(msg)
-            elif len(self) == 1:
-                str_add, (last_time, try_cnt, address) = self[0]
-                Joint(address, self.world)
-                del self.pending_queue[str_add]
-                self.finished_queue[str_add] = [
-                    time.time(), try_cnt+1, address]
-            else:
-                logger.debug("Waiting for a valid address")
+            assert len(self) == 1, "Only single address is allowed."
+            address, create_time, try_times = self[0]
+            Joint(address, self.world)
+            del self.pending_queue[address]
+            self.finished_queue[address] = [time.time(), try_times+1]
 
     def read_address_from_file(self) -> None:
-        if self.address_file is None:
-            return
+        address_list = load_address_from_file(self.address_file)
 
-        address_list = load_from_file(self.address_file)
-
-        for add in address_list:
-            if str(add) in self.pending_queue:
-                # already in pending queue
+        for address in address_list:
+            if address in self.pending_queue:
+                # Already in pending queue.
                 ...
-            elif str(add) in self.finished_queue:
-                # already connected
+            elif address in self.finished_queue:
+                # Already in finished_queue.
                 ...
-            elif str(add) in self.discard_queue:
-                logger.debug(
-                    f"Error Address"
-                    f"{str(add)}"
-                    f"Discarded.")
+            elif address in self.discard_queue:
+                logger.info(f"Invalid address: {address}.\nDiscarded!")
+                # Remove this invalid address from address_pool
+                remove_address_from_pool(address)
             else:
                 # add address to pending queue
-                self.pending_queue[str(add)] = [time.time(), 0, add]
+                self.pending_queue[address] = [time.time(), 0]
 
     def safe_run(self) -> str:
         while not self.stopped and self.world.ALIVE:
             # update pending list
             self.read_address_from_file()
 
-            def try_now(last_time, try_cnt) -> bool:
-                if time.time() - last_time < openfed.INTERVAL_AFTER_LAST_FAILED_TIME:
-                    return False
-                if try_cnt > openfed.MAX_TRY_TIMES:
-                    return False
-                return True
+            def try_now(last_time, try_times) -> bool:
+                return False if (time.time() - last_time < self.interval_seconds) or try_times >= self.max_try_times else True
 
-            for str_add, (last_time, try_cnt, address) in self:
-                if try_now(last_time, try_cnt):
+            for address, last_time, try_times in self:
+                if try_now(last_time, try_times):
                     joint = Joint(address, self.world)
                     joint.join()
                     if joint.build_success:
-                        self.finished_queue[str_add] = [
-                            time.time(), try_cnt + 1, address]
-                        del self.pending_queue[str_add]
+                        self.finished_queue[address] = [
+                            time.time(), try_times + 1]
+                        del self.pending_queue[address]
                     else:
-                        try_cnt += 1
-                        if try_cnt > openfed.MAX_TRY_TIMES:
-                            # move to discard queue
-                            logger.debug(
-                                "Error Address"
-                                f"{str_add}"
-                                f"Discarded.")
-                            self.discard_queue[str_add] = [
-                                time.time(), try_cnt, address]
-                            del self.pending_queue[str_add]
+                        try_times += 1
+                        if try_times > self.max_try_times:
+                            # Move to discard queue
+                            self.discard_queue[address] = [
+                                time.time(), try_times]
+                            del self.pending_queue[address]
                             break
                         else:
-                            self.pending_queue[str_add] = [
-                                time.time(), try_cnt, address]
+                            self.pending_queue[address] = [
+                                time.time(), try_times]
 
             if len(self) == 0:
                 if openfed.DAL.is_dal:
-                    time.sleep(openfed.SLEEP_LONG_TIME.seconds)
+                    time.sleep(self.interval_seconds)
                 else:
-                    return f"Success: {len(self.finished_queue)} new federated world added."
+                    break
             else:
                 if not openfed.DAL.is_dal:
                     if len(self.discard_queue) != 0:
                         self.abnormal_exited = True
                         break
                 else:
-                    time.sleep(openfed.SLEEP_LONG_TIME.seconds)
+                    time.sleep(self.interval_seconds)
 
-        return "Force Quit XXX" + str(self)
+        return f"Build connection to {len(self.finished_queue)} addresses."
 
     def kill_world(self) -> None:
         self.world.killed()
@@ -193,15 +173,12 @@ class Maintainer(Array, SafeTread):
             self.kill_world()
         super().manual_stop()
 
-    def manual_joint(self, address: Address) -> None:
+    def manual_joint(self, address: Address_) -> None:
         if not openfed.DAL.is_dal and self.world.leader:
-            msg = "Dynamic loading is not allowed!"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        logger.debug(f"Manually add a new address: {repr(address)}")
+            raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
 
         if self.world.leader:
-            self.pending_queue[str(address)] = [time.time(), 0, address]
+            self.pending_queue[address] = [time.time(), 0]
         else:
             Joint(address, self.world)
 
@@ -212,16 +189,18 @@ class Maintainer(Array, SafeTread):
                 head=["Pending", "Finished", "Discard"],
                 data=[len(self.pending_queue),
                       len(self.finished_queue),
-                      len(self.discard_queue)]
+                      len(self.discard_queue)],
+                force_in_one_row=True,
             )
         )
 
-    def __del__(self):
+    def __del__(self) -> None:
         del_maintainer_lock(self)
         super().__del__()
 
-    def clear_finished_queue(self) -> None:
+    def clear_queue(self) -> None:
+        """Clear all address in queue.
+        """
         self.finished_queue.clear()
-
-    def clear_discard_queue(self) -> None:
         self.discard_queue.clear()
+        self.pending_queue.clear()

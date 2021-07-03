@@ -9,10 +9,10 @@ def test_address():
     address = Address(args=args)
 
     # Dump to file
-    dump_to_file('/tmp/address.json', address)
+    dump_address_to_file('/tmp/address.json', address)
 
     # Load from file
-    load_address = load_from_file('/tmp/address.json')[0]
+    load_address = load_address_from_file('/tmp/address.json')[0]
 
     assert address == load_address
 
@@ -22,3 +22,6 @@ def test_address():
     assert address in _address_pool
     assert load_address in _address_pool
     assert id(address) == id(load_address)
+
+    remove_address_from_pool(address)
+    assert address not in _address_pool
