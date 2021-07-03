@@ -22,7 +22,7 @@
 
 
 from collections import OrderedDict
-from typing import Callable, Dict, List, overload
+from typing import Callable, Dict, List, Union, overload
 
 
 class Hook(object):
@@ -46,24 +46,37 @@ class Hook(object):
 
     @overload
     def register_hook(self, key: str, func: Callable):
-        """Add hook to _hook_dict.
+        """Register a func with key to hook dictionary.
         """
 
     @overload
     def register_hook(self, func: Callable):
-        """Add hook to _hook_list
+        """Register a func to hook list.
         """
 
     def register_hook(self, **kwargs):
         key = kwargs.get('key', None)
         if key:
             if key in self.hook_dict:
-                msg = "Key '%s' already registered" % key
-                raise KeyError(msg)
+                raise KeyError(f"Key {key} already registered.")
             self.hook_dict[key] = kwargs['func']
         else:
             func = kwargs['func']
             if func in self.hook_list:
-                msg = "Func '%s' already registered" % func
-                raise KeyError(msg)
+                raise KeyError(f"{func} is already registered.")
             self.hook_list.append(func)
+
+    def remove_hook(self, key: Union[str, Callable]):
+        """
+        Args: 
+            key: if key is str, remove it from hook dict.
+                else, remove it from hook list.
+        """
+        if isinstance(key, str):
+            if key in self._hook_dict:
+                del self._hook_dict[key]
+        else:
+            for i, func in enumerate(self._hook_list):
+                if func == key:
+                    del self._hook_list[i]
+                    break
