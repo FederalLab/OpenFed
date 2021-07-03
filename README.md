@@ -9,6 +9,22 @@
 5. Transfer Data without Hesitation
 6. PyTorch Coding Style
 
+## Pytest
+
+Add the test file in `tests`, and make sure that the filename begins with `test`.
+
+```bash
+pytest
+=============================================== test session starts ===============================================
+platform darwin -- Python 3.7.10, pytest-6.2.4, py-1.10.0, pluggy-0.13.1
+rootdir: /Users/densechen/code/OpenFed
+collected 1 item                                                                                                  
+
+tests/common/test_address.py .                                                                              [100%]
+
+================================================ 1 passed in 0.81s ================================================
+```
+
 ## Install
 
 Python>=3.7, PyTorch=1.9.0 are required.
