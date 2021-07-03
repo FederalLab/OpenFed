@@ -34,7 +34,8 @@ parser.add_argument(
 parser.add_argument(
     "--init_method",
     default="tcp://localhost:1994",
-    type=str)
+    type=str,
+    help="opt1: tcp://localhost:1994, opt2: file:///tmp/openfed.sharefile, opt3:env://")
 parser.add_argument(
     "--port",
     default=None,
@@ -50,7 +51,7 @@ parser.add_argument(
     "--local_rank",
     default=-1,
     type=int,
-    help="If the world is 2, rank can be ignored.")
+    help="Rank can be ignored if world size is 2.")
 parser.add_argument(
     "--group_name",
     default="Admirable",

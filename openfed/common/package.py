@@ -45,11 +45,13 @@ def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
 
 
 class Package(object):
-    """Provide function to pack and unpack state dict, like Optimizer...
+    """Define some unified functions to package and unpackage the class's state dictionary, such as Optimizer, Aggregator and Pipe.
     """
 
     def pack_state(self, obj: Union[Aggregator, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
-        """If keys is not given, we will try to load pack_key_list attribute.
+        """
+        Args:
+            keys: if keys are not given, we will try to load the `pack_key_list` attribute of obj.
         """
         keys = _check_state_keys(obj, keys, mode='pack_key_list')
         if keys:
@@ -60,7 +62,9 @@ class Package(object):
                     self.pack(p, rdict)
 
     def unpack_state(self, obj: Union[Aggregator, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
-        """If keys is not given, we will try to load pack_key_list attribute.
+        """
+        Args:
+            keys: if keys are not given, we will try to load the `unpack_key_list` attribute of obj.
         """
         keys = _check_state_keys(obj, keys, mode="unpack_key_list")
         if keys:
