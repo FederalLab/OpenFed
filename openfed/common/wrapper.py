@@ -21,33 +21,31 @@
 # SOFTWARE.
 
 
-from typing import List
+from typing import List, Union
+
+from openfed.utils import convert_to_list
 
 
 class Wrapper(object):
-    """Provide some method to wrap a class with support of Package.
+    """Provide some methods to wrap a class with support of Package.
     """
-    pack_key_list: List = None
-    unpack_key_list: List = None
+    pack_key_list: List[str] = None
+    unpack_key_list: List[str] = None
 
-    def add_pack_key(self, key: str):
-        assert isinstance(key, str), "Only string format keys are supported."
+    def add_pack_key(self, key: Union[str, List[str]]) -> None:
+        key = convert_to_list(key)
         if self.pack_key_list is None:
             self.pack_key_list = []
-        if key in self.pack_key_list:
-            raise KeyError(f"Duplicate key: {key}.")
-        self.pack_key_list.append(key)
+        for k in key:
+            if k in self.pack_key_list:
+                raise KeyError(f"{k} is already registered.")
+            self.pack_key_list.append(k)
 
-    def add_unpack_key(self, key: str):
-        assert isinstance(key, str), "Only string format keys are supported."
+    def add_unpack_key(self, key: Union[str, List[str]]) -> None:
+        key = convert_to_list(key)
         if self.unpack_key_list is None:
             self.unpack_key_list = []
-        if key in self.unpack_key_list:
-            raise KeyError(f"Duplicate key: {key}.")
-        self.unpack_key_list.append(key)
-
-    def add_pack_key_list(self, keys: List[str]):
-        [self.add_pack_key(key) for key in keys]
-
-    def add_unpack_key_list(self, keys: List[str]):
-        [self.add_unpack_key(key) for key in keys]
+        for k in key:
+            if k in self.unpack_key_list:
+                raise KeyError(f"{k} is already registered.")
+            self.unpack_key_list.append(k)
