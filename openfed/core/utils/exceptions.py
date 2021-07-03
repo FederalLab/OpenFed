@@ -30,13 +30,7 @@ class ConnectTimeout(OpenFedException):
     """
 
     def __init__(self, msg: str = ""):
-        self.msg = f"Connecting, timeout.\n{msg}"
-
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="ConnectTimeout",
-            description=self.msg
-        )
+        super().__init__("ConnectTimeout", msg=msg)
 
 
 class InvalidStoreReading(OpenFedException):
@@ -48,13 +42,7 @@ class InvalidStoreReading(OpenFedException):
     """
 
     def __init__(self, msg: str = ""):
-        self.msg = f"Read store failed.\n{msg}"
-
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="InvalidStoreReading",
-            description=self.msg
-        )
+        super().__init__("InvalidStoreReading", msg=msg)
 
 
 class InvalidStoreWriting(OpenFedException):
@@ -66,13 +54,7 @@ class InvalidStoreWriting(OpenFedException):
     """
 
     def __init__(self, msg: str = ""):
-        self.msg = f"Write store failed.\n{msg}"
-
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="InvalidStoreWriting",
-            description=self.msg
-        )
+        super().__init__("InvalidStoreWriting", msg=msg)
 
 
 class BuildReignFailed(OpenFedException):
@@ -83,13 +65,7 @@ class BuildReignFailed(OpenFedException):
     """
 
     def __init__(self, msg: str = ""):
-        self.msg = f"Build Reign failed.\n{msg}"
-
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="BuildReignFailed",
-            description=self.msg
-        )
+        super().__init__("BuildReignFailed", msg=msg)
 
 
 class DeviceOffline(OpenFedException):
@@ -97,13 +73,7 @@ class DeviceOffline(OpenFedException):
     """
 
     def __init__(self, msg: str = ""):
-        self.msg = f"Device offline.\n{msg}"
-
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="DeviceOffline",
-            description=self.msg
-        )
+        super().__init__("DeviceOffline", msg=msg)
 
 
 class WrongState(OpenFedException):
@@ -111,10 +81,4 @@ class WrongState(OpenFedException):
     """
 
     def __init__(self, msg: str = ""):
-        self.msg = f"Wrong state.\n{msg}"
-
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="WrongState",
-            description=self.msg
-        )
+        super().__init__("WrongState", msg=msg)

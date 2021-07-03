@@ -195,7 +195,7 @@ def Address(backend: str,
             or ``NCCL_ASYNC_ERROR_HANDLING`` is set to 1. When
             ``NCCL_BLOCKING_WAIT`` is set, this is the duration for which the
             process will block and wait for collectives to complete before
-            throwing an exception. When ``NCCL_ASYNC_ERROR_HANDLING`` is set,
+            throwing an exceptions. When ``NCCL_ASYNC_ERROR_HANDLING`` is set,
             this is the duration after which collectives will be aborted
             asynchronously and the process will crash. ``NCCL_BLOCKING_WAIT``
             will provide errors to the user which can be caught and handled,

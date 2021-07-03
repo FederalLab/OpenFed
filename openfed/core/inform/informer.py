@@ -31,7 +31,7 @@ from openfed.utils import openfed_class_fmt
 from random_words import RandomWords
 
 from ..space import Country, Store, World
-from ..utils.exception import (BuildReignFailed, InvalidStoreReading,
+from ..utils.exceptions import (BuildReignFailed, InvalidStoreReading,
                                InvalidStoreWriting)
 from .collector import Collector, GPUInfo, Register, SystemInfo
 

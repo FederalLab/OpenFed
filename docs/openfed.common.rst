@@ -28,10 +28,10 @@ openfed\.common\.constants module
     :undoc-members:
     :show-inheritance:
 
-openfed\.common\.exception module
+openfed\.common\.exceptions module
 ---------------------------------
 
-.. automodule:: openfed.common.exception
+.. automodule:: openfed.common.exceptions
     :members:
     :undoc-members:
     :show-inheritance:

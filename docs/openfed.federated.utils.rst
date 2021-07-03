@@ -4,10 +4,10 @@ openfed\.federated\.utils package
 Submodules
 ----------
 
-openfed\.federated\.utils\.exception module
+openfed\.federated\.utils\.exceptions module
 -------------------------------------------
 
-.. automodule:: openfed.federated.utils.exception
+.. automodule:: openfed.federated.utils.exceptions
     :members:
     :undoc-members:
     :show-inheritance:

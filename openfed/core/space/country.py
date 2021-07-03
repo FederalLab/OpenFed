@@ -37,7 +37,7 @@ from torch.distributed.distributed_c10d import (Backend, P2POp,
                                                 is_nccl_available)
 from torch.distributed.rendezvous import rendezvous
 
-from ..utils.exception import ConnectTimeout
+from ..utils.exceptions import ConnectTimeout
 from ..utils.lock import acquire_all, release_all
 from .world import World
 
@@ -311,7 +311,7 @@ class Country(object):
                 or ``NCCL_ASYNC_ERROR_HANDLING`` is set to 1. When
                 ``NCCL_BLOCKING_WAIT`` is set, this is the duration for which the
                 process will block and wait for collectives to complete before
-                throwing an exception. When ``NCCL_ASYNC_ERROR_HANDLING`` is set,
+                throwing an exceptions. When ``NCCL_ASYNC_ERROR_HANDLING`` is set,
                 this is the duration after which collectives will be aborted
                 asynchronously and the process will crash. ``NCCL_BLOCKING_WAIT``
                 will provide errors to the user which can be caught and handled,

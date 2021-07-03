@@ -28,7 +28,7 @@ from openfed.utils import openfed_class_fmt
 
 from ..reign import Reign
 from ..space import Country, World
-from ..utils.exception import BuildReignFailed, ConnectTimeout
+from ..utils.exceptions import BuildReignFailed, ConnectTimeout
 from ..utils.register import register
 
 

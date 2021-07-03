@@ -1,4 +1,4 @@
-from openfed.common.exception import *
+from openfed.common.exceptions import *
 
 
 def test_exception():

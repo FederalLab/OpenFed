@@ -4,7 +4,7 @@ from .address import (Address, Address_, cmp_address, default_address,
 from .array import Array
 from .clone import Clone
 from .constants import *
-from .exception import OpenFedException
+from .exceptions import OpenFedException
 from .hook import Hook
 from .logging import logger
 from .package import Package
@@ -24,5 +24,5 @@ del thread
 del vars
 del wrapper
 del logging
-del exception
+del exceptions
 del task_info

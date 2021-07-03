@@ -33,7 +33,7 @@ from torch._C._distributed_c10d import Work
 from .deliver import Delivery
 from .inform import Informer
 from .space import Country, ProcessGroup, Store, World
-from .utils.exception import ConnectTimeout, DeviceOffline, WrongState
+from .utils.exceptions import ConnectTimeout, DeviceOffline, WrongState
 from .utils.register import register
 
 _R = TypeVar("_R", bound='Reign')
