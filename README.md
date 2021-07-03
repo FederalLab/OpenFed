@@ -14,6 +14,10 @@
 Python>=3.7, PyTorch=1.9.0 are required.
 
 ```bash
+pip install openfed # not the latest version.
+```
+
+```bash
 conda create -n openfed python=3.7 -y
 conda activate openfed
 pip3 install -r requirements.txt
