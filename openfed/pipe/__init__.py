@@ -1,7 +1,7 @@
-from .base import Pipe
+from .pipe import Pipe
 from .elastic_pipe import ElasticPipe
 from .prox_pipe import ProxPipe
 
-del base
+del pipe
 del elastic_pipe
 del prox_pipe

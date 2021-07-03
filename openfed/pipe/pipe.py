@@ -20,16 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from datetime import timedelta
 
-# thread
-SLEEP_SHORT_TIME = timedelta(seconds=0.1)
-SLEEP_LONG_TIME = timedelta(seconds=5.0)
+import torch
+from openfed.common import Wrapper
+from torch.optim import Optimizer
 
-# communication
-DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
-DEFAULT_PG_LONG_TIMEOUT = timedelta(minutes=30)
-DEFAULT_PG_SHORT_TIMEOUT = timedelta(seconds=1.0)
-INTERVAL_AFTER_LAST_FAILED_TIME = 10.0
-# if exceed this time, the address will be discarded.
-MAX_TRY_TIMES = 5
+
+class Pipe(Optimizer, Wrapper):
+    """The basic class for federated optimizer pipeiliary.
+
+    Most federated optimizer just rectify the gradients according to
+    some regulation, but not necessarily rewrite all the updating process.
+    So, we device this Pipe class to do this.
+    """
+
+    @torch.no_grad()
+    def finish_round(self):
+        """Update self state after train a round. (Mostly clear the state directly.)
+        """
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p in self.state[p]:
+                    del self.state[p]
