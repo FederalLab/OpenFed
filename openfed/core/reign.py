@@ -117,7 +117,7 @@ class Reign(Informer, Delivery):
                 toc = time.time()
                 if timedelta(seconds=toc-tic) > openfed.DEFAULT_PG_TIMEOUT:
                     raise ConnectTimeout(self)
-                time.sleep(openfed.SLEEP_SHORT_TIME.seconds)
+                time.sleep(0.1)
         else:
             # check state first
             if not _state():

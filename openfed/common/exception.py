@@ -28,35 +28,31 @@ class OpenFedException(Exception):
     """A base class for exceptions.
     """
 
-    def __init__(self, msg: str = ""):
-        self.msg = f"OpenFed Exception\n{msg}"
+    def __init__(self,
+                 exception_name: str = 'OpenFedException',
+                 msg: str = ""):
+        super().__init__()
+        self.msg = msg
+        self.exception_name = exception_name
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name="OpenFedException",
+            class_name=self.exception_name,
             description=self.msg
         )
+
 
 class AccessError(OpenFedException):
     """If backend/frontend cross refer to each other functions, raised.
     """
-    def __init__(self, msg: str = ""):
-        self.msg = f"AccessError\n{msg}"
 
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="AccessError",
-            description=self.msg
-        )
+    def __init__(self, msg: str = ""):
+        super().__init__("AccessError", msg=msg)
+
 
 class ConnectionNotBuild(OpenFedException):
     """Some operation only be available when the connection correctly built.
     """
+
     def __init__(self, msg: str = ""):
-        self.msg = f"ConnectionNotBuild\n{msg}"
-    
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="ConnectionNotBuild",
-            description=self.msg
-        )
+        super().__init__('ConnectionNotBuild', msg=msg)

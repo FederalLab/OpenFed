@@ -32,6 +32,6 @@ class Clone(object):
     """
 
     def clone(self) -> Any:
-        # NOTE: Do not use deepcopy operation!
-        c = copy(self)
-        return c
+        """Returns a shallow copy of this class.
+        """
+        return copy(self)

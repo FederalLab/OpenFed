@@ -114,11 +114,11 @@ class World(Array):
 
     @property
     def default_reign(self) -> Reign:
-        return self.default_values
+        return self.default_value
 
     @property
     def default_pg(self) -> ProcessGroup:
-        pg = self.default_keys
+        pg = self.default_key
         return pg if pg is not None else self._NULL_GP
 
     def is_valid_process_group(self, pg: ProcessGroup) -> bool:

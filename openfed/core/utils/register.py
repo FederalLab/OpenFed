@@ -71,13 +71,13 @@ class _Register(Array):
     def default_country(self) -> Country:
         """ If not exists, return None
         """
-        return self.default_keys
+        return self.default_key
 
     @property
     def default_world(self) -> World:
         """If not exists, return None
         """
-        return self.default_values
+        return self.default_value
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
