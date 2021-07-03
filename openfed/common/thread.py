@@ -26,7 +26,7 @@ from threading import Thread
 from typing import Any, Dict
 
 from openfed.common import logger
-from openfed.utils import openfed_class_fmt, tablist, time_string
+from openfed.utils import openfed_class_fmt, time_string
 from typing_extensions import final
 
 
@@ -46,24 +46,14 @@ class SafeTread(Thread):
         """
             Implement safe_run() instead.
         """
-        self.safe_exit(self.safe_run())
-
+        logger.debug(self.safe_run())
         self.stopped = True
-
-    def safe_exit(self, msg: str):
-        logger.debug("msg\n" +
-                     tablist(
-                         head=["Exited thread",
-                               "Create time", "Exited time"],
-                         data=[self, _thread_pool[self], time_string()],
-                         force_in_one_row=True,
-                     )
-                     )
         del _thread_pool[self]
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="SafeThread",
+            description=f"Created at {_thread_pool[self]}." if self in _thread_pool else "",
         )
 
     @abstractmethod
