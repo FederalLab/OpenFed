@@ -109,10 +109,6 @@ class API(SafeTread, Hook):
         [self.reign.register_cypher(
             hook) for hook in self._hooks_del if hook not in self.reign._hook_list]
 
-    # @property
-    # def nick_name(self) -> str:
-    #     return self.reign.nick_name
-
     def build_connection(self, world: World = None, address: Union[Address, List[Address]] = None, address_file: str = None):
         world = world if world is not None else World(leader=self.backend)
         # Check identity
@@ -197,12 +193,6 @@ class API(SafeTread, Hook):
         """Update inner model version.
         """
         self.version = version if version is not None else self.version + 1
-
-    # def set(self, key: str, value: Any) -> None:
-    #     self.reign.set(key, value)
-
-    # def get(self, key: str) -> Any:
-    #     return self.reign.get(key)
 
     def _device_offline_care(func):
         def device_offline_care(self, *args, **kwargs):
