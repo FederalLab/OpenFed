@@ -205,15 +205,15 @@ class API(SafeTread, Hook):
     #     return self.reign.get(key)
 
     def _device_offline_care(func):
-        def wrapper(self, *args, **kwargs):
+        def device_offline_care(self, *args, **kwargs):
             try:
                 flag = func(self, *args, **kwargs)
             except DeviceOffline as e:
-                logger.error("Error downloading, device offline.")
+                logger.error("Device offline.")
                 flag = False
             finally:
                 return flag
-        return wrapper
+        return device_offline_care
 
     @_device_offline_care
     def upload(self) -> bool:
