@@ -40,14 +40,6 @@ class _ROLE(Enum):
 
 peeper.world_list = list()
 
-
-class Reign():
-    """Define here for better code analysis. 
-    Refer openfed.federated.federated.Reign for more details about this class.
-    """
-    ...
-
-
 class World(Array):
     """Relation map between World, Country and Reign:
         World: n master, varied roles
@@ -64,7 +56,7 @@ class World(Array):
     # You can have different roles in different Worlds.
     ROLE: _ROLE
 
-    _pg_mapping: Dict[ProcessGroup, Reign]
+    _pg_mapping: Dict[ProcessGroup, Any]
 
     # Use them to track processes group.
     _NULL_GP: Any = None
@@ -113,7 +105,7 @@ class World(Array):
         return self.ROLE == _ROLE.FOLLOWER
 
     @property
-    def default_reign(self) -> Reign:
+    def default_reign(self) -> Any:
         return self.default_value
 
     @property
@@ -129,6 +121,6 @@ class World(Array):
             class_name="World",
             description=(
                 f"ROLE: {self.ROLE.value}\n"
-                f"{len(self)} Process Group Alive.\n"
+                f"{len(self)} process groups are alive.\n"
             )
         )

@@ -99,7 +99,7 @@ class Maintainer(Array, SafeTread):
                         "Errors occurred while building connection to new address.")
         else:
             assert len(self) == 1, "Only single address is allowed."
-            address, create_time, try_times = self[0]
+            address, (create_time, try_times) = self[0]
             Joint(address, self.world)
             del self.pending_queue[address]
             self.finished_queue[address] = [time.time(), try_times+1]
@@ -130,7 +130,7 @@ class Maintainer(Array, SafeTread):
             def try_now(last_time, try_times) -> bool:
                 return False if (time.time() - last_time < self.interval_seconds) or try_times >= self.max_try_times else True
 
-            for address, last_time, try_times in self:
+            for address, (last_time, try_times) in self:
                 if try_now(last_time, try_times):
                     joint = Joint(address, self.world)
                     joint.join()

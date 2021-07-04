@@ -33,19 +33,11 @@ from openfed.utils import openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
 
-class Informer():
-    ...
-
-
-class Collector():
-    ...
-
-
 class Register(object):
-    provided_collector_dict: Dict[str, Collector] = dict()
-    collector_pool: Dict[Informer, Dict[Type, Collector]] = defaultdict(dict)
+    provided_collector_dict: Dict[str, Any] = dict()
+    collector_pool: Dict[Any, Dict[Type, Any]] = defaultdict(dict)
 
-    def __init__(self, obj: str, informer: Informer):
+    def __init__(self, obj: str, informer: Any):
         assert isinstance(obj, str)
         self.obj = obj
         self.informer = informer
@@ -70,7 +62,7 @@ class Register(object):
             return ins
 
     @classmethod
-    def register(cls, obj: Collector):
+    def register(cls, obj: Any):
         if obj.bounding_name not in cls.provided_collector_dict:
             assert obj.bounding_name.startswith("Collector")
             logger.debug("Register collector %s" % obj.bounding_name)
