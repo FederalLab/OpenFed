@@ -40,7 +40,7 @@ class Reducer(object):
     def reduce(self) -> TaskInfo:
         raise NotImplementedError
 
-    def add_task_info(self, task_info: TaskInfo):
+    def step(self, task_info: TaskInfo):
         self.task_info_buffer.append(task_info)
 
     def clear_buffer(self):

@@ -44,6 +44,10 @@ class AfterDownload(Step):
             for agg in backend.agg:
                 agg.step(packages, task_info)
 
+            # Add them to reducer
+            for reducer in backend.reducer:
+                reducer.step(task_info)
+
             # Increase the total number of received models
             backend.received_numbers += 1
             # Record current reign_task_info, which can be used in the following steps.

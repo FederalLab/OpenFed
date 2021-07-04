@@ -27,9 +27,8 @@ from typing import Any, Callable, Dict, List, Union
 import openfed
 from openfed.common import (Address, Hook, SafeTread, TaskInfo,
                             default_address, logger)
-from openfed.container import Agg
-from openfed.core import (Destroy, Maintainer, Reign, World,
-                          openfed_lock)
+from openfed.container import Agg, Reducer
+from openfed.core import Destroy, Maintainer, Reign, World, openfed_lock
 from openfed.core.utils import DeviceOffline
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
@@ -87,6 +86,7 @@ class API(SafeTread, Hook):
         self.agg: List[Agg] = None
         self.optimizer: List[Optimizer] = None
         self.ft_optimizer: List[Optimizer] = None
+        self.reducer: List[Reducer] = []
 
         # how many times for backend waiting for connections.
         self.max_try_times: int = 5
@@ -289,6 +289,14 @@ class API(SafeTread, Hook):
 
         self.ft_optimizer = ft_optimizer
 
+    def set_reducer(self, reducer: Union[Reducer, List[Reducer]]) -> None:
+        """
+        Args: 
+            reducer: used to aggregate task info.
+        """
+        reducer = convert_to_list(reducer)
+        self.reducer.extend(reducer)
+
     def safe_run(self):
         """
             Use self.run() to start this loop in the main thread.
@@ -385,3 +393,11 @@ class API(SafeTread, Hook):
             return False
         else:
             return True
+
+    def __getattribute__(self, name: str) -> Any:
+        """Try to fetch the attribute of api. If failed, try to fetch it from reign.
+        """
+        try:
+            return super().__getattribute__(name)
+        except AttributeError as e:
+            return getattr(self.reign, name)

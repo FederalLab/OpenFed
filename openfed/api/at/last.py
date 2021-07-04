@@ -40,14 +40,14 @@ class AtLast(Step):
         ...
 
 
-class Agg(AtLast):
+class Aggregate(AtLast):
     checkpoint: str
 
     def __init__(self, lr_scheduler: _LRScheduler = None):
         super().__init__()
         self.lr_scheduler = lr_scheduler
 
-    def agg(self, backend, *args, **kwargs):
+    def aggregate(self, backend, *args, **kwargs):
         """Agg received models.
         """
         # Agg
@@ -56,8 +56,8 @@ class Agg(AtLast):
             # Zero grad first
             optimizer.zero_grad()
 
-            # Agg will calculate new grad
-            task_info_list.append(agg.agg())
+            # Aggregate
+            agg.aggregate()
 
             # Unpack state from agg
             agg.unpack_state(optimizer)
@@ -68,11 +68,13 @@ class Agg(AtLast):
             # Clear buffers
             agg.clear_buffer()
 
+        task_info_list = [reducer.reduce() for reducer in backend.reducer]
+
         backend.task_info_list = task_info_list
 
         for task_info in task_info_list:
             for ti in task_info:
-                logger.info(f"Agg:\n{ti}")
+                logger.info(f"Reduce information:\n{ti}")
 
         # update learning rate
         if self.lr_scheduler is not None:
@@ -89,7 +91,7 @@ class Agg(AtLast):
                        f"{self.checkpoint}.{backend.version}")
 
 
-class AggregatePeriod(Agg):
+class AggregatePeriod(Aggregate):
     tic: float
 
     def __init__(self, period: timedelta, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
@@ -107,14 +109,14 @@ class AggregatePeriod(Agg):
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             logger.info("Agg operation triggered by period.")
-            self.agg(backend, *args, **kwargs)
+            self.aggregate(backend, *args, **kwargs)
             # Update tic times.
             self.tic = time.time()
         else:
             pass
 
 
-class AggregateCount(Agg):
+class AggregateCount(Aggregate):
     count: int
 
     def __init__(self, count: int, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
@@ -130,7 +132,7 @@ class AggregateCount(Agg):
     def step(self, backend, *args, **kwargs) -> None:
         if backend.received_numbers >= self.count:
             logger.info("Agg operation triggered by count.")
-            self.agg(backend, *args, **kwargs)
+            self.aggregate(backend, *args, **kwargs)
         else:
             pass
 
