@@ -230,7 +230,7 @@ def main():
     current_env = os.environ.copy()
     current_env["MASTER_ADDR"] = args.master_addr
     current_env["MASTER_PORT"] = str(args.master_port)
-    current_env["WORLD_SIZE"] = str(fed_world_size)
+    current_env["FED_WORLD_SIZE"] = str(fed_world_size)
 
     processes: List[Any] = []
 
@@ -257,9 +257,9 @@ def main():
 
     for local_rank in range(args.nproc_per_node):
         # each process's rank
-        dist_rank = args.nproc_per_node * args.node_rank + local_rank
-        current_env["RANK"] = str(dist_rank)
-        current_env["LOCAL_RANK"] = str(local_rank)
+        fed_rank = args.nproc_per_node * args.node_rank + local_rank
+        current_env["FED_RANK"] = str(fed_rank)
+        current_env["FED_LOCAL_RANK"] = str(local_rank)
 
         # spawn the processes
         with_python = not args.no_python
@@ -287,7 +287,7 @@ def main():
         stdout_handle: Optional[IO]
         stderr_handle: Optional[IO]
         if args.logdir:
-            if dist_rank == 0:
+            if fed_rank == 0:
                 subprocess_file_handles.append((None, None))
             else:
                 directory_path = os.path.join(os.getcwd(), args.logdir)

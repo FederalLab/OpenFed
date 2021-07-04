@@ -96,6 +96,13 @@ class Address_(object):
                 rank = int(os.environ['FED_RANK'])
                 world_size = int(os.environ['FED_WORLD_SIZE'])
                 group_name = os.environ['FED_GROUP_NAME']
+                # Rename
+                # In backend, it will read the value with `FED` prefix.
+                # So, rename it.
+                os.environ['RANK'] = os.environ['FED_RANK']
+                os.environ['LOCAL_RANK'] = os.environ['FED_LOCAL_RANK']
+                os.environ['WORLD_SIZE'] = os.environ['FED_WORLD_SIZE']
+                os.environ['GROUP_NAME'] = os.environ['FED_GROUP_NAME']
             except KeyError as e:
                 raise InvalidAddress(e)
 
