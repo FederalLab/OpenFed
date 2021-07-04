@@ -30,7 +30,7 @@ class Hook(object):
     """
 
     _hook_dict: Dict[str, Callable] = None
-    _hook_list: List[Callable] = None
+    _hook_list: List[Callable]      = None
 
     @property
     def hook_list(self):

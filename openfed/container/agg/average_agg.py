@@ -37,7 +37,7 @@ class AverageAgg(Agg):
     def __init__(self,
                  params,
                  other_keys: Union[str, List[str]] = None,
-                 legacy: bool = True):
+                 legacy    : bool                  = True):
         """
         Args:
             other_keys: any keys you want to track.
@@ -56,9 +56,9 @@ class AverageAgg(Agg):
         super().__init__(
             params,
             defaults,
-            info_keys=info_keys,
-            pipe_keys=pipe_keys,
-            legacy=legacy)
+            info_keys = info_keys,
+            pipe_keys = pipe_keys,
+            legacy    = legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         state = self.state[p]

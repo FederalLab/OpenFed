@@ -48,10 +48,9 @@ class Joint(SafeTread):
                 logger.error(msg)
                 raise RuntimeError(msg)
 
-        self.address = address
+        self.address       = address
         self.build_success = False
-
-        self.world = world
+        self.world         = world
 
         SafeTread.__init__(self)
         # start this thread
@@ -121,7 +120,7 @@ class Joint(SafeTread):
                 time.sleep(0.1)
         else:
             # add the world group as reign if it is already a point to point connection.
-            pg = country._get_default_group()
+            pg    = country._get_default_group()
             store = country._get_default_store()
             try:
                 reign = Reign(store, pg, country, self.world)
@@ -138,6 +137,6 @@ class Joint(SafeTread):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Joint",
-            description=str(self.address),
+            class_name  = "Joint",
+            description = str(self.address),
         )

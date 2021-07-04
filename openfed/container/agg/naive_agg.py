@@ -36,7 +36,7 @@ class NaiveAgg(Agg):
     def __init__(self,
                  params,
                  other_keys: Union[str, List[str]] = None,
-                 legacy: bool = True):
+                 legacy    : bool                  = True):
         other_keys = [] if other_keys is None else convert_to_list(other_keys)
 
         info_keys: List[str] = ['train_instances']
@@ -51,9 +51,9 @@ class NaiveAgg(Agg):
         super().__init__(
             params,
             defaults,
-            info_keys=info_keys,
-            pipe_keys=pipe_keys,
-            legacy=legacy)
+            info_keys = info_keys,
+            pipe_keys = pipe_keys,
+            legacy    = legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         train_instances = received_info['train_instances']
@@ -97,8 +97,8 @@ class NaiveAgg(Agg):
             l = 0
             for data in dl:
                 a, b = data[k], data['train_instance']
-                w = b / t
-                p = a * w
+                w  = b / t
+                p  = a * w
                 l += p
             return l
 

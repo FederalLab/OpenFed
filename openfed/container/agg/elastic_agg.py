@@ -35,7 +35,8 @@ class ElasticAgg(Agg):
 
     def __init__(self, params,
                  other_keys: Union[str, List[str]] = None,
-                 quantile=0.5, legacy: bool = True):
+                 quantile  : float                 = 0.5,
+                 legacy    : bool                  = True):
 
         other_keys = [] if other_keys is None else convert_to_list(other_keys)
 
@@ -56,9 +57,9 @@ class ElasticAgg(Agg):
         super().__init__(
             params,
             defaults,
-            info_keys=info_keys,
-            pipe_keys=pipe_keys,
-            legacy=legacy)
+            info_keys = info_keys,
+            pipe_keys = pipe_keys,
+            legacy    = legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
         train_instances = received_info['train_instances']
@@ -103,8 +104,8 @@ class ElasticAgg(Agg):
             l = 0
             for data in dl:
                 a, b = data[k], data['train_instances']
-                w = b / t
-                p = a * w
+                w  = b / t
+                p  = a * w
                 l += p
             return l
 
@@ -134,6 +135,6 @@ class ElasticAgg(Agg):
 
     def _elastic_update(self, grad: Tensor, importance: Tensor, quantile: float):
         norm_importance = importance / (importance.max() + 1e-13)
-        weight = 1 + quantile - norm_importance
+        weight          = 1 + quantile - norm_importance
 
         return grad * weight

@@ -32,8 +32,7 @@ class Array(object):
 
     # Array will never modify the _default_mapping.
     _default_mapping: Mapping[Any, Any] = None
-    _lock_on_mapping: Lock = None
-    _index: int
+    _lock_on_mapping: Lock              = None
 
     def __init__(self, default_mapping: Mapping[Any, Any], lock_on_mapping: Lock = None):
         assert isinstance(

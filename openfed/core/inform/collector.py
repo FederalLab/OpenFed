@@ -34,12 +34,12 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 
 class Register(object):
-    provided_collector_dict: Dict[str, Any] = dict()
-    collector_pool: Dict[Any, Dict[Type, Any]] = defaultdict(dict)
+    provided_collector_dict: Dict[str, Any]             = dict()
+    collector_pool         : Dict[Any, Dict[Type, Any]] = defaultdict(dict)
 
     def __init__(self, obj: str, informer: Any):
         assert isinstance(obj, str)
-        self.obj = obj
+        self.obj      = obj
         self.informer = informer
 
     def __call__(self, *args, **kwargs):
@@ -118,8 +118,8 @@ class Collector(Clone):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name=self.bounding_name,
-            description=self.better_read()
+            class_name  = self.bounding_name,
+            description = self.better_read()
         )
 
 
@@ -138,21 +138,21 @@ class SystemInfo(Collector):
 
     message: Any = None
 
-    leader_collector: bool = True
+    leader_collector  : bool = True
     follower_collector: bool = False
 
-    leader_scatter: bool = False
+    leader_scatter  : bool = False
     follower_scatter: bool = True
 
     def collect(self) -> Dict[str, str]:
         return dict(
-            system=platform.system(),
-            platform=platform.system(),
-            version=platform.version(),
-            architecture=platform.architecture(),
-            machine=platform.machine(),
-            node=platform.node(),
-            processor=platform.processor(),
+            system       = platform.system(),
+            platform     = platform.system(),
+            version      = platform.version(),
+            architecture = platform.architecture(),
+            machine      = platform.machine(),
+            node         = platform.node(),
+            processor    = platform.processor(),
         )
 
     def better_read(self):
@@ -184,23 +184,23 @@ class GPUInfo(Collector):
     """
     bounding_name: str = "Collector.GPUInfo"
 
-    message: Any = None
-    leader_collector: bool = True
+    message           : Any  = None
+    leader_collector  : bool = True
     follower_collector: bool = False
 
-    leader_scatter: bool = False
+    leader_scatter  : bool = False
     follower_scatter: bool = True
 
     def collect(self) -> Dict[str, str]:
         if torch.cuda.is_available():
             return dict(
-                device_count=torch.cuda.device_count(),
-                arch_list=torch.cuda.get_arch_list(),
-                device_capability=torch.cuda.get_device_capability(),
-                device_name=torch.cuda.get_device_name(),
-                device_properties=torch.cuda.get_device_properties(
+                device_count      = torch.cuda.device_count(),
+                arch_list         = torch.cuda.get_arch_list(),
+                device_capability = torch.cuda.get_device_capability(),
+                device_name       = torch.cuda.get_device_name(),
+                device_properties = torch.cuda.get_device_properties(
                     torch.cuda.current_device()),
-                current_device=torch.cuda.current_device(),
+                current_device = torch.cuda.current_device(),
             )
         else:
             return None
@@ -230,11 +230,11 @@ GPUInfo()
 class LRTracker(Collector):
     """Keep tack of learning rate during training.
     """
-    bounding_name: str = "Collector.LRTracker"
-    leader_collector: bool = False
+    bounding_name     : str  = "Collector.LRTracker"
+    leader_collector  : bool = False
     follower_collector: bool = True
 
-    leader_scatter: bool = True
+    leader_scatter  : bool = True
     follower_scatter: bool = False
 
     def __init__(self, lr_scheduler: _LRScheduler):

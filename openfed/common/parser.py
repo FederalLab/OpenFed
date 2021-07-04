@@ -28,25 +28,25 @@ parser = argparse.ArgumentParser("OpenFed")
 # Add parser to address
 parser.add_argument(
     "--fed_backend",
-    default="gloo",
-    type=str,
-    choices=["gloo", "mpi", "nccl"],)
+    default = "gloo",
+    type    = str,
+    choices = ["gloo", "mpi", "nccl"], )
 parser.add_argument(
     "--fed_init_method",
-    default="tcp://localhost:1994",
-    type=str,
-    help="opt1: tcp://IP:PORT, opt2: file://PATH_TO_SHAREFILE, opt3:env://")
+    default = "tcp://localhost:1994",
+    type    = str,
+    help    = "opt1: tcp://IP:PORT, opt2: file://PATH_TO_SHAREFILE, opt3:env://")
 parser.add_argument(
     "--fed_world_size",
-    default=2,
-    type=int)
+    default = 2,
+    type    = int)
 parser.add_argument(
     "--fed_rank",
     "--fed_local_rank",
-    default=-1,
-    type=int)
+    default = -1,
+    type    = int)
 parser.add_argument(
     "--fed_group_name",
-    default="Admirable",
-    type=str,
-    help="Add a group name to better recognize each address.")
+    default = "Admirable",
+    type    = str,
+    help    = "Add a group name to better recognize each address.")

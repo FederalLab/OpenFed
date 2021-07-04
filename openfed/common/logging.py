@@ -35,8 +35,8 @@ class Logger(object):
     def __init__(self, level: str = "INFO"):
         from loguru import logger
         self.logger = logger
+        self.level  = level
         self.logger.remove()
-        self.level = level
 
     def log_level(self, level: str = "INFO"):
         # remove default logger

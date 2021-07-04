@@ -29,7 +29,6 @@ from torch import Tensor
 
 def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
     keys = convert_to_list(keys)
-
     keys = keys if keys else getattr(obj, mode, None)
 
     return keys

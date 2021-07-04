@@ -26,7 +26,7 @@ from threading import Lock
 from openfed.common.base import peeper
 
 peeper.mt_locks = dict()
-openfed_lock = Lock()
+openfed_lock    = Lock()
 
 
 def add_mt_lock(maintainer, lock: Lock):

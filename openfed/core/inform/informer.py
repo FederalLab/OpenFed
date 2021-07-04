@@ -47,15 +47,15 @@ NICK_NAME = "NICK_NAME"
 
 @unique
 class STATUS(Enum):
-    PUSH = "PUSH"  # push data to the other end.
-    PULL = "PULL"  # pull data from the other end.
-    ZOMBIE = "ZOMBIE"  # when there is no request.
+    PUSH    = "PUSH"  # push data to the other end.
+    PULL    = "PULL"  # pull data from the other end.
+    ZOMBIE  = "ZOMBIE"  # when there is no request.
     OFFLINE = "OFFLINE"  # offline.
 
 
-push = STATUS.PUSH.value
-pull = STATUS.PULL.value
-zombie = STATUS.ZOMBIE.value
+push    = STATUS.PUSH.value
+pull    = STATUS.PULL.value
+zombie  = STATUS.ZOMBIE.value
 offline = STATUS.OFFLINE.value
 
 
@@ -72,7 +72,7 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
 def safe_store_get(store: Store, key: str) -> Dict:
     try:
         jsonbytes = store.get(key)
-        jsonstr = str(jsonbytes, encoding='utf-8')
+        jsonstr   = str(jsonbytes, encoding='utf-8')
         return json.loads(jsonstr)
     except Exception as e:
         raise InvalidStoreReading(e)
@@ -82,8 +82,8 @@ class Informer(Hook):
     """Informer: keep the real time communication between each other via string.
     NOTE: READ the other side information, WRITE self side information.
     """
-    store: Store
-    world: World
+    store  : Store
+    world  : World
     country: Country
 
     # Sometimes, the read operation will be failed for unknown reasons.
@@ -307,6 +307,6 @@ class Informer(Hook):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Informer",
-            description=str(list(self.hook_dict.keys())),
+            class_name  = "Informer",
+            description = str(list(self.hook_dict.keys())),
         )

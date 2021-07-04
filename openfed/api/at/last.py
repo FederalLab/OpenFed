@@ -73,8 +73,7 @@ class Aggregate(AtLast):
         backend.task_info_list = task_info_list
 
         for task_info in task_info_list:
-            for ti in task_info:
-                logger.info(f"Reduce information:\n{ti}")
+            logger.info(f"Reduce information:\n{task_info}")
 
         # update learning rate
         if self.lr_scheduler is not None:
@@ -101,8 +100,8 @@ class AggregatePeriod(Aggregate):
             checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
         """
         super().__init__(lr_scheduler)
-        self.period = period
-        self.tic = time.time()
+        self.period     = period
+        self.tic        = time.time()
         self.checkpoint = checkpoint
 
     def step(self, backend, *args, **kwargs) -> None:
@@ -125,7 +124,7 @@ class AggregateCount(Aggregate):
             checkpoint: if given, save the new aggregated model.
         """
         super().__init__(lr_scheduler)
-        self.count = count
+        self.count      = count
         self.checkpoint = checkpoint
 
     def step(self, backend, *args, **kwargs) -> None:

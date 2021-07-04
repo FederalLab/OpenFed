@@ -39,19 +39,19 @@ class Delivery(Package, Hook):
     """Delivery: Include Tensor related communication function in a single class.
     """
 
-    pg: ProcessGroup
+    pg     : ProcessGroup
     country: Country
-    world: World
+    world  : World
 
     key_tensor_bidict: bidict
-    packages: Dict[str, Dict[str, Tensor]]
+    packages         : Dict[str, Dict[str, Tensor]]
 
-    leader_rank: int = 0
+    leader_rank  : int = 0
     follower_rank: int = 1
 
     def __init__(self) -> None:
         self.key_tensor_bidict = bidict()
-        self.packages = defaultdict(dict)
+        self.packages          = defaultdict(dict)
         self.register_cypher(FormotCheck())
 
     def register_cypher(self, cypher: Cypher) -> None:
@@ -107,7 +107,7 @@ class Delivery(Package, Hook):
             key = self.key_name(key)
 
         package = self.packages.get(key)
-        rdict = {k: package[k] for k in rdict}
+        rdict   = {k: package[k] for k in rdict}
 
         return rdict
 
@@ -133,7 +133,7 @@ class Delivery(Package, Hook):
 
         received = [None, None]
 
-        rank = self.leader_rank if self.world.leader else self.follower_rank
+        rank       = self.leader_rank if self.world.leader else self.follower_rank
         other_rank = self.follower_rank if self.world.leader else self.leader_rank
 
         def _op_after_gather(*args):
@@ -153,9 +153,12 @@ class Delivery(Package, Hook):
             return r_packages
 
         returns = gather_object(
-            None, received, dst=rank, group=self.pg,
-            async_op=ASYNC_OP.is_async_op,
-            country=self.country, global_rank=False)
+            None, received, 
+            dst         = rank,
+            group       = self.pg,
+            async_op    = ASYNC_OP.is_async_op,
+            country     = self.country,
+            global_rank = False)
 
         if ASYNC_OP.is_async_op:
             handler, step_func = returns
@@ -178,11 +181,15 @@ class Delivery(Package, Hook):
                              for k, v in self.packages.items()}
 
         return gather_object(
-            self.packages, None, dst=rank,
-            group=self.pg, async_op=ASYNC_OP.is_async_op, country=self.country, global_rank=False)
+            self.packages, None, 
+            dst         = rank,
+            group       = self.pg,
+            async_op    = ASYNC_OP.is_async_op,
+            country     = self.country,
+            global_rank = False)
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Delivery",
-            description=list(self.key_tensor_bidict.keys())
+            class_name  = "Delivery",
+            description = list(self.key_tensor_bidict.keys())
         )

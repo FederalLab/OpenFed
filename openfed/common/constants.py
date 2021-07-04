@@ -23,6 +23,6 @@
 from datetime import timedelta
 
 # communication
-DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
-DEFAULT_PG_LONG_TIMEOUT = timedelta(minutes=30)
+DEFAULT_PG_TIMEOUT       = timedelta(minutes=30)
+DEFAULT_PG_LONG_TIMEOUT  = timedelta(minutes=30)
 DEFAULT_PG_SHORT_TIMEOUT = timedelta(seconds=1.0)

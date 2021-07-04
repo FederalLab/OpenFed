@@ -43,14 +43,17 @@ def _string_trim(string: str, length: int = 15):
 
 def _tablist(head: List[Any], data: List[Any]) -> str:
     columns = 80
-    length = (columns - len(head) * 3 - 1) // len(head)
-    table = PrettyTable([_string_trim(h, length) for h in head])
+    length  = (columns - len(head) * 3 - 1)                         // len(head)
+    table   = PrettyTable([_string_trim(h, length) for h in head])
     table.add_row([_string_trim(d, length) for d in data])
 
     return str(table)
 
 
-def tablist(head: List[Any], data: List[Any], items_per_row: int = 4, force_in_one_row: bool = False) -> str:
+def tablist(head: List[Any], 
+            data: List[Any],
+            items_per_row   : int = 4,
+            force_in_one_row: bool = False) -> str: 
     """
         If len(head) > items_per_row, we will split into multi-tables.
         If force_in_one_row is True, items_per_row will be ignored.

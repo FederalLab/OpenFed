@@ -37,7 +37,7 @@ class AfterDownload(Step):
                     f"Excepted @{backend.version}, received @{backend.reign.upload_version}, discard.")
                 return
             # Fetch data from federated core
-            packages = backend.reign.tensor_indexed_packages
+            packages  = backend.reign.tensor_indexed_packages
             task_info = backend.reign.task_info
 
             # Add them to agg

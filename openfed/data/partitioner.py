@@ -40,17 +40,17 @@ class Partitioner(object):
 
 class PowerLawPartitioner(Partitioner):
     def __init__(self,
-                 min_samples: int = 10,
-                 min_classes: int = 2,
-                 mean: float = 0.0,
-                 sigma: float = 2.0):
+                 min_samples: int   = 10,
+                 min_classes: int   = 2,
+                 mean       : float = 0.0,
+                 sigma      : float = 2.0):
         """
         mean and sigma is used for lognormal.
         """
         self.min_samples = min_samples
         self.min_classes = min_classes
-        self.mean = mean
-        self.sigma = sigma
+        self.mean        = mean
+        self.sigma       = sigma
 
     def partition(self, total_parts: int, data_index_list: List[np.array]) -> List[np.array]:
         """Refer to:
@@ -61,9 +61,9 @@ class PowerLawPartitioner(Partitioner):
 
         samples = max(min_samples // min_classes, 1)
 
-        classes = len(data_index_list)
+        classes          = len(data_index_list)
         parts_index_list = [[] for _ in range(total_parts)]
-        cursor = [0 for _ in range(classes)]
+        cursor           = [0 for _ in range(classes)]
         for p in range(total_parts):
             for c in range(min_classes):
                 l = (p + c) % classes
@@ -81,8 +81,8 @@ class PowerLawPartitioner(Partitioner):
 
         for p in range(total_parts):
             for c in range(min_classes):
-                l = (p+c) % classes
-                data_index = data_index_list[l]
+                l            = (p+c) % classes
+                data_index   = data_index_list[l]
                 data_samples = len(data_index)
                 num_samples = (
                     data_samples - cursor[l]) * normalized_props[l, p % classes, c]
@@ -114,10 +114,14 @@ class DirichletPartitioner(Partitioner):
             alpha: a concentration parameter controlling the identicalness among clients.
         """
 
-        self.alpha = alpha
+        self.alpha       = alpha
         self.min_samples = min_samples
 
-    def dirichlet_partition(self, total_samples: int, total_parts: int, parts_index_list: List[np.array], data_index: List[np.array]):
+    def dirichlet_partition(self, 
+                total_samples   : int,
+                total_parts     : int,
+                parts_index_list: List[np.array],
+                data_index      : List[np.array]): 
         data_index = deepcopy(data_index)
         np.random.shuffle(data_index)
         # using dirichlet distribution to determine the unbalanced proportion
@@ -138,13 +142,13 @@ class DirichletPartitioner(Partitioner):
             parts_index_list, np.split(data_index, proportions))]
         return parts_index_list
 
-    def __call__(self, total_parts: int, data_index_list: List[np.array]) -> List[np.array]:
-        min_samples = self.min_samples
-
-        total_samples = sum([len(x) for x in data_index_list])
-
+    def __call__(self, 
+        total_parts    : int,
+        data_index_list: List[np.array]) -> List[np.array]: 
+        min_samples     = self.min_samples
+        total_samples   = sum([len(x) for x in data_index_list])
         minimum_samples = -1
-        loop_cnt = 0
+        loop_cnt        = 0
         while minimum_samples < min_samples:
             parts_index_list = [[] for _ in range(total_parts)]
 
@@ -168,8 +172,8 @@ class IIDPartitioner(Partitioner):
         for p in range(total_parts):
             for data_index in data_index_list:
                 data_samples = len(data_index)
-                step = data_samples // total_parts
-                step = max(1, step)
+                step         = data_samples     // total_parts
+                step         = max(1, step)
                 start, end = p * step, (p+1) * step
                 parts_index_list[p] += data_index[start:end].tolist()
 

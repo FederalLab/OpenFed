@@ -29,7 +29,7 @@ from openfed.utils import convert_to_list
 class Wrapper(object):
     """Provide some methods to wrap a class with support of Package.
     """
-    pack_key_list: List[str] = None
+    pack_key_list  : List[str] = None
     unpack_key_list: List[str] = None
 
     def add_pack_key(self, key: Union[str, List[str]]) -> None:

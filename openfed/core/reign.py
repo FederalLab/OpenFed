@@ -42,31 +42,31 @@ _R = TypeVar("_R", bound='Reign')
 class Reign(Informer, Delivery):
     """Contains all communication functions in Reign.
     """
-    store: Store
-    pg: ProcessGroup
-    world: World
+    store  : Store
+    pg     : ProcessGroup
+    world  : World
     country: Country
 
     # handler, step function, timestamp
     _download_hang_up: Tuple[Work, Callable, int]
-    _upload_hang_up: Tuple[Work, Callable, int]
+    _upload_hang_up  : Tuple[Work, Callable, int]
 
     def __init__(self,
-                 store: Store,
-                 pg: ProcessGroup,
+                 store  : Store,
+                 pg     : ProcessGroup,
                  country: Country,
-                 world: World,
+                 world  : World,
                  ) -> None:
-        self.pg = pg
-        self.store = store
+        self.pg      = pg
+        self.store   = store
         self.country = country
-        self.world = world
+        self.world   = world
 
         Informer.__init__(self)
         Delivery.__init__(self)
 
         self._download_hang_up = []
-        self._upload_hang_up = []
+        self._upload_hang_up   = []
 
     @property
     def upload_version(self) -> int:
@@ -85,10 +85,10 @@ class Reign(Informer, Delivery):
         return len(self._download_hang_up) > 0
 
     def transfer(self,
-                 to: bool,
-                 handler: Work = None,
-                 tic: float = None,
-                 step_func: Callable = None) -> bool:
+                 to       : bool,
+                 handler  : Work = None,
+                 tic      : float = None,
+                 step_func: Callable = None) -> bool: 
         """
         Args:
             to: it true, transfer data to other side.
@@ -204,15 +204,9 @@ class Reign(Informer, Delivery):
         return openfed_class_fmt.format(
             class_name="Reign",
             description=tablist(
-                head=["Nick Name", "Version", "Status"],
-                data=[self.nick_name, self.version, self._get_state().value],
+                head = ["Nick Name", "Version", "Status"],
+                data = [self.nick_name, self.version, self._get_state().value],
             )
-        )
-
-    def __str__(self) -> str:
-        return openfed_class_fmt.format(
-            class_name="Reign",
-            description=self.nick_name,
         )
 
     @classmethod

@@ -29,7 +29,7 @@ class Vars(object):
     class_name: str
 
     def __init__(self, flag: bool, class_name: str):
-        self.flag = flag
+        self.flag       = flag
         self.class_name = class_name
 
     def set(self, flag: bool):
@@ -37,8 +37,8 @@ class Vars(object):
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name=self.class_name,
-            description=f"Flag: {self.flag}."
+            class_name  = self.class_name,
+            description = f"Flag: {self.flag}."
         )
 
 

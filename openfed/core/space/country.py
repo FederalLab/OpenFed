@@ -104,8 +104,8 @@ class Country(object):
         # the store implementations. Once, we completely migrate away from these
         # legacy stores, we can use 'get' here instead.
         worker_count = store.add(store_key, 0)
-        start = time.time()
-        log_time = time.time()
+        start        = time.time()
+        log_time     = time.time()
         while worker_count != world_size:
             time.sleep(0.01)
             worker_count = store.add(store_key, 0)
@@ -263,13 +263,13 @@ class Country(object):
         return pg_store[1]
 
     def init_process_group(self,
-                           backend: Union[str, Backend],
+                           backend    : Union[str, Backend],
                            init_method: str = None,
-                           timeout: timedelta = DEFAULT_PG_TIMEOUT,
-                           world_size: int = -1,
-                           rank: int = -1,
-                           store: Store = None,
-                           group_name: str = '') -> None:
+                           timeout    : timedelta = DEFAULT_PG_TIMEOUT,
+                           world_size : int = -1,
+                           rank       : int = -1,
+                           store      : Store = None,
+                           group_name : str = '') -> None             : 
         """
         Initializes the default distributed process group, and this will also
         initialize the distributed package.
@@ -396,8 +396,8 @@ class Country(object):
                     [],
                     Backend.MPI,
                     None,
-                    group_name=group_name,
-                    timeout=timeout))
+                    group_name = group_name,
+                    timeout    = timeout))
             else:
                 self._update_default_pg(self._new_process_group_helper(
                     world_size,
@@ -405,8 +405,8 @@ class Country(object):
                     [],
                     backend,
                     store,
-                    group_name=group_name,
-                    timeout=timeout))
+                    group_name = group_name,
+                    timeout    = timeout))
 
         init_backend(timeout)
 
@@ -426,13 +426,13 @@ class Country(object):
             self._store_based_barrier(rank, store, timeout)
 
     def _new_process_group_helper(self,
-                                  world_size: int,
-                                  rank: int,
+                                  world_size : int,
+                                  rank       : int,
                                   group_ranks: int,
-                                  backend: Union[str, Backend],
-                                  store: Store,
-                                  group_name: str = None,
-                                  timeout: timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup:
+                                  backend    : Union[str, Backend],
+                                  store      : Store,
+                                  group_name : str       = None,
+                                  timeout    : timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup:
         """
         Create a new distributed process group.
 
@@ -635,9 +635,9 @@ class Country(object):
             )
 
     def barrier(self,
-                group: ProcessGroup = None,
-                async_op: bool = False,
-                device_ids: int = None):
+                group     : ProcessGroup = None,
+                async_op  : bool         = False,
+                device_ids: int          = None):
         """
         Synchronizes all processes.
 
@@ -673,7 +673,7 @@ class Country(object):
 
         if group is None:
             default_pg = self._get_default_group()
-            work = default_pg.barrier(opts=opts)
+            work       = default_pg.barrier(opts=opts)
         else:
             work = group.barrier(opts=opts)
 
@@ -683,10 +683,10 @@ class Country(object):
             work.wait()
 
     def new_group(self,
-                  ranks: int = None,
-                  timeout: timedelta = DEFAULT_PG_TIMEOUT,
-                  backend: Union[str, Backend] = None,
-                  group_name: str = None) -> ProcessGroup:
+                  ranks     : int                 = None,
+                  timeout   : timedelta           = DEFAULT_PG_TIMEOUT,
+                  backend   : Union[str, Backend] = None,
+                  group_name: str                 = None) -> ProcessGroup:
         """
         Creates a new distributed group.
 
@@ -725,7 +725,7 @@ class Country(object):
 
         default_pg = self._get_default_group()
         default_backend, default_store = self._pg_map[default_pg]
-        global_rank = default_pg.rank()
+        global_rank       = default_pg.rank()
         global_world_size = default_pg.size()
 
         # Default to the same backend as the global process group
@@ -735,7 +735,7 @@ class Country(object):
 
         # checks the input ranks
         if ranks is not None:
-            ranks = sorted(ranks)
+            ranks            = sorted(ranks)
             group_world_size = len(ranks)
             if group_world_size > global_world_size:
                 raise RuntimeError("the new group's world size should be less or "
@@ -751,9 +751,9 @@ class Country(object):
             else:
                 group_rank = None
         else:
-            ranks = list(range(global_world_size))
+            ranks            = list(range(global_world_size))
             group_world_size = global_world_size
-            group_rank = global_rank
+            group_rank       = global_rank
 
         backend = Backend(backend)
         pg = self._new_process_group_helper(group_world_size,
@@ -761,8 +761,8 @@ class Country(object):
                                             ranks,
                                             backend,
                                             default_store,
-                                            timeout=timeout,
-                                            group_name=group_name,)
+                                            timeout    = timeout,
+                                            group_name = group_name, )
 
         # Create the global rank to group rank mapping
         self._pg_group_ranks[pg] = {
@@ -784,8 +784,8 @@ class Country(object):
         return pg
 
     def build_point2point_group(self,
-                                rank: int = 0,
-                                timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                                rank   : int                 = 0,
+                                timeout: timedelta           = DEFAULT_PG_TIMEOUT,
                                 backend: Union[str, Backend] = None) -> List[ProcessGroup]:
         """Build point2point group, :param:rank will be regarded as new rank=0 and connect to other rank in this world.
 
@@ -800,7 +800,10 @@ class Country(object):
                 continue
             else:
                 pg = self.new_group(
-                    ranks=[rank, other], timeout=timeout, backend=backend, group_name=f"point2point-{rank}-{other}",)
+                    ranks      = [rank, other],
+                    timeout    = timeout,
+                    backend    = backend,
+                    group_name = f"point2point-{rank}-{other}", )
                 # backup
                 if pg is not self.NON_GROUP_MEMBER:
                     self._point2point_groups[pg] = self._pg_map[pg]
@@ -809,6 +812,6 @@ class Country(object):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Country",
-            description=f"Belongs to\n{self.world}"
+            class_name  = "Country",
+            description = f"Belongs to\n{self.world}"
         )

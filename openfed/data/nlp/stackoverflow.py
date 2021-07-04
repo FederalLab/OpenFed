@@ -34,32 +34,32 @@ from ..datasets import FederatedDataset
 from ..utils import *
 
 word_count_file_path = None
-word_dict = None
-word_list = None
-_pad = '<pad>'
-_bos = '<bos>'
-_eos = '<eos>'
+word_dict            = None
+word_list            = None
+_pad                 = '<pad>'
+_bos                 = '<bos>'
+_eos                 = '<eos>'
 '''
 This code follows the steps of preprocessing in tff stackoverflow dataset: 
 https://github.com/google-research/federated/blob/master/utils/datasets/stackoverflow_dataset.py
 '''
 DEFAULT_TRAIN_CLIENTS_NUM = 342477
-DEFAULT_TEST_CLIENTS_NUM = 204088
-DEFAULT_BATCH_SIZE = 100
-DEFAULT_TRAIN_FILE = 'stackoverflow_train.h5'
-DEFAULT_TEST_FILE = 'stackoverflow_test.h5'
-_EXAMPLE = 'examples'
-_TOKENS = 'tokens'
-_TITLE = 'title'
-_TAGS = 'tags'
+DEFAULT_TEST_CLIENTS_NUM  = 204088
+DEFAULT_BATCH_SIZE        = 100
+DEFAULT_TRAIN_FILE        = 'stackoverflow_train.h5'
+DEFAULT_TEST_FILE         = 'stackoverflow_test.h5'
+_EXAMPLE                  = 'examples'
+_TOKENS                   = 'tokens'
+_TITLE                    = 'title'
+_TAGS                     = 'tags'
 
 
 DEFAULT_WORD_COUNT_FILE = 'stackoverflow.word_count'
-DEFAULT_TAG_COUNT_FILE = 'stackoverflow.tag_count'
-word_count_file_path = None
-tag_count_file_path = None
-word_dict = None
-tag_dict = None
+DEFAULT_TAG_COUNT_FILE  = 'stackoverflow.tag_count'
+word_count_file_path    = None
+tag_count_file_path     = None
+word_dict               = None
+tag_dict                = None
 
 
 def get_word_count_file(data_dir):
@@ -86,15 +86,15 @@ def get_most_frequent_words(data_dir=None, vocab_size=10000):
 
 
 def get_tags(data_dir=None, tag_size=500):
-    f = open(get_tag_count_file(data_dir), 'r')
-    frequent_tags = json.load(f)
+    with open(get_tag_count_file(data_dir), 'r') as f:
+        frequent_tags = json.load(f)
     return list(frequent_tags.keys())[:tag_size]
 
 
 def get_word_dict(data_dir):
     global word_dict
     if word_dict == None:
-        words = get_most_frequent_words(data_dir)
+        words     = get_most_frequent_words(data_dir)
         word_dict = collections.OrderedDict()
         for i, w in enumerate(words):
             word_dict[w] = i
@@ -104,7 +104,7 @@ def get_word_dict(data_dir):
 def get_tag_dict(data_dir):
     global tag_dict
     if tag_dict == None:
-        tags = get_tags(data_dir)
+        tags     = get_tags(data_dir)
         tag_dict = collections.OrderedDict()
         for i, w in enumerate(tags):
             tag_dict[w] = i
@@ -113,7 +113,7 @@ def get_tag_dict(data_dir):
 
 def preprocess_inputs(sentences, data_dir):
 
-    sentences = [sentence.split(' ') for sentence in sentences]
+    sentences  = [sentence.split(' ') for sentence in sentences]
     vocab_size = len(get_word_dict(data_dir))
 
     def word_to_id(word):
@@ -134,7 +134,7 @@ def preprocess_inputs(sentences, data_dir):
 
 def preprocess_targets(tags, data_dir):
 
-    tags = [tag.split('|') for tag in tags]
+    tags     = [tag.split('|') for tag in tags]
     tag_size = len(get_tag_dict(data_dir))
 
     def tag_to_id(tag):
@@ -145,7 +145,7 @@ def preprocess_targets(tags, data_dir):
             return len(tag_dict)
 
     def to_bag_of_words(tag):
-        tag = [tag_to_id(t) for t in tag]
+        tag    = [tag_to_id(t) for t in tag]
         onehot = np.zeros((len(tag), tag_size + 1))
         onehot[np.arange(len(tag)), tag] = 1
         return np.sum(onehot, axis=0, dtype=np.float32)  # [:tag_size]
@@ -155,7 +155,7 @@ def preprocess_targets(tags, data_dir):
 
 def preprocess_input(sentence, data_dir):
 
-    sentence = sentence.split(' ')
+    sentence   = sentence.split(' ')
     vocab_size = len(get_word_dict(data_dir))
 
     def word_to_id(word):
@@ -187,7 +187,7 @@ def preprocess_target(tag, data_dir):
             return len(tag_dict)
 
     def to_bag_of_words(tag):
-        tag = [tag_to_id(t) for t in tag]
+        tag    = [tag_to_id(t) for t in tag]
         onehot = np.zeros((len(tag), tag_size + 1))
         onehot[np.arange(len(tag)), tag] = 1
         return np.sum(onehot, axis=0, dtype=np.float32)[:tag_size]
@@ -214,8 +214,8 @@ def get_word_dict(data_dir):
     global word_dict
     if word_dict == None:
         frequent_words = get_most_frequent_words(data_dir)
-        words = [_pad] + frequent_words + [_bos] + [_eos]
-        word_dict = collections.OrderedDict()
+        words          = [_pad] + frequent_words + [_bos] + [_eos]
+        word_dict      = collections.OrderedDict()
         for i, w in enumerate(words):
             word_dict[w] = i
     return word_dict
@@ -264,8 +264,8 @@ def tokenizer(sentence, data_dir, max_seq_len=20):
 
 def split(dataset):
     ds = np.array(dataset)
-    x = ds[:, :-1]
-    y = ds[:, -1]
+    x  = ds[:, :-1]
+    y  = ds[:, -1]
     return x, y
 
 
@@ -293,7 +293,7 @@ class StackOverFlow(FederatedDataset):
                 raise FileNotFoundError(f"{data_file} not exists.")
 
         self.data_file = data_file
-        self.root = root
+        self.root      = root
         self.transform = transform
 
 
@@ -308,7 +308,7 @@ class StackOverFlowTP(StackOverFlow):
             client_ids = list(data_h5[_EXAMPLE].keys())
 
         self.total_parts = len(client_ids)
-        self.parts_name = client_ids
+        self.parts_name  = client_ids
 
         self.classes = len(get_tag_dict(self.root))
 
@@ -359,7 +359,7 @@ class StackOverFlowNWP(StackOverFlow):
             client_ids = list(data_h5[_EXAMPLE].keys())
 
         self.total_parts = len(client_ids)
-        self.parts_name = client_ids
+        self.parts_name  = client_ids
 
         self.classes = len(get_word_dict(self.root)) + 1
 

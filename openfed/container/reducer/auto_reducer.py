@@ -20,11 +20,11 @@ class AutoReducer(Reducer):
         """
         super().__init__()
         self.reduce_keys = convert_to_list(reduce_keys)
-        self.weight_key = weight_key
+        self.weight_key  = weight_key
 
     def reduce(self) -> TaskInfo:
         task_info_list = self.task_info_buffer
-        rdict = defaultdict(lambda: 0.0)
+        rdict          = defaultdict(lambda: 0.0)
         if self.weight_key is not None:
             task_info = task_info_list[0].info_dict
             assert self.weight_key in task_info, "weight key is not contained in task info."

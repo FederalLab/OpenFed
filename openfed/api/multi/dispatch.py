@@ -38,7 +38,7 @@ class Dispatch(MultiStep):
     pending_queue: List[int]
 
     # part_id -> nick name
-    running_queue: Dict[int, str]
+    running_queue : Dict[int, str]
     finished_queue: Dict[int, str]
 
     @overload
@@ -71,7 +71,7 @@ class Dispatch(MultiStep):
             samples is None and sample_ratio is None), "one of samples or sample_ratio must be specified."
 
         self.total_parts = total_parts
-        self.samples = samples if samples else int(total_parts * sample_ratio)
+        self.samples     = samples if samples else int(total_parts * sample_ratio)
 
         # Initialize queue
         self.reset()
@@ -81,14 +81,14 @@ class Dispatch(MultiStep):
             :self.samples]]
 
     def reset(self):
-        self.pending_queue = self._permutation()
-        self.running_queue = dict()
+        self.pending_queue  = self._permutation()
+        self.running_queue  = dict()
         self.finished_queue = dict()
 
     def after_download(self, backend, flag: bool):
         if flag:
             task_info = backend.reign_task_info
-            part_id = task_info.part_id
+            part_id   = task_info.part_id
 
             logger.debug(f"Download a model from {backend.nick_name}.")
 
@@ -114,7 +114,7 @@ class Dispatch(MultiStep):
             self.running_queue[part_id] = backend.nick_name
 
             # generate task_info
-            task_info = TaskInfo()
+            task_info         = TaskInfo()
             task_info.part_id = int(part_id)
             task_info.version = backend.version
 

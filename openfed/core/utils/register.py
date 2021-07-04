@@ -69,8 +69,8 @@ class _Register(Array):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Register",
-            description=f"Contains {len(self)} countries."
+            class_name  = "Register",
+            description = f"Contains {len(self)} countries."
         )
 
 

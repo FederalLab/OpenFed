@@ -31,7 +31,7 @@ from .partitioner import Partitioner
 
 
 class FederatedDataset(Dataset):
-    part_id: int = 0
+    part_id    : int = 0
     total_parts: int = 1
 
     def set_part_id(self, part_id):
@@ -44,19 +44,19 @@ class FederatedDataset(Dataset):
 
 
 class PartitionerDataset(FederatedDataset):
-    dataset: Dataset
+    dataset         : Dataset
     parts_index_list: List[np.array]
-    partitioner: Partitioner
+    partitioner     : Partitioner
 
     def __init__(self,
-                 dataset: Dataset,
+                 dataset    : Dataset,
                  total_parts: int,
-                 partitioner: Partitioner):
+                 partitioner: Partitioner): 
         """
         Args:
             dataset: 
         """
-        self.dataset = dataset
+        self.dataset     = dataset
         self.total_parts = total_parts
         self.partitioner = partitioner
 

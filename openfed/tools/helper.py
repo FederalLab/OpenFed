@@ -170,7 +170,7 @@ class Helper(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
-        self.config_file = None
+        self.config_file  = None
         self.address_list = []
 
     # Config file manage
@@ -209,7 +209,7 @@ class Helper(cmd.Cmd):
         """
         if self.config_file is not None:
             self.do_save()
-            self.config_file = None
+            self.config_file  = None
             self.address_list = []
         else:
             exit(0)
@@ -246,22 +246,25 @@ class Helper(cmd.Cmd):
     def do_add(self, arg):
         """Add a new address to json file.
         """
-        backend = input("Backend (gloo, mpi, nccl): ")
+        backend     = input("Backend (gloo, mpi, nccl): ")
         init_method = input(
             "Init method (tcp://IP:PORT, file://PATH_TO_FILE, env://): ")
         if not init_method.startswith("env://"):
             group_name = input("Group name: ")
             world_size = int(input("World size: "))
-            rank = int(input("Rank: "))
+            rank       = int(input("Rank: "))
         else:
             group_name = ''
             world_size = 0
-            rank = -1
+            rank       = -1
 
         try:
             address = Address(
-                backend=backend, group_name=group_name,
-                init_method=init_method, world_size=world_size, rank=rank)
+                backend     = backend,
+                group_name  = group_name,
+                init_method = init_method,
+                world_size  = world_size,
+                rank        = rank)
         except InvalidAddress as e:
             print(e)
             return

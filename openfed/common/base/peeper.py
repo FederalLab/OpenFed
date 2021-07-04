@@ -59,8 +59,8 @@ class Peeper(object):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Peeper",
-            description=self.obj_item_mapping
+            class_name  = "Peeper",
+            description = self.obj_item_mapping
         )
 
 

@@ -32,14 +32,14 @@ from ..datasets import FederatedDataset
 from ..utils import *
 
 DEFAULT_CLIENTS_NUM = 3400
-DEFAULT_BATCH_SIZE = 20
-DEFAULT_TRAIN_FILE = 'fed_emnist_train.h5'
-DEFAULT_TEST_FILE = 'fed_emnist_test.h5'
+DEFAULT_BATCH_SIZE  = 20
+DEFAULT_TRAIN_FILE  = 'fed_emnist_train.h5'
+DEFAULT_TEST_FILE   = 'fed_emnist_test.h5'
 
 # group name defined by tff in h5 file
 _EXAMPLE = 'examples'
-_IMAGE = 'pixels'
-_LABEL = 'label'
+_IMAGE   = 'pixels'
+_LABEL   = 'label'
 
 
 class EMNIST(FederatedDataset):
@@ -59,13 +59,11 @@ class EMNIST(FederatedDataset):
             else:
                 raise FileNotFoundError(f"{data_file} not exists.")
 
-        data_h5 = h5py.File(data_file, "r")
-
+        data_h5    = h5py.File(data_file, "r")
         client_ids = list(data_h5[_EXAMPLE].keys())
 
         self.total_parts = len(client_ids)
-
-        part_data_list = []
+        part_data_list   = []
         part_target_list = []
         unique_label_set = set()
         for client_id in client_ids:
@@ -74,10 +72,10 @@ class EMNIST(FederatedDataset):
             part_target_list.append(
                 np.array(data_h5[_EXAMPLE][client_id][_LABEL][()]).squeeze())
             unique_label_set.update(part_target_list[-1].tolist())
-        self.part_data_list = part_data_list
+        self.part_data_list   = part_data_list
         self.part_target_list = part_target_list
 
-        self.transform = transform
+        self.transform        = transform
         self.target_transform = target_transform
 
         self.classes = unique_label_set

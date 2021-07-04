@@ -32,13 +32,13 @@ class OpenFedException(Exception):
                  exception_name: str = 'OpenFedException',
                  msg: str = ""):
         super().__init__()
-        self.msg = msg
+        self.msg            = msg
         self.exception_name = exception_name
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name=self.exception_name,
-            description=self.msg
+            class_name  = self.exception_name,
+            description = self.msg
         )
 
 

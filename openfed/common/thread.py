@@ -60,8 +60,8 @@ class SafeTread(Thread):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="SafeThread",
-            description=f"Created at {peeper.thread_pool[self]}." if self in peeper.thread_pool else "",
+            class_name  = "SafeThread",
+            description = f"Created at {peeper.thread_pool[self]}." if self in peeper.thread_pool else "",
         )
 
     @abstractmethod

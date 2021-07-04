@@ -29,16 +29,16 @@ import re
 import h5py
 import numpy as np
 from openfed.common import logger
-
+from typing import Callable
 from ..datasets import FederatedDataset
 from ..utils import *
 
-DEFAULT_BATCH_SIZE = 4
+DEFAULT_BATCH_SIZE      = 4
 DEFAULT_TRAIN_FILE_PROX = 'all_data_niid_2_keep_0_train_8.json'
-DEFAULT_TEST_FILE_PROX = 'all_data_niid_2_keep_0_test_8.json'
+DEFAULT_TEST_FILE_PROX  = 'all_data_niid_2_keep_0_test_8.json'
 
 # group name defined by tff in h5 file
-_USERS = 'users'
+_USERS         = 'users'
 _SNIPPETS_PROX = 'user_data'
 
 # ------------------------
@@ -49,8 +49,6 @@ _SNIPPETS_PROX = 'user_data'
 CHAR_VOCAB = list(
     'dhlptx@DHLPTX $(,048cgkoswCGKOSW[_#\'/37;?bfjnrvzBFJNRVZ"&*.26:\naeimquyAEIMQUY]!%)-159\r'
 )
-
-# ALL_LETTERS = "\n !\"&'(),-.0123456789:;>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]abcdefghijklmnopqrstuvwxyz}"
 ALL_LETTERS = "".join(CHAR_VOCAB)
 
 # Vocabulary with OOV ID, zero for the padding, and BOS, EOS IDs.
@@ -142,9 +140,9 @@ def line_to_indices(line, word2id, max_words=25):
     Return:
         indl: list of word indices, one index for each word in phrase
     '''
-    unk_id = len(word2id)
+    unk_id    = len(word2id)
     line_list = split_line(line)  # split phrase in words
-    indl = [word2id[w] if w in word2id else unk_id for w in line_list[:max_words]]
+    indl  = [word2id[w] if w in word2id else unk_id for w in line_list[:max_words]]
     indl += [unk_id]*(max_words-len(indl))
     return indl
 
@@ -159,7 +157,7 @@ def bag_of_words(line, vocab):
     Return:
         integer list
     '''
-    bag = [0]*len(vocab)
+    bag   = [0]*len(vocab)
     words = split_line(line)
     for w in words:
         if w in vocab:
@@ -168,21 +166,21 @@ def bag_of_words(line, vocab):
 
 
 DEFAULT_TRAIN_CLIENTS_NUM = 715
-DEFAULT_TEST_CLIENTS_NUM = 715
-DEFAULT_BATCH_SIZE = 4
-DEFAULT_TRAIN_FILE_TFF = 'shakespeare_train.h5'
-DEFAULT_TEST_FILE_TFF = 'shakespeare_test.h5'
+DEFAULT_TEST_CLIENTS_NUM  = 715
+DEFAULT_BATCH_SIZE        = 4
+DEFAULT_TRAIN_FILE_TFF    = 'shakespeare_train.h5'
+DEFAULT_TEST_FILE_TFF     = 'shakespeare_test.h5'
 
 # group name defined by tff in h5 file
-_EXAMPLE = 'examples'
+_EXAMPLE      = 'examples'
 _SNIPPETS_TFF = 'snippets'
 
 
 word_dict = None
 word_list = None
-_pad = '<pad>'
-_bos = '<bos>'
-_eos = '<eos>'
+_pad      = '<pad>'
+_bos      = '<bos>'
+_eos      = '<eos>'
 '''
 This code follows the steps of preprocessing in tff shakespeare dataset: 
 https://github.com/google-research/federated/blob/master/utils/datasets/shakespeare_dataset.py
@@ -194,7 +192,7 @@ SEQUENCE_LENGTH = 80  # from McMahan et al AISTATS 2017
 def get_word_dict():
     global word_dict
     if word_dict == None:
-        words = [_pad] + CHAR_VOCAB + [_bos] + [_eos]
+        words     = [_pad] + CHAR_VOCAB + [_bos] + [_eos]
         word_dict = collections.OrderedDict()
         for i, w in enumerate(words):
             word_dict[w] = i
@@ -235,8 +233,8 @@ def preprocess(sentences, max_seq_len=SEQUENCE_LENGTH):
         tokens = [char_to_id(c) for c in sentence]
         tokens = [char_to_id(_bos)] + tokens + [char_to_id(_eos)]
         if len(tokens) % (max_seq_len + 1) != 0:
-            pad_length = (-len(tokens)) % (max_seq_len + 1)
-            tokens += [char_to_id(_pad)] * pad_length
+            pad_length  = (-len(tokens)) % (max_seq_len + 1)
+            tokens     += [char_to_id(_pad)] * pad_length
         return (tokens[i:i + max_seq_len + 1]
                 for i in range(0, len(tokens), max_seq_len + 1))
 
@@ -249,7 +247,11 @@ class ShakespeareNWP(FederatedDataset):
     """Used for next word prediction. TFF version
     """
 
-    def __init__(self, root: str, train: bool = True, download: bool = True, transform=None):
+    def __init__(self, 
+                root    : str,
+                train   : bool = True,
+                download: bool = True,
+                transform: Callable=None): 
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE_TFF if train else DEFAULT_TEST_FILE_TFF)
 
@@ -265,21 +267,18 @@ class ShakespeareNWP(FederatedDataset):
             else:
                 raise FileNotFoundError(f"{data_file} not exists.")
 
-        data_h5 = h5py.File(data_file, "r")
-
-        client_ids = list(data_h5[_EXAMPLE].keys())
-
+        data_h5          = h5py.File(data_file, "r")
+        client_ids       = list(data_h5[_EXAMPLE].keys())
         self.total_parts = len(client_ids)
 
-        self.part_id = 0
-
+        self.part_id    = 0
         parts_data_list = []
         for client_id in client_ids:
             parts_data_list.append(
                 [x.decode('utf-8') for x in np.array(data_h5[_EXAMPLE][client_id][_SNIPPETS_TFF][()])])
         self.parts_data_list = parts_data_list
 
-        self.classes = len(get_word_dict()) + 1
+        self.classes   = len(get_word_dict()) + 1
         self.transform = transform
 
     def __len__(self) -> int:
@@ -301,7 +300,11 @@ class ShakespeareNCP(FederatedDataset):
     """Used for next char prediction. FedProx version.
     """
 
-    def __init__(self, root: str, train: bool = True, download: bool = True, transform=None):
+    def __init__(self, 
+                root     : str,
+                train    : bool = True,
+                download : bool = True,
+                transform: bool=None) : 
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE_PROX if train else DEFAULT_TEST_FILE_PROX)
 
@@ -314,7 +317,7 @@ class ShakespeareNCP(FederatedDataset):
                     DEFAULT_TEST_FILE_PROX,
                 ]
                 for file_id, filename in zip(file_ids, filenames):
-                    file_id = '1GERQ9qEJjXk_0FXnw1JbjuGCI-zmmfsk'
+                    file_id  = '1GERQ9qEJjXk_0FXnw1JbjuGCI-zmmfsk'
                     filename = os.path.join(root, filename)
                     logger.debug(f"Download dataset: {file_id}, {filename}")
                     if not wget_google_driver_url(file_id, filename):
@@ -323,17 +326,16 @@ class ShakespeareNCP(FederatedDataset):
                 raise FileNotFoundError(f"{data_file} not exists.")
 
         with open(data_file, "r") as f:
-            data_json = json.load(f)
-            # dict
+            data_json       = json.load(f)
             parts_data_list = data_json[_SNIPPETS_PROX]
 
-        self.part_id = 0
+        self.part_id     = 0
         self.total_parts = len(parts_data_list.keys())
-        self.parts_name = list(parts_data_list.keys())
+        self.parts_name  = list(parts_data_list.keys())
 
         self.parts_data_list = parts_data_list
 
-        self.classes = VOCAB_SIZE
+        self.classes   = VOCAB_SIZE
         self.transform = transform
 
     def __len__(self) -> int:
@@ -342,7 +344,7 @@ class ShakespeareNCP(FederatedDataset):
 
     def __getitem__(self, index: int):
         part_name = self.parts_name[self.part_id]
-        data = self.parts_data_list[part_name]
+        data      = self.parts_data_list[part_name]
         x, y = word_to_indices(
             data['x'][index]), letter_to_index(data['y'][index])
         if self.transform:

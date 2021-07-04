@@ -49,9 +49,9 @@ class TaskInfo(object):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="TaskInfo",
-            description=tablist(
-                head=list(self.info_dict.keys()),
-                data=list(self.info_dict.values())
+            class_name  = "TaskInfo",
+            description = tablist(
+                head = list(self.info_dict.keys()),
+                data = list(self.info_dict.values())
             )
         )

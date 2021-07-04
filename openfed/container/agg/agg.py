@@ -50,10 +50,10 @@ class Agg(Package, Wrapper, Hook):
 
     def __init__(self,
                  params,
-                 defaults: Dict,
+                 defaults : Dict,
                  info_keys: List[str],
                  pipe_keys: List[str],
-                 legacy: bool = False):
+                 legacy   : bool = False): 
         """
         Args:
             info_keys: necessary keys saved in returned info dict.
@@ -65,7 +65,7 @@ class Agg(Package, Wrapper, Hook):
         # add info_keys to defaults
         defaults['info_keys'] = info_keys
         defaults['pipe_keys'] = pipe_keys
-        defaults['legacy'] = legacy
+        defaults['legacy']    = legacy
 
         self.defaults = defaults
 
@@ -74,7 +74,7 @@ class Agg(Package, Wrapper, Hook):
                             "an iterable of Tensors or dicts, but got " +
                             torch.typename(params))
 
-        self.state = defaultdict(dict)
+        self.state        = defaultdict(dict)
         self.param_groups = []
 
         param_groups = list(params)
@@ -120,7 +120,7 @@ class Agg(Package, Wrapper, Hook):
         """
         # Save order indices instead of Tensors
         param_mappings = {}
-        start_index = 0
+        start_index    = 0
 
         def pack_group(group):
             nonlocal start_index
@@ -149,7 +149,7 @@ class Agg(Package, Wrapper, Hook):
         # deepcopy, to be consistent with module API
         state_dict = deepcopy(state_dict)
         # Validate the state_dict
-        groups = self.param_groups
+        groups       = self.param_groups
         saved_groups = state_dict['param_groups']
 
         if len(groups) != len(saved_groups):

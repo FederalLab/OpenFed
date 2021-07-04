@@ -100,7 +100,6 @@ class Scaffold(Pipe):
                 loss = closure()
 
         for group in self.param_groups:
-            lr = group['lr']
             frontend = group['frontend']
             for p in group['params']:
                 if p.grad is None:
@@ -145,7 +144,7 @@ class Scaffold(Pipe):
         """
 
         for group in self.param_groups:
-            lr = group['lr']
+            lr       = group['lr']
             frontend = group['frontend']
             for p in group["params"]:
                 if p.grad is None:

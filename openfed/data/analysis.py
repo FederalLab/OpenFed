@@ -39,15 +39,15 @@ class Analysis(object):
             parts_list.append(len(federated_dataset))
         if verbose:
             rdict = dict(
-                Parts=total_parts,
-                Samples=sum(parts_list),
-                Mean=np.mean(parts_list),
-                Var=np.var(parts_list),
+                Parts   = total_parts,
+                Samples = sum(parts_list),
+                Mean    = np.mean(parts_list),
+                Var     = np.var(parts_list),
             )
             print(tablist(
-                head=list(rdict.keys()),
-                data=list(rdict.values()),
-                force_in_one_row=True,
+                head             = list(rdict.keys()),
+                data             = list(rdict.values()),
+                force_in_one_row = True,
             ))
         return parts_list
 
@@ -57,7 +57,7 @@ class Analysis(object):
                                                                     int), "Only classification federated dataset with specified the class number is supported."
         parts_list = cls.digest(federated_dataset, verbose=False)
 
-        top_k = min(len(parts_list), top_k)
+        top_k    = min(len(parts_list), top_k)
         part_ids = np.argsort(parts_list)[:top_k]
 
         # go through dataset, time comsuming.

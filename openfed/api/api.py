@@ -55,7 +55,7 @@ class API(SafeTread, Hook):
         # Call SafeThread init function.
         super().__init__(self)
 
-        self.dal: bool = dal
+        self.dal     : bool = dal
         self.frontend: bool = frontend
 
         # Set a flag for backend.
@@ -71,22 +71,22 @@ class API(SafeTread, Hook):
         self._hooks_del: List[Callable] = []
         self._hooks_inf: List[Callable] = []
 
-        self.stopped: bool = False
-        self.received_numbers: int = 0
-        self.last_aggregate_time: float = time.time()
-        self.reign_task_info: TaskInfo = TaskInfo()
-        self.task_info_list: List[TaskInfo] = []
+        self.stopped            : bool           = False
+        self.received_numbers   : int            = 0
+        self.last_aggregate_time: float          = time.time()
+        self.reign_task_info    : TaskInfo       = TaskInfo()
+        self.task_info_list     : List[TaskInfo] = []
 
         # Communication related
         self.maintainer: Maintainer = None
-        self.reign: Reign = None
+        self.reign     : Reign      = None
 
         # Data handle
-        self.state_dict: List[Dict[str, Tensor]] = None
-        self.agg: List[Agg] = None
-        self.optimizer: List[Optimizer] = None
-        self.ft_optimizer: List[Optimizer] = None
-        self.reducer: List[Reducer] = []
+        self.state_dict  : List[Dict[str, Tensor]] = None
+        self.agg         : List[Agg]               = None
+        self.optimizer   : List[Optimizer]         = None
+        self.ft_optimizer: List[Optimizer]         = None
+        self.reducer     : List[Reducer]           = []
 
         # how many times for backend waiting for connections.
         self.max_try_times: int = 5
@@ -150,8 +150,8 @@ class API(SafeTread, Hook):
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name="OpenFedAPI",
-            description=f"{'Frontend' if self.frontend else 'Backend'}."
+            class_name  = "OpenFedAPI",
+            description = f"{'Frontend' if self.frontend else 'Backend'}."
         )
 
     def finish(self, auto_exit: bool = False):
@@ -233,7 +233,7 @@ class API(SafeTread, Hook):
                 # unpack state
                 [self.unpack_state(ft_opt)
                  for ft_opt in self.ft_optimizer]
-                self.version = self.reign.upload_version
+                self.version         = self.reign.upload_version
                 self.reign_task_info = self.reign.task_info
         if flag:
             callback()
@@ -270,15 +270,14 @@ class API(SafeTread, Hook):
             Actually, you can put the pipe_optimizer to ft_optimizer, it will automatically 
             pack the state before upload and unpack state after download.
         """
-        agg = convert_to_list(agg)
-        optimizer = convert_to_list(optimizer)
+        agg          = convert_to_list(agg)
+        optimizer    = convert_to_list(optimizer)
         ft_optimizer = convert_to_list(
             ft_optimizer) if ft_optimizer is not None else optimizer
 
         assert len(agg) == len(optimizer)
-        self.agg = agg
-        self.optimizer = optimizer
-
+        self.agg          = agg
+        self.optimizer    = optimizer
         self.ft_optimizer = ft_optimizer
 
     def set_reducer(self, reducer: Union[Reducer, List[Reducer]]) -> None:

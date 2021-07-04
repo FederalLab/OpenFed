@@ -34,7 +34,7 @@ from torch._C._distributed_c10d import ProcessGroup
 
 @unique
 class _ROLE(Enum):
-    LEADER = True
+    LEADER   = True
     FOLLOWER = False
 
 
@@ -59,7 +59,7 @@ class World(Array):
     _pg_mapping: Dict[ProcessGroup, Any]
 
     # Use them to track processes group.
-    _NULL_GP: Any = None
+    _NULL_GP   : Any = None
     _current_pg: ProcessGroup
 
     # avoid the conflict while joint many new Countries to current World at the some time
@@ -72,8 +72,8 @@ class World(Array):
         """
         peeper.world_list.append(self)
 
-        self.ALIVE = True
-        self.ROLE = _ROLE.FOLLOWER if not leader else _ROLE.LEADER
+        self.ALIVE       = True
+        self.ROLE        = _ROLE.FOLLOWER if not leader else _ROLE.LEADER
         self._pg_mapping = OrderedDict()
         self._current_pg = self._NULL_GP
 
@@ -118,8 +118,8 @@ class World(Array):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="World",
-            description=(
+            class_name  = "World",
+            description = (
                 f"ROLE: {self.ROLE.value}\n"
                 f"{len(self)} process groups are alive.\n"
             )
