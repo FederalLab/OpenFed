@@ -149,6 +149,7 @@ import sys
 import time
 from argparse import REMAINDER, ArgumentParser
 from typing import IO, Any, List, Optional
+from openfed.utils import openfed_title
 
 node_local_rank_stdout_filename = "openfed_node_{}_local_rank_{}_stdout"
 node_local_rank_stderr_filename = "openfed_node_{}_local_rank_{}_stderr"
@@ -159,7 +160,7 @@ def parse_args():
     Helper function parsing the command line options
     @retval ArgumentParser
     """
-    parser = ArgumentParser(description="OpenFed federated simulation training launch "
+    parser = ArgumentParser(description=f"{openfed_title} federated simulation training launch "
                                         "helper utility that will spawn up "
                                         "multiple federated processes.")
 

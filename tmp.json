@@ -1,0 +1,10 @@
+[
+    {
+        "backend": "gloo",
+        "init_method": "tcp://localhost:1994",
+        "world_size": 2,
+        "rank": 1,
+        "store": null,
+        "group_name": "OpenFed"
+    }
+]

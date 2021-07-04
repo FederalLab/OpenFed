@@ -25,7 +25,7 @@ import json
 import os
 import time
 from argparse import Namespace
-from typing import Dict, List, TypeVar, Union, overload
+from typing import List, TypeVar, Union, overload
 
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 

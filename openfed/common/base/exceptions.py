@@ -56,3 +56,11 @@ class ConnectionNotBuild(OpenFedException):
 
     def __init__(self, msg: str = ""):
         super().__init__('ConnectionNotBuild', msg=msg)
+
+
+class InvalidAddress(OpenFedException):
+    """If not a valid address is given, raise it.
+    """
+
+    def __init__(self, msg: str):
+        super().__init__("InvalidAddress", msg=msg)

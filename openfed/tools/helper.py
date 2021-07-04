@@ -25,18 +25,20 @@ import cmd
 import glob
 import os
 
-from openfed.common import Address, parser, dump_address_to_file, load_address_from_file
+from openfed.common import (Address, dump_address_to_file,
+                            load_address_from_file, InvalidAddress)
+from openfed.utils import openfed_title
 
 
 class Helper(cmd.Cmd):
-    intro = "A helper script to manage address for \033[0;34m<OpenFed>\033[0m."
+    intro = f"A helper script to manage json file of federated address for {openfed_title}."
 
     @property
     def prompt(self):
         if self.config_file is not None:
-            return f"\033[0;34m<OpenFed>\033[0m *\033[0;32m{self.config_file}\033[0m*: "
+            return f"{openfed_title} *\033[0;32m{self.config_file}\033[0m*: "
         else:
-            return f'\033[0;34m<OpenFed>\033[0m {os.getcwd()}: '
+            return f'{openfed_title} {os.getcwd()}: '
 
     def __init__(self):
         super().__init__()
@@ -114,25 +116,29 @@ class Helper(cmd.Cmd):
         del self.address_list[arg]
 
     def do_add(self, arg):
-        """Add a new address. Currently, env:// is not supported.
-        Example:
-            add --backend "gloo" --init_method 'tcp://localhost:1994' --group_name "Admirable" --world_size 2 --rank -1 [--port 12345]
-        If port is specified, then init_method will be replaced with new port.
+        """Add a new address to json file.
         """
-        arg = self.parseline(arg)[1]
-        if arg:
-            namespace = parser.parse_known_args(arg.split(" "))[0]
-        else:
-            namespace = parser.parse_args()
-        address = Address(args=namespace)
-        print(str(address))
+        backend = input("Backend (gloo, mpi, nccl): ")
+        init_method = input(
+            "Init method (tcp://IP:PORT, file://PATH_TO_FILE, env://): ")
+        group_name = input("Group name: ")
+        world_size = int(input("World size: "))
+        rank = int(input("Rank: "))
+
+        try:
+            address = Address(
+                backend=backend, group_name=group_name,
+                init_method=init_method, world_size=world_size, rank=rank)
+        except InvalidAddress as e:
+            print(e)
+            return
 
         # check conflict
-        for add in self.address_list:
-            if str(add) == str(address):
-                print("Already exists.")
-                return
+        if address in self.address_list:
+            print("Already existing address.")
+            return
         print("Add a new address.")
+        print(address)
 
         self.address_list.append(address)
 

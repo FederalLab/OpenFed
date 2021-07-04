@@ -41,7 +41,9 @@ def seed_everything(seed: int = 0):
         torch.backends.cudnn.deterministic = True
 
 
-openfed_class_fmt = "\033[0;34m<OpenFed>\033[0m \033[0;35m{class_name}\033[0m\n{description}\n"
+openfed_title = '\033[0;34m<OpenFed>\033[0m'
+openfed_class_fmt = openfed_title + \
+    " \033[0;35m{class_name}\033[0m\n{description}\n"
 
 
 def convert_to_list(x):
