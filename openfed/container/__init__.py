@@ -1,5 +1,5 @@
-from .aggregator import *
+from .agg import *
 from .reducer import *
 
-del aggregator
+del agg
 del reducer

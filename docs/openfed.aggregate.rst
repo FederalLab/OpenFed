@@ -1,37 +1,37 @@
-openfed\.aggregate package
+openfed\.agg package
 ==========================
 
 Submodules
 ----------
 
-openfed\.aggregate\.aggregator module
+openfed\.agg\.agg module
 -------------------------------------
 
-.. automodule:: openfed.aggregate.aggregator
+.. automodule:: openfed.agg.agg
     :members:
     :undoc-members:
     :show-inheritance:
 
-openfed\.aggregate\.average module
+openfed\.agg\.average module
 ----------------------------------
 
-.. automodule:: openfed.aggregate.average
+.. automodule:: openfed.agg.average
     :members:
     :undoc-members:
     :show-inheritance:
 
-openfed\.aggregate\.elastic module
+openfed\.agg\.elastic module
 ----------------------------------
 
-.. automodule:: openfed.aggregate.elastic
+.. automodule:: openfed.agg.elastic
     :members:
     :undoc-members:
     :show-inheritance:
 
-openfed\.aggregate\.naive module
+openfed\.agg\.naive module
 --------------------------------
 
-.. automodule:: openfed.aggregate.naive
+.. automodule:: openfed.agg.naive
     :members:
     :undoc-members:
     :show-inheritance:
@@ -40,7 +40,7 @@ openfed\.aggregate\.naive module
 Module contents
 ---------------
 
-.. automodule:: openfed.aggregate
+.. automodule:: openfed.agg
     :members:
     :undoc-members:
     :show-inheritance:

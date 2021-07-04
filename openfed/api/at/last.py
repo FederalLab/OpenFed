@@ -40,39 +40,39 @@ class AtLast(Step):
         ...
 
 
-class Aggregate(AtLast):
+class Agg(AtLast):
     checkpoint: str
 
     def __init__(self, lr_scheduler: _LRScheduler = None):
         super().__init__()
         self.lr_scheduler = lr_scheduler
 
-    def aggregate(self, backend, *args, **kwargs):
-        """Aggregate received models.
+    def agg(self, backend, *args, **kwargs):
+        """Agg received models.
         """
-        # Aggregate
+        # Agg
         task_info_list = []
-        for aggregator, optimizer in zip(backend.aggregator, backend.optimizer):
+        for agg, optimizer in zip(backend.agg, backend.optimizer):
             # Zero grad first
             optimizer.zero_grad()
 
-            # Aggregate will calculate new grad
-            task_info_list.append(aggregator.aggregate())
+            # Agg will calculate new grad
+            task_info_list.append(agg.agg())
 
-            # Unpack state from aggregator
-            aggregator.unpack_state(optimizer)
+            # Unpack state from agg
+            agg.unpack_state(optimizer)
 
             # Update models
             optimizer.step()
 
             # Clear buffers
-            aggregator.clear_buffer()
+            agg.clear_buffer()
 
         backend.task_info_list = task_info_list
 
         for task_info in task_info_list:
             for ti in task_info:
-                logger.info(f"Aggregate:\n{ti}")
+                logger.info(f"Agg:\n{ti}")
 
         # update learning rate
         if self.lr_scheduler is not None:
@@ -89,13 +89,13 @@ class Aggregate(AtLast):
                        f"{self.checkpoint}.{backend.version}")
 
 
-class AggregatePeriod(Aggregate):
+class AggregatePeriod(Agg):
     tic: float
 
     def __init__(self, period: timedelta, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
         """
         Args: 
-            period: The period to aggregate received model.
+            period: The period to agg received model.
             checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
         """
         super().__init__(lr_scheduler)
@@ -106,21 +106,21 @@ class AggregatePeriod(Aggregate):
     def step(self, backend, *args, **kwargs) -> None:
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
-            logger.info("Aggregate operation triggered by period.")
-            self.aggregate(backend, *args, **kwargs)
+            logger.info("Agg operation triggered by period.")
+            self.agg(backend, *args, **kwargs)
             # Update tic times.
             self.tic = time.time()
         else:
             pass
 
 
-class AggregateCount(Aggregate):
+class AggregateCount(Agg):
     count: int
 
     def __init__(self, count: int, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
         """
         Args:
-            count: when the number of received models reach count, aggregate.
+            count: when the number of received models reach count, agg.
             checkpoint: if given, save the new aggregated model.
         """
         super().__init__(lr_scheduler)
@@ -129,8 +129,8 @@ class AggregateCount(Aggregate):
 
     def step(self, backend, *args, **kwargs) -> None:
         if backend.received_numbers >= self.count:
-            logger.info("Aggregate operation triggered by count.")
-            self.aggregate(backend, *args, **kwargs)
+            logger.info("Agg operation triggered by count.")
+            self.agg(backend, *args, **kwargs)
         else:
             pass
 

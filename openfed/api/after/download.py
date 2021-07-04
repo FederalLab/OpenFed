@@ -40,9 +40,9 @@ class AfterDownload(Step):
             packages = backend.reign.tensor_indexed_packages
             task_info = backend.reign.task_info
 
-            # Add them to aggregator
-            for aggregator in backend.aggregator:
-                aggregator.step(packages, task_info)
+            # Add them to agg
+            for agg in backend.agg:
+                agg.step(packages, task_info)
 
             # Increase the total number of received models
             backend.received_numbers += 1

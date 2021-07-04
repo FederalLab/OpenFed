@@ -27,7 +27,7 @@ from .pipe import Pipe
 
 
 class ElasticPipe(Pipe):
-    r"""Paired with ElasticAggregator.
+    r"""Paired with ElasticAgg.
 
     Example:
         >>> elastic_pipe = ElasticPipe(net.parameters(), momentum=0.9)

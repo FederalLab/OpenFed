@@ -124,7 +124,7 @@ class Dispatch(MultiStep):
             # reset old state
 
             assert backend.optimizer
-            assert backend.aggregator
+            assert backend.agg
             assert backend.state_dict
 
             # reset old state
@@ -132,8 +132,8 @@ class Dispatch(MultiStep):
 
             # pack new data
             backend.reign.reset_state_dict(backend.state_dict)
-            for aggregator, optimizer in zip(backend.aggregator, backend.optimizer):
-                backend.reign.pack_state(aggregator)
+            for agg, optimizer in zip(backend.agg, backend.optimizer):
+                backend.reign.pack_state(agg)
                 backend.reign.pack_state(optimizer)
 
             return True

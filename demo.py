@@ -7,7 +7,7 @@ import torch.optim as optim
 # >>> Import OpenFed
 import openfed
 from openfed.api import StepAt
-from openfed.container.aggregator import AverageAggregator
+from openfed.container.agg import AverageAgg
 from openfed.utils import time_string
 
 # >>> set log level
@@ -40,11 +40,11 @@ net = nn.Linear(1, 1)
 # Define optimizer (use the same optimizer in both server and client)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 
-# Define aggregator (actually, this is only used for server end): FedAvg, ElasticAggregator
-aggregator = AverageAggregator(net.parameters())
+# Define agg (actually, this is only used for server end): FedAvg, ElasticAgg
+agg = AverageAgg(net.parameters())
 
-# >>> Set optimizer and aggregator for federated learning.
-openfed_api.set_aggregator_and_optimizer(aggregator, optimizer)
+# >>> Set optimizer and agg for federated learning.
+openfed_api.set_aggregator_and_optimizer(agg, optimizer)
 
 # >>> Tell OpenFed API which data should be transferred.
 openfed_api.set_state_dict(net.state_dict(keep_vars=True))

@@ -26,28 +26,33 @@ from typing import Any, Dict, List, Union
 from openfed.utils import convert_to_list
 from torch import Tensor
 
-from .aggregator import Aggregator
+from .agg import Agg
 
 
-class NaiveAggregator(Aggregator):
-    """widely used in FedAvg.
+class ElasticAgg(Agg):
+    """a data-awarded aggregation method.
     """
 
-    def __init__(self,
-                 params,
+    def __init__(self, params,
                  other_keys: Union[str, List[str]] = None,
-                 legacy: bool = True):
+                 quantile=0.5, legacy: bool = True):
+
         other_keys = [] if other_keys is None else convert_to_list(other_keys)
 
+        if not (0 < quantile < 1.0):
+            raise ValueError("quantile must be between 0 and 1")
+
         info_keys: List[str] = ['train_instances']
-        pipe_keys: List[str] = ["step", "received_params", "param"]
+        pipe_keys: List[str] = [
+            "step", "received_params", "param", "importance"]
 
         for k in other_keys:
             if k in pipe_keys:
                 raise ValueError(f"Duplicate key: {k}")
 
         pipe_keys.extend(other_keys)
-        defaults = dict()
+
+        defaults = dict(quantile=quantile,)
         super().__init__(
             params,
             defaults,
@@ -84,7 +89,8 @@ class NaiveAggregator(Aggregator):
                 new_p = state[key]
                 if key == "param":
                     if p.requires_grad:
-                        p.grad.copy_(p - new_p)
+                        p.grad.copy_(self._elastic_update(
+                            p-new_p, state['importance'], group['quantile']))
                     else:
                         p.copy_(new_p)
                 else:
@@ -93,10 +99,10 @@ class NaiveAggregator(Aggregator):
     def _stack_aggregate(self, p: Tensor, group: Dict):
         state = self.state[p]
 
-        def aggregate(dl, k, t):
+        def agg(dl, k, t):
             l = 0
             for data in dl:
-                a, b = data[k], data['train_instance']
+                a, b = data[k], data['train_instances']
                 w = b / t
                 p = a * w
                 l += p
@@ -104,20 +110,30 @@ class NaiveAggregator(Aggregator):
 
         total_instances = 0
         for data in state["received_params"]:
-            instances = data['instances']
+            instances = data["train_instances"]
             total_instances += instances
 
         for key in group['pipe_keys']:
-            if key in state['received_params'][0]:
-                new_p = aggregate(
-                    state['received_params'], key, total_instances)
+            if key in state["received_params"][0]:
+                new_p = agg(
+                    state["received_params"], key, total_instances)
                 if key == "param":
                     if p.requires_grad:
+                        new_imp = agg(
+                            state["received_params"], "importance", total_instances)
+                        grad = self._elastic_update(
+                            p-new_p, new_imp, group["quantile"])
                         if p.grad is None:
-                            p.grad = p-new_p
+                            p.grad = grad
                         else:
-                            p.grad.copy_(p-new_p)
+                            p.grad.copy_(grad)
                     else:
                         p.copy_(new_p)
                 else:
                     state[key] = new_p
+
+    def _elastic_update(self, grad: Tensor, importance: Tensor, quantile: float):
+        norm_importance = importance / (importance.max() + 1e-13)
+        weight = 1 + quantile - norm_importance
+
+        return grad * weight

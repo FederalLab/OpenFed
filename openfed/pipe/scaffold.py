@@ -67,8 +67,8 @@ class Scaffold(Pipe):
 
             >>> # Backend
             >>> scaffold = Scaffold(net.parameters(), frontend=False)
-            >>> aggregator = Aggregator(net.parameters(), pipe_keys=scaffold.pack_key_list)
-            >>> aggregator.aggregate()
+            >>> agg = Agg(net.parameters(), pipe_keys=scaffold.pack_key_list)
+            >>> agg.agg()
             >>> scaffold.step()
             >>> optim.step()
             >>> deliver.pack(scaffold)
@@ -122,8 +122,8 @@ class Scaffold(Pipe):
                     # Modifed gradients
                     if "c_para_i" not in state:
                         c_para_i = state["c_para_i"] = torch.zeros_like(p)
-                    # c_para will be loaded from aggregator/deliver automatically.
-                    assert "c_para" in state, "c_para must be loaded from aggregator/deliver."
+                    # c_para will be loaded from agg/deliver automatically.
+                    assert "c_para" in state, "c_para must be loaded from agg/deliver."
                     c_para = state["c_para"]
                     p.grad.add_(c_para-c_para_i, alpha=1)
                 else:

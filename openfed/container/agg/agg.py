@@ -32,11 +32,9 @@ import torch
 from openfed.common import Hook, Package, TaskInfo, Wrapper
 from torch import Tensor
 
-from ..reducer import Reducer
-
 
 class _RequiredParameter(object):
-    """Singleton class representing a required parameter for an Aggregator."""
+    """Singleton class representing a required parameter for an Agg."""
 
     def __repr__(self):
         return "<required parameter>"
@@ -45,8 +43,8 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Aggregator(Package, Wrapper, Hook):
-    r"""Base class for Aggregator.
+class Agg(Package, Wrapper, Hook):
+    r"""Base class for Agg.
     """
     _received_infos: List[TaskInfo]
 
@@ -72,7 +70,7 @@ class Aggregator(Package, Wrapper, Hook):
         self.defaults = defaults
 
         if isinstance(params, torch.Tensor):
-            raise TypeError("params argument given to the aggregator should be "
+            raise TypeError("params argument given to the agg should be "
                             "an iterable of Tensors or dicts, but got " +
                             torch.typename(params))
 
@@ -81,7 +79,7 @@ class Aggregator(Package, Wrapper, Hook):
 
         param_groups = list(params)
         if len(param_groups) == 0:
-            raise ValueError("aggregator got an empty parameter list")
+            raise ValueError("agg got an empty parameter list")
         if not isinstance(param_groups[0], dict):
             param_groups = [{'params': param_groups}]
 
@@ -112,12 +110,12 @@ class Aggregator(Package, Wrapper, Hook):
         return format_string
 
     def state_dict(self):
-        r"""Returns the state of the aggregator as a :class:`dict`.
+        r"""Returns the state of the agg as a :class:`dict`.
 
         It contains two entries:
 
         * state - a dict holding current aggregation state. Its content
-            differs between aggregator classes.
+            differs between agg classes.
         * param_groups - a dict containing all parameter groups
         """
         # Save order indices instead of Tensors
@@ -142,10 +140,10 @@ class Aggregator(Package, Wrapper, Hook):
         }
 
     def load_state_dict(self, state_dict):
-        r"""Loads the aggregator state.
+        r"""Loads the agg state.
 
         Args:
-            state_dict (dict): aggregator state. Should be an object returned
+            state_dict (dict): agg state. Should be an object returned
                 from a call to :meth:`state_dict`.
         """
         # deepcopy, to be consistent with module API
@@ -161,7 +159,7 @@ class Aggregator(Package, Wrapper, Hook):
         saved_lens = (len(g['params']) for g in saved_groups)
         if any(p_len != s_len for p_len, s_len in zip(param_lens, saved_lens)):
             raise ValueError("loaded state dict contains a parameter group "
-                             "that doesn't match the size of aggregator's group")
+                             "that doesn't match the size of agg's group")
 
         # Update the state
         id_map = {old_id: p for old_id, p in
@@ -244,10 +242,10 @@ class Aggregator(Package, Wrapper, Hook):
                         del state[k]
 
     def add_param_group(self, param_group):
-        r"""Add a param group to the :class:`Aggregator` s `param_groups`.
+        r"""Add a param group to the :class:`Agg` s `param_groups`.
 
         This can be useful when fine tuning a pre-trained network as frozen layers can be made
-        trainable and added to the :class:`Aggregator` as training progresses.
+        trainable and added to the :class:`Agg` as training progresses.
 
         Args:
             param_group (dict): Specifies what Tensors should be optimized along with group
@@ -259,14 +257,14 @@ class Aggregator(Package, Wrapper, Hook):
         if isinstance(params, torch.Tensor):
             param_group['params'] = [params]
         elif isinstance(params, set):
-            raise TypeError('aggregator parameters need to be organized in ordered collections, but '
+            raise TypeError('agg parameters need to be organized in ordered collections, but '
                             'the ordering of tensors in sets will change between runs. Please use a list instead.')
         else:
             param_group['params'] = list(params)
 
         for param in param_group['params']:
             if not isinstance(param, torch.Tensor):
-                raise TypeError("aggregator can only optimize Tensors, "
+                raise TypeError("agg can only optimize Tensors, "
                                 "but one of the params is " + torch.typename(param))
             if not param.is_leaf:
                 raise ValueError("can't optimize a non-leaf Tensor")
@@ -280,7 +278,7 @@ class Aggregator(Package, Wrapper, Hook):
 
         params = param_group['params']
         if len(params) != len(set(params)):
-            warnings.warn("aggregator contains a parameter group with duplicate parameters; "
+            warnings.warn("agg contains a parameter group with duplicate parameters; "
                           "in future, this will cause an error; "
                           "see github.com/pytorch/pytorch/issues/40967 for more information", stacklevel=3)
 
@@ -299,17 +297,7 @@ class Aggregator(Package, Wrapper, Hook):
             if key not in received_info:
                 raise KeyError(f"{key} is needed, but not returned.")
 
-    def register_reducer(self, func: Reducer):
-        """
-        Args:
-            func: func will take in a list of dict infos and return the processed values.
-        """
-        self.register_hook(func=func)
-
-    def _auto_reduce(self) -> List[TaskInfo]:
-        return [fn(self._received_infos) for fn in self.hook_list]
-
-    def aggregate(self, clear_buffer: bool = True) -> List[TaskInfo]:
+    def aggregate(self, clear_buffer: bool = True):
         r"""Performs a single aggregation step (parameter update).
 
         Args: 
@@ -323,10 +311,8 @@ class Aggregator(Package, Wrapper, Hook):
                 else:
                     self._merge_aggregate(p, group=group)
 
-        output = self._auto_reduce()
         if clear_buffer:
             self.clear_buffer()
-        return output
 
     def step(self, received_params: Dict[str, Dict[str, Tensor]], received_info: Dict) -> None:
         """Add a new received data.
@@ -344,13 +330,13 @@ class Aggregator(Package, Wrapper, Hook):
                                    received_info=received_info, group=group)
         self._received_infos.append(received_info)
 
-    def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
+    def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
         raise NotImplementedError
 
     def _merge_aggregate(self, p: torch.Tensor, group: Dict) -> None:
         raise NotImplementedError
 
-    def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
+    def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
         raise NotImplementedError
 
     def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:

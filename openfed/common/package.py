@@ -28,7 +28,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 
-class Aggregator():
+class Agg():
     ...
 
 
@@ -45,10 +45,10 @@ def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
 
 
 class Package(object):
-    """Define some unified functions to package and unpackage the class's state dictionary, such as Optimizer, Aggregator and Pipe.
+    """Define some unified functions to package and unpackage the class's state dictionary, such as Optimizer, Agg and Pipe.
     """
 
-    def pack_state(self, obj: Union[Aggregator, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
+    def pack_state(self, obj: Union[Agg, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
         """
         Args:
             keys: if keys are not given, we will try to load the `pack_key_list` attribute of obj.
@@ -61,7 +61,7 @@ class Package(object):
                     rdict = {k: state[k] for k in keys}
                     self.pack(p, rdict)
 
-    def unpack_state(self, obj: Union[Aggregator, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
+    def unpack_state(self, obj: Union[Agg, Optimizer, Pipe], keys: Union[str, List[str]] = None) -> None:
         """
         Args:
             keys: if keys are not given, we will try to load the `unpack_key_list` attribute of obj.

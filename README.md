@@ -76,7 +76,7 @@ import torch.optim as optim
 
 # >>> Import OpenFed
 import openfed
-import openfed.aggregate as aggregate
+import openfed.agg as agg
 from openfed.unified.step import StepAt
 from openfed.utils import time_string
 
@@ -89,12 +89,12 @@ args = openfed.parser.parse_args()
 # >>> Specify an API for building federated learning
 openfed_api = openfed.API(frontend=args.rank > 0)
 
-# >>> Specify a aggregate trigger
-# It means that every 10 received models will make an aggregate operation.
+# >>> Specify a agg trigger
+# It means that every 10 received models will make an agg operation.
 aggregate_trigger = openfed.AggregateCount(
     count=2, checkpoint="/tmp/openfed-model")
 
-# >>> Set the aggregate trigger
+# >>> Set the agg trigger
 openfed_api.set_aggregate_triggers(aggregate_trigger)
 
 # >>> Register more step functions.
@@ -114,11 +114,11 @@ net = nn.Linear(1, 1)
 # Define optimizer (use the same optimizer in both server and client)
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 
-# Define aggregator (actually, this is only used for server end): FedAvg, ElasticAggregator
-aggregator = aggregate.AverageAggregator(net.parameters())
+# Define agg (actually, this is only used for server end): FedAvg, ElasticAgg
+agg = agg.AverageAgg(net.parameters())
 
-# >>> Set optimizer and aggregator for federated learning.
-openfed_api.set_aggregator_and_optimizer(aggregator, optimizer)
+# >>> Set optimizer and agg for federated learning.
+openfed_api.set_aggregator_and_optimizer(agg, optimizer)
 
 # >>> Tell OpenFed API which data should be transferred.
 openfed_api.set_state_dict(net.state_dict(keep_vars=True))
@@ -180,7 +180,7 @@ mixture
 From <OpenFed> Reign
 blinks
 
-2021-06-29 10:08:48.142 | INFO     | openfed.unified.step.at_last:__call__:94 - Aggregate operation triggered by count.
+2021-06-29 10:08:48.142 | INFO     | openfed.unified.step.at_last:__call__:94 - Agg operation triggered by count.
 2021-06-29 10:08:48.159 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
 From <OpenFed> Reign
 mixture
@@ -190,7 +190,7 @@ mixture
 From <OpenFed> Reign
 blinks
 
-2021-06-29 10:08:48.170 | INFO     | openfed.unified.step.at_last:__call__:94 - Aggregate operation triggered by count.
+2021-06-29 10:08:48.170 | INFO     | openfed.unified.step.at_last:__call__:94 - Agg operation triggered by count.
 2021-06-29 10:08:48.193 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
 From <OpenFed> Reign
 mixture
@@ -200,7 +200,7 @@ mixture
 From <OpenFed> Reign
 blinks
 
-2021-06-29 10:08:48.201 | INFO     | openfed.unified.step.at_last:__call__:94 - Aggregate operation triggered by count.
+2021-06-29 10:08:48.201 | INFO     | openfed.unified.step.at_last:__call__:94 - Agg operation triggered by count.
 2021-06-29 10:08:48.204 | INFO     | openfed.unified.unify:finish:83 - Finished.
  <OpenFed> OpenFed Unified API
 <OpenFed> Maintainer

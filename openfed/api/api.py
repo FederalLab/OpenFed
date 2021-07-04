@@ -27,7 +27,7 @@ from typing import Any, Callable, Dict, List, Union
 import openfed
 from openfed.common import (Address, Hook, SafeTread, TaskInfo,
                             default_address, logger)
-from openfed.container import Aggregator
+from openfed.container import Agg
 from openfed.core import (Destroy, Maintainer, Reign, World,
                           openfed_lock)
 from openfed.core.utils import DeviceOffline
@@ -84,7 +84,7 @@ class API(SafeTread, Hook):
 
         # Data handle
         self.state_dict: List[Dict[str, Tensor]] = None
-        self.aggregator: List[Aggregator] = None
+        self.agg: List[Agg] = None
         self.optimizer: List[Optimizer] = None
         self.ft_optimizer: List[Optimizer] = None
 
@@ -267,7 +267,7 @@ class API(SafeTread, Hook):
         self.reign.unpack_state(obj, keys)
 
     def set_aggregator_and_optimizer(self,
-                                     aggregator: Union[Aggregator, List[Aggregator]],
+                                     agg: Union[Agg, List[Agg]],
                                      optimizer: Union[Optimizer, List[Optimizer]],
                                      ft_optimizer: Union[Optimizer, List[Optimizer]] = None):
         """
@@ -278,13 +278,13 @@ class API(SafeTread, Hook):
             Actually, you can put the pipe_optimizer to ft_optimizer, it will automatically 
             pack the state before upload and unpack state after download.
         """
-        aggregator = convert_to_list(aggregator)
+        agg = convert_to_list(agg)
         optimizer = convert_to_list(optimizer)
         ft_optimizer = convert_to_list(
             ft_optimizer) if ft_optimizer is not None else optimizer
 
-        assert len(aggregator) == len(optimizer)
-        self.aggregator = aggregator
+        assert len(agg) == len(optimizer)
+        self.agg = agg
         self.optimizer = optimizer
 
         self.ft_optimizer = ft_optimizer
