@@ -32,7 +32,7 @@ from random_words import RandomWords
 
 from ..space import Country, Store, World
 from ..utils.exceptions import (BuildReignFailed, InvalidStoreReading,
-                               InvalidStoreWriting)
+                                InvalidStoreWriting)
 from .collector import Collector, GPUInfo, Register, SystemInfo
 
 rw = RandomWords()
@@ -110,7 +110,7 @@ class Informer(Hook):
 
         # write self._i_key to initialize the key value store.
         safe_store_set(self.store, self._i_key, {
-                       OPENFED_STATUS: zombie, OPENFED_TASK_INFO: TaskInfo().as_dict})
+                       OPENFED_STATUS: zombie, OPENFED_TASK_INFO: TaskInfo().info_dict})
 
         # register a default collector
         self.register_collector(SystemInfo())
