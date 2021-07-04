@@ -35,14 +35,14 @@ class Cypher(Clone):
     You can store the inner operation in the returned dictionary directly, but not 
     specify then as self.xxx=yyy.
     """
-    @abstractmethod
+    
     def encrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package before transfer to the other end.
         """
         raise NotImplementedError(
             "You must implement the encrypt function for Cypher.")
 
-    @abstractmethod
+
     def decrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package received from the other end.
         """

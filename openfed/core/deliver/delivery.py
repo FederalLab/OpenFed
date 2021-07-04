@@ -184,5 +184,5 @@ class Delivery(Package, Hook):
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Delivery",
-            description=str(list(self.key_tensor_bidict.keys()))
+            description=list(self.key_tensor_bidict.keys())
         )
