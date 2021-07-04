@@ -264,9 +264,3 @@ Downloading failed.
 Finished.
 Exit Client @blinks.
 ```
-
-## Project Structure
-
-<div align=center>
-<img src="docs/structure.png" width="200" height="170" />
-</div>
