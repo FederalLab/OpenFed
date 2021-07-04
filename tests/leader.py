@@ -16,6 +16,7 @@ def test_leader(args):
 
     # >>> Specify an API for building federated learning
     openfed_api = openfed.API(frontend=args.fed_rank > 0)
+    openfed_api.max_try_times = 15
 
     # >>> Register more step functions.
     # You can register a step function to openfed_api like following:
