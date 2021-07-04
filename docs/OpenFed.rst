@@ -1,23 +1,24 @@
-.. OpenFed documentation master file, created by
-   sphinx-quickstart on Thu Jun 24 22:29:01 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+openfed package
+===============
 
-Welcome to OpenFed's documentation!
-===================================
+Subpackages
+-----------
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
 
-   Readme <..README.md>
+    openfed.api
+    openfed.common
+    openfed.container
+    openfed.core
+    openfed.data
+    openfed.pipe
+    openfed.tools
+    openfed.utils
 
-   Copyright <copyright.rst>
+Module contents
+---------------
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. automodule:: openfed
+    :members:
+    :undoc-members:
+    :show-inheritance:
