@@ -1,6 +1,13 @@
 openfed\.common package
 =======================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    openfed.common.base
+
 Submodules
 ----------
 
@@ -20,6 +27,14 @@ openfed\.common\.array module
     :undoc-members:
     :show-inheritance:
 
+openfed\.common\.clone module
+-----------------------------
+
+.. automodule:: openfed.common.clone
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 openfed\.common\.constants module
 ---------------------------------
 
@@ -29,7 +44,7 @@ openfed\.common\.constants module
     :show-inheritance:
 
 openfed\.common\.exceptions module
----------------------------------
+----------------------------------
 
 .. automodule:: openfed.common.exceptions
     :members:
@@ -40,6 +55,14 @@ openfed\.common\.hook module
 ----------------------------
 
 .. automodule:: openfed.common.hook
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+openfed\.common\.logging module
+-------------------------------
+
+.. automodule:: openfed.common.logging
     :members:
     :undoc-members:
     :show-inheritance:
@@ -60,10 +83,10 @@ openfed\.common\.parser module
     :undoc-members:
     :show-inheritance:
 
-openfed\.common\.peeper module
-------------------------------
+openfed\.common\.task\_info module
+----------------------------------
 
-.. automodule:: openfed.common.peeper
+.. automodule:: openfed.common.task_info
     :members:
     :undoc-members:
     :show-inheritance:

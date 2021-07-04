@@ -13,8 +13,16 @@ Subpackages
 Submodules
 ----------
 
+openfed\.data\.analysis module
+------------------------------
+
+.. automodule:: openfed.data.analysis
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 openfed\.data\.datasets module
------------------------------
+------------------------------
 
 .. automodule:: openfed.data.datasets
     :members:
