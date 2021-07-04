@@ -6,6 +6,5 @@ def test_peeper():
     peeper.remove_from_peeper('test')
 
     assert 'test' not in peeper.obj_item_mapping
-
-
+    
     print(peeper)

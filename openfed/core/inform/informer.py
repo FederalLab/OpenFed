@@ -224,7 +224,7 @@ class Informer(Hook):
         return TaskInfo().load_dict(self.get(OPENFED_TASK_INFO))
 
     def set_task_info(self, task_info: TaskInfo):
-        self.set(OPENFED_TASK_INFO, task_info.as_dict)
+        self.set(OPENFED_TASK_INFO, task_info.info_dict)
 
     def _get_state(self) -> str:
         return self.get(OPENFED_STATUS)

@@ -88,7 +88,7 @@ class Dispatch(MultiStep):
     def after_download(self, backend, flag: bool):
         if flag:
             task_info = backend.reign_task_info
-            part_id = task_info.get("part_id")
+            part_id = task_info.part_id
 
             logger.debug(f"Download a model from {backend.nick_name}.")
 
@@ -115,8 +115,8 @@ class Dispatch(MultiStep):
 
             # generate task_info
             task_info = TaskInfo()
-            task_info.set('part_id', int(part_id))
-            task_info.set('version', backend.version)
+            task_info.part_id = int(part_id)
+            task_info.version = backend.version
 
             # set task_info
             backend.set_task_info(task_info)

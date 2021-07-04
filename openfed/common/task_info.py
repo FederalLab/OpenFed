@@ -23,7 +23,7 @@
 
 import json
 from typing import Any, Dict, TypeVar
-
+from copy import deepcopy
 from openfed.utils import openfed_class_fmt, tablist
 
 from .logging import logger
@@ -34,36 +34,24 @@ _T = TypeVar("_T", bound='TaskInfo')
 class TaskInfo(object):
     r"""Provide same methods for better management of task info.
     """
-    _info_dict: Dict[str, Any]
 
     def __init__(self, ):
         super().__init__()
 
-        self._info_dict = {}
-
-    def set(self, key: str, value: Any):
-        if key in self._info_dict:
-            logger.debug(f"Reset {key} {self._info_dict[key]} as {value}")
-        self._info_dict[key] = value
-        # check value is valid or not
-        json.dumps(self._info_dict)
-
-    def get(self, key: str):
-        return self._info_dict[key]
-
     @property
-    def as_dict(self):
-        return self._info_dict
+    def info_dict(self):
+        info_dict = deepcopy(self.__dict__)
+        return info_dict
 
     def load_dict(self, o_dict: Dict[str, Any]) -> _T:
-        self._info_dict.update(o_dict)
+        self.__dict__.update(o_dict)
         return self
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="TaskInfo",
             description=tablist(
-                head=list(self._info_dict.keys()),
-                data=list(self._info_dict.values())
+                head=list(self.info_dict.keys()),
+                data=list(self.info_dict.values())
             )
         )
