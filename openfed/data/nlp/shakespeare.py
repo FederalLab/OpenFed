@@ -28,7 +28,6 @@ import re
 
 import h5py
 import numpy as np
-import torch
 from openfed.common import logger
 
 from ..datasets import FederatedDataset
