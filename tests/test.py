@@ -10,13 +10,12 @@ from openfed.container import AverageAgg
 from openfed.utils import time_string
 
 
-def test_cpu(args):
+def main(args):
     # >>> set log level
     openfed.logger.log_level(level="DEBUG")
 
     # >>> Specify an API for building federated learning
     openfed_api = openfed.API(frontend=args.fed_rank > 0)
-    openfed_api.max_try_times = 15
 
     # >>> Register more step functions.
     # You can register a step function to openfed_api like following:
@@ -35,6 +34,8 @@ def test_cpu(args):
 
     # Build Network
     net = nn.Linear(1, 1)
+    # Move to GPU
+    net.to(args.device)
 
     # Define optimizer (use the same optimizer in both server and client)
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
@@ -51,6 +52,10 @@ def test_cpu(args):
     # Context `with openfed_api` will go into the specified settings about openfed_api.
     # Otherwise, will use the default one which shared by global OpenFed world.
     with openfed_api:
+
+        # >>> If openfed_api is a backend, call `run()` will go into the loop ring.
+        # >>> Call `start()` will run it as a thread.
+        # >>> If openfed_api is a frontend, call `run()` will directly skip this function automatically.
         if not openfed_api.backend_loop():
             # Do simulation random times at [10, 70].
             for i in range(1, random.randint(10, 70)):
@@ -67,7 +72,7 @@ def test_cpu(args):
 
                 # Start a standard forward/backward pass.
                 optimizer.zero_grad()
-                net(torch.randn(128, 1, 1)).sum().backward()
+                net(torch.randn(128, 1, 1).to(args.device)).sum().backward()
                 optimizer.step()
 
                 # >>> Update inner model version
@@ -87,5 +92,13 @@ def test_cpu(args):
 
 if __name__ == "__main__":
     # >>> Get default arguments from OpenFed
+    openfed.parser.add_argument("--max_try_times", default=15, type=int)
+    openfed.parser.add_argument("--gpu", default=False, action='store_true')
     args = openfed.parser.parse_args()
-    test_cpu(args)
+    if torch.cuda.is_available() and args.gpu:
+        args.gpu = args.fed_rank % torch.cuda.device_count()
+        args.device = torch.device("cuda:{}" % args.gpu)
+    else:
+        args.device = torch.device("cpu")
+    print(f"Use {args.device}.")
+    main(args)

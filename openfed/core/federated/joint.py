@@ -133,10 +133,10 @@ class Joint(SafeTread):
 
         if self.build_success:
             logger.debug(f"Connected\n{str(self.address)}")
-        return f"Success! {repr(self.address)}" if self.build_success else f"Failed! {repr(self.address)}"
+        return f"Success! {self.address}" if self.build_success else f"Failed! {self.address}"
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name  = "Joint",
-            description = str(self.address),
+            description = self.address,
         )
