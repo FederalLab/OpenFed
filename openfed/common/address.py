@@ -135,6 +135,12 @@ class Address_(object):
             ),
         )
 
+    def __getattribute__(self, name: Any):
+        try:
+            return super(Address_, self).__getattribute__(name)
+        except AttributeError as e:
+            return self.address[name]
+
 
 def load_address_from_file(file: str) -> List[_A]:
     if file is None or not os.path.isfile(file):

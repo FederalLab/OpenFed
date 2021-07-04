@@ -10,16 +10,12 @@ from openfed.container import AverageAgg
 from openfed.utils import time_string
 
 
-def test_leader():
+def test_leader(args):
     # >>> set log level
     openfed.logger.log_level(level="DEBUG")
 
-    # >>> Get default arguments from OpenFed
-    args = openfed.parser.parse_args()
-    args.rank = 0
-
     # >>> Specify an API for building federated learning
-    openfed_api = openfed.API(frontend=args.rank > 0)
+    openfed_api = openfed.API(frontend=args.fed_rank > 0)
 
     # >>> Register more step functions.
     # You can register a step function to openfed_api like following:
@@ -28,7 +24,7 @@ def test_leader():
     # Or use the with context to add a sequence of step function to openfed_api automatically.
     with StepAt(openfed_api):
         openfed.api.AggregateCount(
-            count=args.world_size-1, checkpoint="/tmp/openfed-model")
+            count=args.fed_world_size-1, checkpoint="/tmp/openfed-model")
         openfed.api.StopAtVersion(max_version=3)
         openfed.api.AfterDownload()
         openfed.api.BeforeUpload()
@@ -95,4 +91,9 @@ def test_leader():
 
 
 if __name__ == "__main__":
-    test_leader()
+
+    # >>> Get default arguments from OpenFed
+    args = openfed.parser.parse_args()
+    if args.fed_rank == -1:
+        args.fed_rank = 0
+    test_leader(args)

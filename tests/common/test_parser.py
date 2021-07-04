@@ -4,9 +4,8 @@ from openfed.common.parser import parser
 def test_parser():
     args = parser.parse_args()
 
-    print(args.backend)
-    print(args.init_method)
-    print(args.port)
-    print(args.world_size)
-    print(args.rank)
-    print(args.group_name)
+    print(args.fed_backend)
+    print(args.fed_init_method)
+    print(args.fed_world_size)
+    print(args.fed_rank)
+    print(args.fed_group_name)
