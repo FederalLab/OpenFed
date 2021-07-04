@@ -279,8 +279,8 @@ def main():
         cmd.append(args.training_script)
 
         if not args.use_env:
-            cmd.append("--local_rank={}".format(local_rank))
-            cmd.append("--world_size={}".format(fed_world_size))
+            cmd.append("--fed_local_rank={}".format(local_rank))
+            cmd.append("--fed_world_size={}".format(fed_world_size))
 
         cmd.extend(args.training_script_args)
 

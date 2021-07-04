@@ -78,12 +78,12 @@ class Address_(object):
     def __init__(self, **kwargs):
         if kwargs.get('args', None):
             args = kwargs.get('args')
-            backend = args.backend
-            init_method = args.init_method
-            world_size = args.world_size
-            rank = args.rank
+            backend = args.fed_backend
+            init_method = args.fed_init_method
+            world_size = args.fed_world_size
+            rank = args.fed_rank
             store = None
-            group_name = args.group_name
+            group_name = args.fed_group_name
         else:
             backend = kwargs['backend']
             init_method = kwargs.get('init_method', 'env://')
