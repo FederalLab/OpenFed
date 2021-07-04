@@ -43,14 +43,6 @@ openfed\.common\.constants module
     :undoc-members:
     :show-inheritance:
 
-openfed\.common\.exceptions module
-----------------------------------
-
-.. automodule:: openfed.common.exceptions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 openfed\.common\.hook module
 ----------------------------
 

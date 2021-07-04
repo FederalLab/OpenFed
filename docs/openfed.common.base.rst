@@ -4,6 +4,14 @@ openfed\.common\.base package
 Submodules
 ----------
 
+openfed\.common\.base\.exceptions module
+----------------------------------------
+
+.. automodule:: openfed.common.base.exceptions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 openfed\.common\.base\.peeper module
 ------------------------------------
 
