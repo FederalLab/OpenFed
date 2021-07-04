@@ -1,5 +1,6 @@
 from openfed.common.task_info import TaskInfo
 
+
 def test_task_info():
     task_info = TaskInfo()
     task_info.instances = 128
@@ -8,5 +9,3 @@ def test_task_info():
     print(task_info.info_dict)
 
     print(task_info)
-
-test_task_info()
