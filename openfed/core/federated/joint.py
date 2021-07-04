@@ -61,12 +61,10 @@ class Joint(SafeTread):
                 # if follower, wait until thread quit
                 self.join()
                 if not self.build_success:
-                    msg = f"Connect to {str(self.address)} failed."
-                    logger.error(msg)
-                    raise RuntimeError(msg)
+                    raise RuntimeError(f"Connect to {self.address} failed.")
 
     def safe_run(self) -> str:
-        logger.debug(f"Waiting\n{repr(self.address)}")
+        logger.debug(f"Waiting ...")
 
         # create a country
         country = Country(self.world)
@@ -77,7 +75,7 @@ class Joint(SafeTread):
         except ConnectTimeout as cte:
             del country
             logger.debug(cte)
-            return f"Timeout {repr(self.address)}"
+            return f"Timeout {self.address}"
 
         # register the world
         with self.world.joint_lock:
@@ -91,7 +89,6 @@ class Joint(SafeTread):
                        f"Make the world size smaller than 10 ({world_size} is given.) to run stablely.\n"
                        "Or use a share file system to initialize.\n"
                        "For example: ```--init_method file:///tmp/openfed.sharefile```.\n")
-                logger.error(msg)
                 raise RuntimeError(msg)
 
             # rank is always set to 0 for that we want to build a
