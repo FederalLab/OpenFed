@@ -39,10 +39,10 @@ conda activate openfed
 pip3 install -r requirements.txt
 
 # test
-python3 -m openfed.launch --nproc_per_node 3 --logdir /tmp --server_output demo.py
+python3 -m openfed.tools.launch --nproc_per_node 3 --logdir /tmp tests/cpu.py
 
 # make sure /tmp/openfed.sharefile does not exist before run this script.
-python3 -m openfed.launch --nproc_per_node 11 --logdir /tmp --server_output demo.py --init_method file:///tmp/openfed.sharefile
+python3 -m openfed.tools.launch --nproc_per_node 11 --logdir /tmp tests/gpu.py --fed_init_method file:///tmp/openfed.sharefile
 ```
 
 ## Docs

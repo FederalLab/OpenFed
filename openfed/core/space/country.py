@@ -42,11 +42,19 @@ from ..utils.lock import acquire_all, release_all
 from .world import World
 
 try:
-    from torch.distributed.distributed_c10d import (ProcessGroupGloo,
-                                                    ProcessGroupMPI,
-                                                    ProcessGroupNCCL)
-except ImportError:
-    ...
+    from torch.distributed.distributed_c10d import ProcessGroupGloo
+except ImportError as e:
+    ProcessGroupGloo = None
+
+try:
+    from torch.distributed.distributed_c10d import ProcessGroupMPI
+except ImportError as e:
+    ProcessGroupMPI = None
+
+try:
+    from torch.distributed.distributed_c10d import ProcessGroupNCCL
+except ImportError as e:
+    ProcessGroupNCCL = None
 
 
 class Country(object):
