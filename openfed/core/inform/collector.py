@@ -52,7 +52,6 @@ class Register(object):
             logger.debug("Invalid collector.")
             return None
         if obj.bounding_name in collectors:
-            logger.debug("Load already exists collector.")
             return collectors[obj.bounding_name]
         else:
             logger.debug("Build a new collector.")

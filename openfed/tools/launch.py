@@ -149,6 +149,7 @@ import sys
 import time
 from argparse import REMAINDER, ArgumentParser
 from typing import IO, Any, List, Optional
+
 from openfed.utils import openfed_title
 
 node_local_rank_stdout_filename = "openfed_node_{}_local_rank_{}_stdout"
@@ -316,7 +317,7 @@ def main():
                     process.kill()
                 except Exception:
                     pass
-            if last_return_code is not None:
+            if last_return_code is not None and last_return_code != signal.SIGTERM:
                 raise subprocess.CalledProcessError(
                     returncode=last_return_code, cmd=cmd)
             if signum in sig_names:

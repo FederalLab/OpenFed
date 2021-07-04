@@ -154,7 +154,7 @@ class API(SafeTread, Hook):
             description=f"{'Frontend' if self.frontend else 'Backend'}."
         )
 
-    def finish(self, auto_exit: bool = True):
+    def finish(self, auto_exit: bool = False):
         if self.maintainer:
             Destroy.destroy_all_in_a_world(self.maintainer.world)
             self.maintainer.manual_stop()

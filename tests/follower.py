@@ -83,11 +83,9 @@ def test_follower(args):
                     break
                 print(f"{time_string()}: Uploaded!")
 
-    # >>> Finished
-    openfed_api.finish()
-
     print(f"Finished.\nExit Client @{openfed_api.nick_name}.")
-
+    # >>> Finished
+    openfed_api.finish(auto_exit=True)
 
 if __name__ == "__main__":
     # >>> Get default arguments from OpenFed
