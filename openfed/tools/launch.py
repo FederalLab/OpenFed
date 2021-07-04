@@ -22,21 +22,21 @@
 
 
 r"""
-`torch.distributed.launch` is a module that spawns up multiple distributed
-training processes on each of the training nodes.
+`openfed.tools.launch` is a module that spawns up multiple simulated
+federated processes on each of the training nodes.
 
-The utility can be used for single-node distributed training, in which one or
+The utility can be used for single-node federated simulation, in which one or
 more processes per node will be spawned. The utility can be used for either
 CPU training or GPU training. If the utility is used for GPU training,
-each distributed process will be operating on a single GPU. This can achieve
+each federated process will be operating on a single GPU. This can achieve
 well-improved single-node training performance. It can also be used in
-multi-node distributed training, by spawning up multiple processes on each node
-for well-improved multi-node distributed training performance as well.
+multi-node federated training, by spawning up multiple processes on each node
+for well-improved multi-node federated training performance as well.
 This will especially be beneficial for systems with multiple Infiniband
 interfaces that have direct-GPU support, since all of them can be utilized for
 aggregated communication bandwidth.
 
-In both cases of single-node distributed training or multi-node distributed
+In both cases of single-node federated training or multi-node federated
 training, this utility will launch the given number of processes per node
 (``--nproc_per_node``). If used for GPU training, this number needs to be less
 or equal to the number of GPUs on the current system (``nproc_per_node``),
@@ -45,22 +45,22 @@ GPU (nproc_per_node - 1)*.
 
 **How to use this module:**
 
-1. Single-Node multi-process distributed training
+1. Single-Node multi-process federated training
 
 ::
 
-    >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE
+    >>> python -m openfed.tools.launch --nproc_per_node=NUM_GPUS_YOU_HAVE
                YOUR_TRAINING_SCRIPT.py (--arg1 --arg2 --arg3 and all other
                arguments of your training script)
 
-2. Multi-Node multi-process distributed training: (e.g. two nodes)
+2. Multi-Node multi-process federated training: (e.g. two nodes)
 
 
 Node 1: *(IP: 192.168.1.1, and has a free port: 1234)*
 
 ::
 
-    >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE
+    >>> python -m openfed.tools.launch --nproc_per_node=NUM_GPUS_YOU_HAVE
                --nnodes=2 --node_rank=0 --master_addr="192.168.1.1"
                --master_port=1234 YOUR_TRAINING_SCRIPT.py (--arg1 --arg2 --arg3
                and all other arguments of your training script)
@@ -69,7 +69,7 @@ Node 2:
 
 ::
 
-    >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE
+    >>> python -m openfed.tools.launch --nproc_per_node=NUM_GPUS_YOU_HAVE
                --nnodes=2 --node_rank=1 --master_addr="192.168.1.1"
                --master_port=1234 YOUR_TRAINING_SCRIPT.py (--arg1 --arg2 --arg3
                and all other arguments of your training script)
@@ -78,7 +78,7 @@ Node 2:
 
 ::
 
-    >>> python -m torch.distributed.launch --help
+    >>> python -m openfed.tools.launch --help
 
 
 **Important Notices:**
@@ -122,28 +122,10 @@ by this module.
 
 ::
 
-    torch.distributed.init_process_group(backend='YOUR BACKEND',
+    openfed.core.space.Country.init_process_group(backend='YOUR BACKEND',
                                          init_method='env://')
 
-4. In your training program, you can either use regular distributed functions
-or use :func:`torch.nn.parallel.DistributedDataParallel` module. If your
-training program uses GPUs for training and you would like to use
-:func:`torch.nn.parallel.DistributedDataParallel` module,
-here is how to configure it.
-
-::
-
-    model = torch.nn.parallel.DistributedDataParallel(model,
-                                                      device_ids=[args.local_rank],
-                                                      output_device=args.local_rank)
-
-Please ensure that ``device_ids`` argument is set to be the only GPU device id
-that your code will be operating on. This is generally the local rank of the
-process. In other words, the ``device_ids`` needs to be ``[args.local_rank]``,
-and ``output_device`` needs to be ``args.local_rank`` in order to use this
-utility
-
-5. Another way to pass ``local_rank`` to the subprocesses via environment variable
+4. Another way to pass ``local_rank`` to the subprocesses via environment variable
 ``LOCAL_RANK``. This behavior is enabled when you launch the script with
 ``--use_env=True``. You must adjust the subprocess example above to replace
 ``args.local_rank`` with ``os.environ['LOCAL_RANK']``; the launcher
@@ -168,8 +150,8 @@ import time
 from argparse import REMAINDER, ArgumentParser
 from typing import IO, Any, List, Optional
 
-node_local_rank_stdout_filename = "node_{}_local_rank_{}_stdout"
-node_local_rank_stderr_filename = "node_{}_local_rank_{}_stderr"
+node_local_rank_stdout_filename = "openfed_node_{}_local_rank_{}_stdout"
+node_local_rank_stderr_filename = "openfed_node_{}_local_rank_{}_stderr"
 
 
 def parse_args():
@@ -177,16 +159,16 @@ def parse_args():
     Helper function parsing the command line options
     @retval ArgumentParser
     """
-    parser = ArgumentParser(description="PyTorch distributed training launch "
+    parser = ArgumentParser(description="OpenFed federated simulation training launch "
                                         "helper utility that will spawn up "
-                                        "multiple distributed processes")
+                                        "multiple federated processes.")
 
     # Optional arguments for the launch helper
     parser.add_argument("--nnodes", type=int, default=1,
-                        help="The number of nodes to use for distributed "
+                        help="The number of nodes to use for federated "
                              "training")
     parser.add_argument("--node_rank", type=int, default=0,
-                        help="The rank of the node for multi-node distributed "
+                        help="The rank of the node for multi-node federated "
                              "training")
     parser.add_argument("--nproc_per_node", type=int, default=1,
                         help="The number of processes to launch on each node, "
@@ -198,9 +180,9 @@ def parse_args():
                              "the IP address or the hostname of node 0, for "
                              "single node multi-proc training, the "
                              "--master_addr can simply be 127.0.0.1")
-    parser.add_argument("--master_port", default=29500, type=int,
+    parser.add_argument("--master_port", default=1994, type=int,
                         help="Master node (rank 0)'s free port that needs to "
-                             "be used for communication during distributed "
+                             "be used for communication during federated "
                              "training")
     parser.add_argument("--use_env", default=False, action="store_true",
                         help="Use environment variable to pass "
@@ -214,10 +196,6 @@ def parse_args():
     parser.add_argument("--no_python", default=False, action="store_true",
                         help="Do not prepend the training script with \"python\" - just exec "
                              "it directly. Useful when the script is not a Python script.")
-    parser.add_argument("--server_output", default=False, action='store_true',
-                        help="exclude the server node, such that you can keep a better visualize of"
-                             "training progress. If set True, the log information of server will directly"
-                             "shown in command line.")
     parser.add_argument(
         "--logdir",
         default=None,
@@ -226,7 +204,7 @@ def parse_args():
         path will create a directory if needed, and write the stdout and stderr to files
         {node_local_rank_stdout_filename} and {node_local_rank_stderr_filename}. Note that
         successive runs with the  same path to write logs to will overwrite existing logs,
-        so be sure to save logs as needed.""",
+        so be sure to save logs as needed. (The logs of rank 0 will be directly printed to the screen.)""",
     )
 
     # positional
@@ -244,17 +222,14 @@ def parse_args():
 def main():
     args = parse_args()
 
-    if args.logdir is None:
-        print("We highly recommended set --logdir and --server_output for a better visualization while federated training.")
-
     # world size in terms of number of processes
-    dist_world_size = args.nproc_per_node * args.nnodes
+    fed_world_size = args.nproc_per_node * args.nnodes
 
     # set PyTorch distributed related environmental variables
     current_env = os.environ.copy()
     current_env["MASTER_ADDR"] = args.master_addr
     current_env["MASTER_PORT"] = str(args.master_port)
-    current_env["WORLD_SIZE"] = str(dist_world_size)
+    current_env["WORLD_SIZE"] = str(fed_world_size)
 
     processes: List[Any] = []
 
@@ -304,14 +279,14 @@ def main():
 
         if not args.use_env:
             cmd.append("--local_rank={}".format(local_rank))
-            cmd.append("--world_size={}".format(dist_world_size))
+            cmd.append("--world_size={}".format(fed_world_size))
 
         cmd.extend(args.training_script_args)
 
         stdout_handle: Optional[IO]
         stderr_handle: Optional[IO]
         if args.logdir:
-            if dist_rank == 0 and args.server_output:
+            if dist_rank == 0:
                 subprocess_file_handles.append((None, None))
             else:
                 directory_path = os.path.join(os.getcwd(), args.logdir)

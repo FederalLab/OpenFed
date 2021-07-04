@@ -48,13 +48,15 @@ class SafeTread(Thread):
         peeper.thread_pool[self] = time_string()
 
     @final
-    def run(self):
+    def run(self) -> bool:
         """
             Implement safe_run() instead.
         """
         logger.debug(self.safe_run())
         self.stopped = True
         del peeper.thread_pool[self]
+        return True
+        
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(

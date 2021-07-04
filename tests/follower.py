@@ -58,35 +58,34 @@ def test_follower():
         # >>> If openfed_api is a backend, call `run()` will go into the loop ring.
         # >>> Call `start()` will run it as a thread.
         # >>> If openfed_api is a frontend, call `run()` will directly skip this function automatically.
-        openfed_api.backend_loop()
+        if not openfed_api.backend_loop():
+            # Do simulation random times at [10, 70].
+            for i in range(1, random.randint(10, 70)):
+                print(f"{time_string()}: Simulation @{i}")
 
-        # Do simulation random times at [10, 70].
-        for i in range(1, random.randint(10, 70)):
-            print(f"{time_string()}: Simulation @{i}")
+                # Download latest model.
+                print(f"{time_string()}: Downloading latest model from server.")
+                if not openfed_api.download():
+                    print(f"Downloading failed.")
+                    break
 
-            # Download latest model.
-            print(f"{time_string()}: Downloading latest model from server.")
-            if not openfed_api.download():
-                print(f"Downloading failed.")
-                break
+                # Downloaded
+                print(f"{time_string()}: Downloaded!")
 
-            # Downloaded
-            print(f"{time_string()}: Downloaded!")
+                # Start a standard forward/backward pass.
+                optimizer.zero_grad()
+                net(torch.randn(128, 1, 1)).sum().backward()
+                optimizer.step()
 
-            # Start a standard forward/backward pass.
-            optimizer.zero_grad()
-            net(torch.randn(128, 1, 1)).sum().backward()
-            optimizer.step()
+                # >>> Update inner model version
+                openfed_api.update_version()
 
-            # >>> Update inner model version
-            openfed_api.update_version()
-
-            # Upload trained model
-            print(f"{time_string()}: Uploading trained model to server.")
-            if not openfed_api.upload():
-                print("Uploading failed.")
-                break
-            print(f"{time_string()}: Uploaded!")
+                # Upload trained model
+                print(f"{time_string()}: Uploading trained model to server.")
+                if not openfed_api.upload():
+                    print("Uploading failed.")
+                    break
+                print(f"{time_string()}: Uploaded!")
 
     # >>> Finished
     openfed_api.finish()

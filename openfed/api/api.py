@@ -109,9 +109,9 @@ class API(SafeTread, Hook):
         [self.reign.register_cypher(
             hook) for hook in self._hooks_del if hook not in self.reign._hook_list]
 
-    @property
-    def nick_name(self) -> str:
-        return self.reign.nick_name
+    # @property
+    # def nick_name(self) -> str:
+    #     return self.reign.nick_name
 
     def build_connection(self, world: World = None, address: Union[Address, List[Address]] = None, address_file: str = None):
         world = world if world is not None else World(leader=self.backend)
@@ -164,10 +164,12 @@ class API(SafeTread, Hook):
             self.maintainer.manual_stop()
 
         if auto_exit and self.backend:
-            exit(0)
+            exit(15)
 
-    def backend_loop(self):
-        return self.run() if self.backend else None
+    def backend_loop(self) -> bool:
+        """If go into run() func, will return True, otherwise False.
+        """
+        return self.run() if self.backend else False
 
     def __enter__(self):
         self.original_state = [
@@ -196,11 +198,11 @@ class API(SafeTread, Hook):
         """
         self.version = version if version is not None else self.version + 1
 
-    def set(self, key: str, value: Any) -> None:
-        self.reign.set(key, value)
+    # def set(self, key: str, value: Any) -> None:
+    #     self.reign.set(key, value)
 
-    def get(self, key: str) -> Any:
-        return self.reign.get(key)
+    # def get(self, key: str) -> Any:
+    #     return self.reign.get(key)
 
     def _device_offline_care(func):
         def wrapper(self, *args, **kwargs):
@@ -361,7 +363,6 @@ class API(SafeTread, Hook):
 
             # left some time to maintainer lock
             time.sleep(0.1)
-        self.finish(auto_exit=True)
         return "Backend exited."
 
     def register_step(self, step: Step):
