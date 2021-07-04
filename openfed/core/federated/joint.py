@@ -74,7 +74,7 @@ class Joint(SafeTread):
 
         # build the connection between the country
         try:
-            country.init_process_group(**self.address.as_dict)
+            country.init_process_group(**self.address.address)
         except ConnectTimeout as cte:
             del country
             logger.debug(cte)

@@ -25,11 +25,11 @@ import json
 import os
 import time
 from argparse import Namespace
-from typing import List, TypeVar, Union, overload
+from typing import Any, Dict, List, TypeVar, Union, overload
 
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
-from .base import peeper
+from .base import InvalidAddress, peeper
 
 _A = TypeVar("_A", bound='Address_')
 
@@ -45,12 +45,11 @@ def cmp_address(add_a: _A, add_b: _A) -> bool:
         if add_a is None or add_b is None:
             return False
         else:
-            return (add_a.backend == add_b.backend and
-                    add_a.init_method == add_b.init_method and
-                    add_a.world_size == add_b.world_size and
-                    add_a.rank == add_b.rank and
-                    add_a.store == add_b.store and
-                    add_a.group_name == add_b.group_name)
+            for k in add_a.address.keys():
+                if add_a.address[k] != add_b.address[k]:
+                    return False
+            else:
+                return True
 
 
 def add_address_to_pool(address: _A) -> _A:
@@ -73,57 +72,60 @@ def remove_address_from_pool(address: _A) -> bool:
 
 
 class Address_(object):
-    backend: str
-    init_method: str = None
-    world_size: int = 2
-    rank: int = -1
-    store = None
-    group_name: str = ''
+
+    address: Dict[str, Any] = None
 
     def __init__(self, **kwargs):
         if kwargs.get('args', None):
             args = kwargs.get('args')
-            if args.port is not None:
-                if args.init_method.startswith("tcp"):
-                    args.init_method = ":".join(
-                        args.init_method.split(":")[:2] + [str(args.port)])
-
-            self.backend = args.backend
-            self.init_method = args.init_method
-            self.world_size = args.world_size
-            self.rank = args.rank
-            self.store = None
-            self.group_name = args.group_name
+            backend = args.backend
+            init_method = args.init_method
+            world_size = args.world_size
+            rank = args.rank
+            store = None
+            group_name = args.group_name
         else:
-            self.backend = kwargs['backend']
-            self.init_method = kwargs.get('init_method', None)
-            self.world_size = kwargs.get('world_size', 2)
-            self.rank = kwargs.get('rank', -1)
-            self.store = kwargs.get('store', None)
-            self.group_name = kwargs.get('group_name', "")
+            backend = kwargs['backend']
+            init_method = kwargs.get('init_method', 'env://')
+            world_size = kwargs.get('world_size', 2)
+            rank = kwargs.get('rank', -1)
+            store = kwargs.get('store', None)
+            group_name = kwargs.get('group_name', '')
+        if init_method.startswith('env://'):
+            try:
+                rank = int(os.environ['FED_RANK'])
+                world_size = int(os.environ['FED_WORLD_SIZE'])
+                group_name = os.environ['FED_GROUP_NAME']
+            except KeyError as e:
+                raise InvalidAddress(e)
 
-    def __str__(self):
-        table = tablist(
-            head=['Backend', 'Init Method', 'World Size',
-                  'Rank', 'Store', 'Group Name'],
-            data=[self.backend, self.init_method, self.world_size,
-                  self.rank, self.store, self.group_name],
-            force_in_one_row=True
+        if backend not in ['gloo', 'mpi', 'nccl']:
+            raise InvalidAddress(
+                'backend must be one of `gloo`, `mpi`, `nccl`')
+        if not (init_method.startswith('file://') or init_method.startswith('env://') or init_method.startswith('tcp://')):
+            raise InvalidAddress(
+                'init method must start with `file://`, `env://`, `tcp://`')
+        if not (-1 <= rank < world_size):
+            raise InvalidAddress(
+                f"Rank out of index. (rank={rank}, world_size={world_size})")
+
+        self.address = dict(
+            backend=backend,
+            init_method=init_method,
+            world_size=world_size,
+            rank=rank,
+            store=store,
+            group_name=group_name
         )
+
+    def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Address_",
-            description=table,
-        )
-
-    @property
-    def as_dict(self):
-        return dict(
-            backend=self.backend,
-            init_method=self.init_method,
-            world_size=self.world_size,
-            rank=self.rank,
-            store=self.store,
-            group_name=self.group_name
+            class_name="Address",
+            description=tablist(
+                head=self.address.keys(),
+                data=self.address.values(),
+                force_in_one_row=True,
+            ),
         )
 
 
@@ -138,7 +140,7 @@ def load_address_from_file(file: str) -> List[_A]:
 
 def dump_address_to_file(file: str, address_list: Union[_A, List[_A]]):
     address_list = convert_to_list(address_list)
-    address_dict_list = [address.as_dict for address in address_list]
+    address_dict_list = [address.address for address in address_list]
     with open(file, "w") as f:
         json.dump(address_dict_list, f)
 
@@ -151,14 +153,13 @@ def Address(args: Namespace):
 
 @overload
 def Address(backend: str,
-            init_method: str = None,
+            init_method: str = "env://",
             world_size: int = 2,
             rank: int = -1,
             store=None,
             group_name: str = ''):
     """
-    Initializes the default distributed process group, and this will also
-    initialize the distributed package.
+    Initializes the default federated process group.
 
     There are 2 main ways to initialize a process group:
         1. Specify ``store``, ``rank``, and ``world_size`` explicitly.
@@ -182,6 +183,9 @@ def Address(backend: str,
                                     process group. Default is "env://" if no
                                     ``init_method`` or ``store`` is specified.
                                     Mutually exclusive with ``store``.
+                                    If "env://" is specified, FED_GROUP_NAME,
+                                    FED_RANK, FED_WORLD_SIZE should be specified
+                                    in the environments. Such as: export FED_RANK=0...
         world_size (int, optional): Number of processes participating in
                                     the job. Required if ``store`` is specified.
         rank (int, optional): Rank of the current process (it should be a
@@ -190,25 +194,8 @@ def Address(backend: str,
         store(Store, optional): Key/value store accessible to all workers, used
                                 to exchange connection/address information.
                                 Mutually exclusive with ``init_method``.
-        timeout (timedelta, optional): Timeout for operations executed against
-            the process group. Default value equals 30 minutes.
-            This is applicable for the ``gloo`` backend. For ``nccl``, this is
-            applicable only if the environment variable ``NCCL_BLOCKING_WAIT``
-            or ``NCCL_ASYNC_ERROR_HANDLING`` is set to 1. When
-            ``NCCL_BLOCKING_WAIT`` is set, this is the duration for which the
-            process will block and wait for collectives to complete before
-            throwing an exceptions. When ``NCCL_ASYNC_ERROR_HANDLING`` is set,
-            this is the duration after which collectives will be aborted
-            asynchronously and the process will crash. ``NCCL_BLOCKING_WAIT``
-            will provide errors to the user which can be caught and handled,
-            but due to its blocking nature, it has a performance overhead. On
-            the other hand, ``NCCL_ASYNC_ERROR_HANDLING`` has very little
-            performance overhead, but crashes the process on errors. This is
-            done since CUDA execution is async and it is no longer safe to
-            continue executing user code since failed async NCCL operations
-            might result in subsequent CUDA operations running on corrupted
-            data. Only one of these two environment variables should be set.
-        group_name (str, optional, deprecated): Group name.
+        group_name (str, optional): Group name, this name will help you better
+            recognize different federated addresses.
 
     To enable ``backend == Backend.MPI``, PyTorch needs to be built from source
     on a system that supports MPI.

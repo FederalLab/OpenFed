@@ -121,9 +121,14 @@ class Helper(cmd.Cmd):
         backend = input("Backend (gloo, mpi, nccl): ")
         init_method = input(
             "Init method (tcp://IP:PORT, file://PATH_TO_FILE, env://): ")
-        group_name = input("Group name: ")
-        world_size = int(input("World size: "))
-        rank = int(input("Rank: "))
+        if not init_method.startswith("env://"):
+            group_name = input("Group name: ")
+            world_size = int(input("World size: "))
+            rank = int(input("Rank: "))
+        else:
+            group_name = ''
+            world_size = 0
+            rank = -1
 
         try:
             address = Address(
