@@ -10,12 +10,13 @@ from openfed.container import AverageAgg
 from openfed.utils import time_string
 
 
-def test_follower(args):
+def test_cpu(args):
     # >>> set log level
     openfed.logger.log_level(level="DEBUG")
 
     # >>> Specify an API for building federated learning
     openfed_api = openfed.API(frontend=args.fed_rank > 0)
+    openfed_api.max_try_times = 15
 
     # >>> Register more step functions.
     # You can register a step function to openfed_api like following:
@@ -50,10 +51,6 @@ def test_follower(args):
     # Context `with openfed_api` will go into the specified settings about openfed_api.
     # Otherwise, will use the default one which shared by global OpenFed world.
     with openfed_api:
-
-        # >>> If openfed_api is a backend, call `run()` will go into the loop ring.
-        # >>> Call `start()` will run it as a thread.
-        # >>> If openfed_api is a frontend, call `run()` will directly skip this function automatically.
         if not openfed_api.backend_loop():
             # Do simulation random times at [10, 70].
             for i in range(1, random.randint(10, 70)):
@@ -87,10 +84,8 @@ def test_follower(args):
     # >>> Finished
     openfed_api.finish(auto_exit=True)
 
+
 if __name__ == "__main__":
     # >>> Get default arguments from OpenFed
     args = openfed.parser.parse_args()
-    if args.fed_rank == -1:
-        args.fed_rank = 1
-
-    test_follower(args)
+    test_cpu(args)
