@@ -198,8 +198,6 @@ class GPUInfo(Collector):
                 arch_list         = torch.cuda.get_arch_list(),
                 device_capability = torch.cuda.get_device_capability(),
                 device_name       = torch.cuda.get_device_name(),
-                device_properties = torch.cuda.get_device_properties(
-                    torch.cuda.current_device()),
                 current_device = torch.cuda.current_device(),
             )
         else:
@@ -212,12 +210,11 @@ class GPUInfo(Collector):
         else:
             return tablist(
                 head=["Count", "Arch", "Capability",
-                      "Name", 'Properties', "Current"],
+                      "Name", "Current"],
                 data=[self.message['device_count'],
                       self.message['arch_list'],
                       self.message['device_capability'],
                       self.message['device_name'],
-                      self.message['device_properties'],
                       self.message['current_device']],
                 force_in_one_row=True
             )
