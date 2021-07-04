@@ -97,7 +97,7 @@ if __name__ == "__main__":
     args = openfed.parser.parse_args()
     if torch.cuda.is_available() and args.gpu:
         args.gpu = args.fed_rank % torch.cuda.device_count()
-        args.device = torch.device("cuda:{}" % args.gpu)
+        args.device = torch.device(args.gpu)
     else:
         args.device = torch.device("cpu")
     print(f"Use {args.device}.")
