@@ -83,7 +83,7 @@ class Aggregate(AtLast):
         # Reset same flags
         backend.received_numbers = 0
         logger.info(
-            f"Update version from @{backend.version} to @{backend.version+1}.")
+            f"Update: -> @{backend.version} >> @{backend.version+1}.")
         backend.version += 1
 
         if self.checkpoint:
@@ -108,7 +108,6 @@ class AggregatePeriod(Aggregate):
     def step(self, backend, *args, **kwargs) -> None:
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
-            logger.info("Agg operation triggered by period.")
             self.aggregate(backend, *args, **kwargs)
             # Update tic times.
             self.tic = time.time()
@@ -131,7 +130,6 @@ class AggregateCount(Aggregate):
 
     def step(self, backend, *args, **kwargs) -> None:
         if backend.received_numbers >= self.count:
-            logger.info("Agg operation triggered by count.")
             self.aggregate(backend, *args, **kwargs)
         else:
             pass
