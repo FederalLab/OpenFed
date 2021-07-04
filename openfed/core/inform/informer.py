@@ -292,8 +292,9 @@ class Informer(Hook):
                 obj = Register(key, self)()
                 if obj is not None and self.world.leader and obj.leader_collector or \
                         self.world.follower and obj.follower_collector:
-                    obj.load_message(value)
-                    logger.debug(obj)
+                    if not obj.once_only or not obj.collected:
+                        obj.load_message(value)
+                        logger.debug(obj)
 
     def scatter(self):
         """Scatter self.hook information to the other end.
@@ -302,7 +303,8 @@ class Informer(Hook):
         for k, f in self.hook_dict.items():
             if self.world.leader and f.leader_scatter or\
                     self.world.follower and f.follower_scatter:
-                cdict[k] = f()
+                if not f.once_only or not f.scattered:
+                    cdict[k] = f()
         self._update(cdict)
 
     def __str__(self) -> str:

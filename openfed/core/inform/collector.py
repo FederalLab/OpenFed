@@ -95,6 +95,15 @@ class Collector(Clone):
     leader_scatter: bool = True
     # If True, scatter self message in follower
     follower_scatter: bool = True
+    
+    def __init__(self, once_only: bool = False):
+        # If True, this collector will only be called once.
+        # Otherwise, it will be called everytime when the ends
+        # want to upload/download data.
+        self.once_only: bool = once_only
+        # Only be used while once_only is True
+        self.collected: bool = False
+        self.scattered: bool = False
 
     @abstractmethod
     def collect(self) -> Any:
@@ -103,6 +112,7 @@ class Collector(Clone):
 
     def load_message(self, message: Any):
         self.message = message
+        self.collected = True
 
     @abstractmethod
     def better_read(self) -> str:
@@ -144,16 +154,22 @@ class SystemInfo(Collector):
     leader_scatter  : bool = False
     follower_scatter: bool = True
 
+    def __init__(self) -> None:
+        super().__init__(True)
+
     def collect(self) -> Dict[str, str]:
-        return dict(
-            system       = platform.system(),
-            platform     = platform.system(),
-            version      = platform.version(),
-            architecture = platform.architecture(),
-            machine      = platform.machine(),
-            node         = platform.node(),
-            processor    = platform.processor(),
-        )
+        if self.scattered is False:
+            self.scattered = True
+            self.my_message = dict(
+                system       = platform.system(),
+                platform     = platform.system(),
+                version      = platform.version(),
+                architecture = platform.architecture(),
+                machine      = platform.machine(),
+                node         = platform.node(),
+                processor    = platform.processor(),
+            )
+        return self.my_message
 
     def better_read(self):
         if self.message is None:
@@ -191,17 +207,22 @@ class GPUInfo(Collector):
     leader_scatter  : bool = False
     follower_scatter: bool = True
 
+    def __init__(self) -> None:
+        super().__init__(True)
+
     def collect(self) -> Dict[str, str]:
-        if torch.cuda.is_available():
-            return dict(
-                device_count      = torch.cuda.device_count(),
-                arch_list         = torch.cuda.get_arch_list(),
-                device_capability = torch.cuda.get_device_capability(),
-                device_name       = torch.cuda.get_device_name(),
-                current_device = torch.cuda.current_device(),
-            )
-        else:
-            return None
+        if self.scattered is False:
+            if torch.cuda.is_available():
+                self.my_message =  dict(
+                    device_count      = torch.cuda.device_count(),
+                    arch_list         = torch.cuda.get_arch_list(),
+                    device_capability = torch.cuda.get_device_capability(),
+                    device_name       = torch.cuda.get_device_name(),
+                    current_device = torch.cuda.current_device(),
+                )
+            else:
+                self.my_message = None
+        return self.my_message
 
     def better_read(self):
         if self.message is None:
@@ -235,6 +256,7 @@ class LRTracker(Collector):
     follower_scatter: bool = False
 
     def __init__(self, lr_scheduler: _LRScheduler):
+        super().__init__(False)
         self.lr_scheduler = lr_scheduler
 
     def collect(self) -> Dict:
