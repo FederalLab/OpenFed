@@ -42,7 +42,7 @@ class Dispatch(MultiStep):
     finished_queue: Dict[int, str]
 
     @overload
-    def __init__(self, total_parts: int, samples: int):
+    def __init__(self, total_parts: int, samples: int = None):
         """
         Args:
             total_parts: the total number of parts splitted in a simulation federated work.
@@ -50,14 +50,18 @@ class Dispatch(MultiStep):
         """
 
     @overload
-    def __init__(self, total_parts: int, sample_ratio: float):
+    def __init__(self, total_parts: int, sample_ratio: float = None):
         """
         Args:
             total_parts: the total number of parts splitted in a simulation federated work.
             sample_ratio: the ratio to be activated during simulation.
         """
 
-    def __init__(self, total_parts: int, samples: int = None,  sample_ratio: float = None):
+    def __init__(self, *args, **kwargs):
+        total_parts = args[0]
+        samples = kwargs.get('samples', None)
+        sample_ratio = kwargs.get('sample_ratio', None)
+
         # Count the finished parts
         # If finished all parts in this round, reset inner part buffer.
         self._after_download()
@@ -115,7 +119,7 @@ class Dispatch(MultiStep):
 
             # generate task_info
             task_info         = TaskInfo()
-            task_info.part_id = int(part_id)
+            task_info.part_id = part_id
             task_info.version = backend.version
 
             # set task_info
@@ -124,7 +128,7 @@ class Dispatch(MultiStep):
             # reset old state
 
             assert backend.optimizer
-            assert backend.agg
+            assert backend.aggregator
             assert backend.state_dict
 
             # reset old state
@@ -132,7 +136,7 @@ class Dispatch(MultiStep):
 
             # pack new data
             backend.reign.reset_state_dict(backend.state_dict)
-            for agg, optimizer in zip(backend.agg, backend.optimizer):
+            for agg, optimizer in zip(backend.aggregator, backend.optimizer):
                 backend.reign.pack_state(agg)
                 backend.reign.pack_state(optimizer)
 

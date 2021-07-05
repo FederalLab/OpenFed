@@ -26,6 +26,7 @@ from datetime import datetime
 
 import numpy as np
 import torch
+from typing import Any
 
 
 def time_string():
@@ -46,5 +47,5 @@ openfed_class_fmt = openfed_title + \
     " \033[0;35m{class_name}\033[0m\n{description}\n"
 
 
-def convert_to_list(x):
+def convert_to_list(x) -> Any:
     return x if isinstance(x, (list, tuple)) or x is None else [x]

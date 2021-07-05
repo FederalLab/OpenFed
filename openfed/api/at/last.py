@@ -53,7 +53,7 @@ class Aggregate(AtLast):
         """
         # Agg
         task_info_list = []
-        for agg, optimizer in zip(backend.agg, backend.optimizer):
+        for agg, optimizer in zip(backend.aggregator, backend.optimizer):
             # Zero grad first
             optimizer.zero_grad()
 

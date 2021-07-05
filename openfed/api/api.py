@@ -26,10 +26,11 @@ from typing import Any, Callable, Dict, List, Union
 
 import openfed
 import torch
-from openfed.common import (Address, Hook, SafeThread, TaskInfo,
+from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.container import Agg, Reducer
-from openfed.core import Destroy, Maintainer, Reign, World, openfed_lock
+from openfed.core import (Collector, Cypher, Destroy, Maintainer, Reign, World,
+                          openfed_lock)
 from openfed.core.utils import DeviceOffline
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
@@ -42,9 +43,22 @@ from .step import (Step, after_destroy, after_download, after_upload,
                    before_upload)
 
 
+def _device_offline_care(func):
+    def device_offline_care(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except DeviceOffline as e:
+            logger.error("Device offline.")
+            return False
+    return device_offline_care
+
 class API(SafeThread, Hook):
     """Provide a unified api for backend and frontend.
     """
+
+    # Communication related
+    maintainer: Maintainer
+    reign     : Reign      
 
     def __init__(self,
                  frontend: bool = True,
@@ -70,8 +84,8 @@ class API(SafeThread, Hook):
         # Set default value
         self.version: int = 0
 
-        self._hooks_del: List[Callable] = []
-        self._hooks_inf: List[Callable] = []
+        self._hooks_del: List[Cypher]    = []
+        self._hooks_inf: List[Collector] = []
 
         self.stopped            : bool           = False
         self.received_numbers   : int            = 0
@@ -79,24 +93,20 @@ class API(SafeThread, Hook):
         self.reign_task_info    : TaskInfo       = TaskInfo()
         self.task_info_list     : List[TaskInfo] = []
 
-        # Communication related
-        self.maintainer: Maintainer = None
-        self.reign     : Reign      = None
-
         # Data handle
-        self.state_dict  : List[Dict[str, Tensor]] = None
-        self.agg         : List[Agg]               = None
-        self.optimizer   : List[Optimizer]         = None
-        self.ft_optimizer: List[Optimizer]         = None
-        self.reducer     : List[Reducer]           = []
+        self.state_dict   : Dict[str, Tensor] = {}
+        self.aggregator   : List[Agg]         = []
+        self.optimizer    : List[Optimizer]   = []
+        self.ft_optimizer: List[Optimizer]    = []
+        self.reducer      : List[Reducer]     = []
 
         # how many times for backend waiting for connections.
         self.max_try_times: int = 5
 
-    def add_informer_hook(self, hook: Callable):
+    def add_informer_hook(self, hook: Collector):
         self._hooks_inf.append(hook)
 
-    def add_deliver_hook(self, hook: Callable):
+    def add_deliver_hook(self, hook: Cypher):
         self._hooks_del.append(hook)
 
     def _add_hook_to_reign(self):
@@ -111,13 +121,14 @@ class API(SafeThread, Hook):
         [self.reign.register_cypher(
             hook) for hook in self._hooks_del if hook not in self.reign._hook_list]
 
-    def build_connection(self, world: World = None, address: Union[Address, List[Address]] = None, address_file: str = None):
+    def build_connection(self, world: World = None, address: Union[Address_, List[Address_]] = None, address_file: str = None):
         world = world if world is not None else World(leader=self.backend)
         # Check identity
         assert world.leader == self.backend
         assert world.follower == self.frontend
 
-        address = default_address if address is None and address_file is None else address
+        if address is None and address_file is None:
+            address = default_address
 
         if self.backend and openfed.DAL.is_dal:
             # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
@@ -126,7 +137,8 @@ class API(SafeThread, Hook):
         self.maintainer = Maintainer(
             world, address=address, address_file=address_file)
 
-        self.reign = Reign.default_reign() if self.frontend else None
+        if self.frontend:
+            self.reign = Reign.default_reign()
 
     def set_current_device(self, device: int):
         r"""Set current device. You should specify current device via this function or 
@@ -208,17 +220,6 @@ class API(SafeThread, Hook):
         """
         self.version = version if version is not None else self.version + 1
 
-    def _device_offline_care(func):
-        def device_offline_care(self, *args, **kwargs):
-            try:
-                flag = func(self, *args, **kwargs)
-            except DeviceOffline as e:
-                logger.error("Device offline.")
-                flag = False
-            finally:
-                return flag
-        return device_offline_care
-
     @_device_offline_care
     def upload(self) -> bool:
         """As for frontend, it is much easier for us to judge the new version.
@@ -273,7 +274,7 @@ class API(SafeThread, Hook):
         self.reign.unpack_state(obj, keys)
 
     def set_aggregator_and_optimizer(self,
-                                     agg: Union[Agg, List[Agg]],
+                                     aggregator: Union[Agg, List[Agg]],
                                      optimizer: Union[Optimizer, List[Optimizer]],
                                      ft_optimizer: Union[Optimizer, List[Optimizer]] = None):
         """
@@ -284,23 +285,21 @@ class API(SafeThread, Hook):
             Actually, you can put the pipe_optimizer to ft_optimizer, it will automatically 
             pack the state before upload and unpack state after download.
         """
-        agg          = convert_to_list(agg)
-        optimizer    = convert_to_list(optimizer)
-        ft_optimizer = convert_to_list(
-            ft_optimizer) if ft_optimizer is not None else optimizer
-
-        assert len(agg) == len(optimizer)
-        self.agg          = agg
-        self.optimizer    = optimizer
-        self.ft_optimizer = ft_optimizer
+        self.aggregator   = convert_to_list(aggregator)
+        self.optimizer    = convert_to_list(optimizer)
+        if ft_optimizer is not None:
+            self.ft_optimizer = convert_to_list(ft_optimizer)
+        else:
+            self.ft_optimizer = convert_to_list(optimizer)
+        
+        assert len(self.aggregator) == len(self.optimizer), "Aggregator must be corresponding to Optimizer."
 
     def set_reducer(self, reducer: Union[Reducer, List[Reducer]]) -> None:
         """
         Args: 
             reducer: used to aggregate task info.
         """
-        reducer = convert_to_list(reducer)
-        self.reducer.extend(reducer)
+        self.reducer.extend(convert_to_list(reducer))
 
     def safe_run(self):
         """

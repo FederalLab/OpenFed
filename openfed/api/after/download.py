@@ -41,7 +41,7 @@ class AfterDownload(Step):
             task_info = backend.reign.task_info
 
             # Add them to agg
-            for agg in backend.agg:
+            for agg in backend.aggregator:
                 agg.step(packages, task_info)
 
             # Add them to reducer
