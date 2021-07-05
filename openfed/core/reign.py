@@ -61,6 +61,9 @@ class Reign(Informer, Delivery):
         self.store   = store
         self.country = country
         self.world   = world
+        
+        self.upload_version   = 0
+        self.download_version = 0
 
         Informer.__init__(self)
         Delivery.__init__(self)
@@ -204,8 +207,8 @@ class Reign(Informer, Delivery):
         return openfed_class_fmt.format(
             class_name="Reign",
             description=tablist(
-                head = ["Nick Name", "Version", "Status"],
-                data = [self.nick_name, self.version, self._get_state().value],
+                head = ["Nick Name", "Upload Version", "Download Version", "Status"],
+                data = [self.nick_name, self.upload_version, self.download_version, self._get_state()],
             )
         )
 
