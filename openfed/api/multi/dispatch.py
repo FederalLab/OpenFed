@@ -71,7 +71,7 @@ class Dispatch(MultiStep):
             samples is None and sample_ratio is None), "one of samples or sample_ratio must be specified."
 
         self.total_parts = total_parts
-        self.samples     = samples if samples else int(total_parts * sample_ratio)
+        self.samples     = int(samples) if samples else int(total_parts * sample_ratio)
 
         # Initialize queue
         self.reset()
