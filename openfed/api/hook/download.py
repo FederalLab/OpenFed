@@ -23,11 +23,10 @@
 
 from openfed.common.logging import logger
 
-from ..step import Step, after_download
+from ..step import AfterDownload
 
 
-class AfterDownload(Step):
-    step_name = after_download
+class Download(AfterDownload):
 
     def step(self, backend, flag: bool) -> None:
         if flag:  # Download success

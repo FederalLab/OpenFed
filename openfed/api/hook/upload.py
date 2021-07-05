@@ -21,11 +21,33 @@
 # SOFTWARE.
 
 
-from ..step import Step, before_download
+from openfed.common.logging import logger
+
+from ..step import BeforeUpload
 
 
-class BeforeDownload(Step):
-    step_name = before_download
-
+class Upload(BeforeUpload):
     def step(self, backend, *args, **kwargs) -> bool:
+
+        # Check version requirements
+        # upload is to check other download version.
+        if backend.reign.download_version > backend.version:
+            logger.warning(
+                f"Version not aligned. (request @{backend.reign.download_version}, but @{backend.version}).")
+            # Version is not satisfied.
+            return False
+
+        assert backend.optimizer
+        assert backend.aggregator
+        assert backend.state_dict
+
+        # reset old state
+        backend.reign.reset()
+
+        # pack new data
+        backend.reign.reset_state_dict(backend.state_dict)
+        for agg, optimizer in zip(backend.aggregator, backend.optimizer):
+            backend.reign.pack_state(agg)
+            backend.reign.pack_state(optimizer)
+
         return True

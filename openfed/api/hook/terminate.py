@@ -21,11 +21,28 @@
 # SOFTWARE.
 
 
-from ..step import Step, at_zombie
+from openfed.common import logger
+from ..step import AtLast
 
 
-class AtZombie(Step):
-    step_name = at_zombie
+class Terminate(AtLast):
+    max_version: int
+    max_loop_times: int
+
+    def __init__(self, max_loop_times: int = -1, max_version: int = -1):
+        """
+        Args:
+            max_loop_times: if loop times exceed this number, we will stop the server.
+            max_version: when inner version number achieves this number, we will stop server.
+        """
+        super().__init__()
+        self.max_loop_times = max_loop_times
+        self.max_version = max_version
 
     def step(self, backend, *args, **kwargs) -> None:
-        ...
+        if self.max_version != -1 and backend.version >= self.max_version:
+            logger.info("Terminate! Max version achieves.")
+            backend.manual_stop()
+        if self.max_loop_times != -1 and backend.loop_times >= self.max_loop_times:
+            logger.info("Terminate! Max loop times achieves.")
+            backend.manual_stop()

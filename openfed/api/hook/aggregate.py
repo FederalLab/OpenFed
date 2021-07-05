@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 
-from abc import abstractmethod
 from datetime import timedelta
 from time import time
 from typing import Union
@@ -30,15 +29,8 @@ import torch
 from openfed.common.logging import logger
 from torch.optim.lr_scheduler import _LRScheduler
 
-from ..step import Step, at_last
+from ..step import AtLast
 
-
-class AtLast(Step):
-    step_name = at_last
-
-    @abstractmethod
-    def step(self, backend, *args, **kwargs) -> None:
-        ...
 
 
 class Aggregate(AtLast):
@@ -133,42 +125,5 @@ class AggregateCount(Aggregate):
     def step(self, backend, *args, **kwargs) -> None:
         if backend.received_numbers >= self.count:
             self.aggregate(backend, *args, **kwargs)
-        else:
-            pass
-
-
-class StopAtVersion(AtLast):
-    max_version: int
-
-    def __init__(self, max_version: int):
-        """
-        Args:
-            max_version: when inner version number achieves this number, we will stop server.
-        """
-        super().__init__()
-        self.max_version = max_version
-
-    def step(self, backend, *args, **kwargs) -> None:
-        if backend.version >= self.max_version:
-            logger.info("Finished all rounds.")
-            backend.manual_stop()
-        else:
-            pass
-
-
-class StopAtLoopTimes(AtLast):
-    max_loop_times: int
-
-    def __init__(self, max_loop_times: int):
-        """
-        Args:
-            max_loop_times: if loop times exceed this number, we will stop the server.
-        """
-        super().__init__()
-        self.max_loop_times = max_loop_times
-
-    def step(self, backend, *args, **kwargs) -> None:
-        if backend.loop_times >= self.max_loop_times:
-            backend.manual_stop()
         else:
             pass

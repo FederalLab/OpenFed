@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 
+from abc import abstractmethod
 from enum import Enum, unique
 from threading import Lock
 from typing import List, Union
@@ -88,7 +89,7 @@ class StepAt(object):
 
 
 class Step(Clone):
-    step_name: StepName
+    step_name: str
 
     def __init__(self):
         # automatically register step hooks to backend
@@ -100,6 +101,48 @@ class Step(Clone):
 
     def step(self, backend, *args, **kwargs) -> Union[None, bool]:
         raise NotImplementedError
+
+
+class AfterDestroy(Step):
+    step_name = after_destroy
+
+class AfterDownload(Step):
+    step_name = after_download
+
+
+class AfterUpload(Step):
+    step_name = after_upload
+
+class AtFirst(Step):
+    step_name = at_first
+
+
+class AtFailed(Step):
+    step_name = at_failed
+
+class AtInvalidState(Step):
+    step_name = at_invalid_state
+
+
+class AtLast(Step):
+    step_name = at_last
+
+class AtNewEpisode(Step):
+    step_name = at_new_episode
+
+
+class AtZombie(Step):
+    step_name = at_zombie
+
+class BeforeDestroy(Step):
+    step_name = before_destroy
+
+class BeforeDownload(Step):
+    step_name = before_download
+
+
+class BeforeUpload(Step):
+    step_name = before_upload
 
 
 class MultiStep(Step):
