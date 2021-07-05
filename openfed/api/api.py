@@ -26,7 +26,7 @@ from typing import Any, Callable, Dict, List, Union
 
 import openfed
 import torch
-from openfed.common import (Address, Hook, SafeTread, TaskInfo,
+from openfed.common import (Address, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.container import Agg, Reducer
 from openfed.core import Destroy, Maintainer, Reign, World, openfed_lock
@@ -42,7 +42,7 @@ from .step import (Step, after_destroy, after_download, after_upload,
                    before_upload)
 
 
-class API(SafeTread, Hook):
+class API(SafeThread, Hook):
     """Provide a unified api for backend and frontend.
     """
 
@@ -54,7 +54,8 @@ class API(SafeTread, Hook):
         Backend will be set as async mode by default.
         """
         # Call SafeThread init function.
-        super().__init__(self)
+        SafeThread.__init__(self, daemon=True)
+        Hook.__init__(self)
 
         self.dal     : bool = dal
         self.frontend: bool = frontend
@@ -375,7 +376,7 @@ class API(SafeTread, Hook):
                 if n.startswith(name):
                     cnt = max(cnt, int(n.split(".")[-1]))
             else:
-                self.register_hook(key=f"{name}.{cnt+1}", func=step)
+                self.register_hook(f"{name}.{cnt+1}", step)
 
     def step(self, step_name: str, *args, **kwargs) -> Union[None, bool]:
         """

@@ -25,22 +25,22 @@ from abc import abstractmethod
 from threading import Thread
 from typing import Any
 
-from openfed.common import logger
 from openfed.utils import openfed_class_fmt, time_string
 from typing_extensions import final
 
 from .base import peeper
+from .logging import logger
 
 # Record global thread
 # SafeThread -> str
 peeper.thread_pool = dict()
 
 
-class SafeTread(Thread):
+class SafeThread(Thread):
     stopped: bool
 
     def __init__(self, daemon: bool = True):
-        super().__init__(name="OpenFed SafeTread")
+        super().__init__(name="OpenFed SafeThread")
         self.stopped = False
         self.setDaemon(daemon)
 

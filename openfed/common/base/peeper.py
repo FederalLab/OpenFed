@@ -29,7 +29,7 @@ class Peeper(object):
     """
     Collect the state of whole openfed.
     """
-    obj_item_mapping: Dict[Dict, Any]
+    obj_item_mapping: Dict[str, Any]
 
     def __init__(self):
         self.obj_item_mapping = dict()

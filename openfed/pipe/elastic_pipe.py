@@ -43,10 +43,10 @@ class ElasticPipe(Pipe):
         if not 0.0 <= momentum <= 1.0:
             raise ValueError(f"Invalid momentum value: {momentum}")
 
-        self.add_pack_key('importance')
-
         defaults = dict(momentum=momentum)
         super().__init__(params, defaults)
+
+        self.add_pack_key('importance')
 
     @torch.no_grad()
     def step(self, closure=None):

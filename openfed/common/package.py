@@ -27,18 +27,17 @@ from openfed.utils import convert_to_list
 from torch import Tensor
 
 
-def _check_state_keys(obj, keys: Union[str, List[str]], mode: str):
+def _check_state_keys(obj, keys: Union[None, str, List[str]], mode: str):
     keys = convert_to_list(keys)
-    keys = keys if keys else getattr(obj, mode, None)
 
-    return keys
+    return keys if keys else getattr(obj, mode, None)
 
 
 class Package(object):
     """Define some unified functions to package and unpackage the class's state dictionary, such as Optimizer, Agg and Pipe.
     """
 
-    def pack_state(self, obj, keys: Union[str, List[str]] = None) -> None:
+    def pack_state(self, obj, keys: Union[None, str, List[str]] = None) -> None:
         """
         Args:
             keys: if keys are not given, we will try to load the `pack_key_list` attribute of obj.
@@ -51,7 +50,7 @@ class Package(object):
                     rdict = {k: state[k] for k in keys}
                     self.pack(p, rdict)
 
-    def unpack_state(self, obj, keys: Union[str, List[str]] = None) -> None:
+    def unpack_state(self, obj, keys: Union[None, str, List[str]] = None) -> None:
         """
         Args:
             keys: if keys are not given, we will try to load the `unpack_key_list` attribute of obj.

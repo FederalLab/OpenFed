@@ -27,12 +27,15 @@ from torch.optim import Optimizer
 
 
 class Pipe(Optimizer, Wrapper):
-    """The basic class for federated optimizer pipeiliary.
+    """The basic class for federated pipe.
 
     Most federated optimizer just rectify the gradients according to
     some regulation, but not necessarily rewrite all the updating process.
     So, we device this Pipe class to do this.
     """
+    def __init__(self, *args, **kwargs):
+        Optimizer.__init__(self, *args, **kwargs)
+        Wrapper.__init__(self)
 
     @torch.no_grad()
     def finish_round(self):

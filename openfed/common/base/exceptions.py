@@ -22,7 +22,7 @@
 
 
 from openfed.utils import openfed_class_fmt
-
+from typing import Union, Any
 
 class OpenFedException(Exception):
     """A base class for exceptions.
@@ -30,7 +30,7 @@ class OpenFedException(Exception):
 
     def __init__(self,
                  exception_name: str = 'OpenFedException',
-                 msg: str = ""):
+                 msg: Union[str,  Any] = ''):
         super().__init__()
         self.msg            = msg
         self.exception_name = exception_name
@@ -46,7 +46,7 @@ class AccessError(OpenFedException):
     """If backend/frontend cross refer to each other functions, raised.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str,  Any] = ''):
         super().__init__("AccessError", msg=msg)
 
 
@@ -54,7 +54,7 @@ class ConnectionNotBuild(OpenFedException):
     """Some operation only be available when the connection correctly built.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str,  Any] = ''):
         super().__init__('ConnectionNotBuild', msg=msg)
 
 
@@ -62,5 +62,5 @@ class InvalidAddress(OpenFedException):
     """If not a valid address is given, raise it.
     """
 
-    def __init__(self, msg: str):
+    def __init__(self, msg: Union[str,  Any] = ''):
         super().__init__("InvalidAddress", msg=msg)

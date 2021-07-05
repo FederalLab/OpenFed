@@ -22,8 +22,25 @@
 
 
 from threading import Lock
-from typing import Any, List, Mapping, Tuple
+from typing import Any, List, Mapping, Tuple, Union
 
+
+def _check_initialized_called(func):
+    def check_initialized_called(self, *args, **kwargs):
+        assert self._default_mapping is not None,\
+            "Array is not initialized!"
+        return func(self, *args, **kwargs)
+    return check_initialized_called
+
+def _acquire_lock(func):
+    def acquire_lock(self, *args, **kwargs):
+        if self._lock_on_mapping:
+            with self._lock_on_mapping:
+                output = func(self, *args, **kwargs)
+        else:
+            output = func(self, *args, **kwargs)
+        return output
+    return acquire_lock
 
 class Array(object):
     """Make the class enable to iterate over a dict like list, 
@@ -31,33 +48,16 @@ class Array(object):
     """
 
     # Array will never modify the _default_mapping.
-    _default_mapping: Mapping[Any, Any] = None
-    _lock_on_mapping: Lock              = None
+    _default_mapping: Mapping[Any, Any]
+    _lock_on_mapping: Union[Lock, None]             
 
-    def __init__(self, default_mapping: Mapping[Any, Any], lock_on_mapping: Lock = None):
+    def __init__(self, default_mapping: Mapping[Any, Any], lock_on_mapping: Union[Lock, None] = None):
         assert isinstance(
             default_mapping, dict), "default_mapping must be a dict."
         self._default_mapping = default_mapping
         self._lock_on_mapping = lock_on_mapping
 
         self.index = -1
-
-    def _check_initialized_called(func):
-        def check_initialized_called(self, *args, **kwargs):
-            assert self._default_mapping is not None,\
-                "Call Array.__init__() before you access to other functions of Array."
-            return func(self, *args, **kwargs)
-        return check_initialized_called
-
-    def _acquire_lock(func):
-        def acquire_lock(self, *args, **kwargs):
-            if self._lock_on_mapping:
-                with self._lock_on_mapping:
-                    output = func(self, *args, **kwargs)
-            else:
-                output = func(self, *args, **kwargs)
-            return output
-        return acquire_lock
 
     @property
     def default_key(self) -> Any:
@@ -84,7 +84,10 @@ class Array(object):
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         index = len(self) - 1 if len(self) < index else index
 
-        return [None, None] if index < 0 else [self.keys[index], self.values[index]]
+        if index < 0:
+            return None, None
+        else:
+            return self.keys[index], self.values[index]
 
     def __iter__(self):
         return self

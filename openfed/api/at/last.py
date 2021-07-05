@@ -24,6 +24,7 @@
 from abc import abstractmethod
 from datetime import timedelta
 from time import time
+from typing import Union
 
 import torch
 from openfed.common.logging import logger
@@ -41,14 +42,14 @@ class AtLast(Step):
 
 
 class Aggregate(AtLast):
-    checkpoint: str
+    checkpoint: Union[None, str]
 
     def __init__(self, lr_scheduler: _LRScheduler = None):
         super().__init__()
         self.lr_scheduler = lr_scheduler
 
     def aggregate(self, backend, *args, **kwargs):
-        """Agg received models.
+        """Aggregate received models.
         """
         # Agg
         task_info_list = []
@@ -74,7 +75,7 @@ class Aggregate(AtLast):
         backend.task_info_list = task_info_list
 
         for task_info in task_info_list:
-            logger.info(f"Reduced:\n{task_info}")
+            logger.success(f"Reduced:\n{task_info}")
 
         # update learning rate
         if self.lr_scheduler is not None:
@@ -82,14 +83,14 @@ class Aggregate(AtLast):
 
         # Reset same flags
         backend.received_numbers = 0
-        logger.info(
+        logger.success(
             f"-> @{backend.version} >> @{backend.version+1}.")
         backend.version += 1
 
         if self.checkpoint:
             path = f"{self.checkpoint}.{backend.version}"
             torch.save(backend.state_dict, path)
-            logger.info(f"Save to {path}.")
+            logger.success(f"Save to {path}.")
 
 
 class AggregatePeriod(Aggregate):

@@ -31,49 +31,9 @@ from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
 from .base import InvalidAddress, peeper
 
-_A = TypeVar("_A", bound='Address_')
-
-
-# address -> create time
-peeper.address_pool = dict()
-
-
-def cmp_address(add_a: _A, add_b: _A) -> bool:
-    if add_a == add_b:
-        return True
-    else:
-        if add_a is None or add_b is None:
-            return False
-        else:
-            for k in add_a.address.keys():
-                if add_a.address[k] != add_b.address[k]:
-                    return False
-            else:
-                return True
-
-
-def add_address_to_pool(address: _A) -> _A:
-    # Check address is in pool or not
-    for add in peeper.address_pool:
-        if cmp_address(address, add):
-            del address
-            return add
-    else:
-        peeper.address_pool[address] = time.time()
-        return address
-
-
-def remove_address_from_pool(address: _A) -> bool:
-    if address in peeper.address_pool:
-        del peeper.address_pool[address]
-        return True
-    else:
-        return False
-
-
 class Address_(object):
 
-    address: Dict[str, Any] = None
+    address: Dict[str, Any]
 
     def __init__(self, **kwargs):
         if kwargs.get('args', None):
@@ -129,8 +89,8 @@ class Address_(object):
         return openfed_class_fmt.format(
             class_name  = "Address",
             description = tablist(
-                head             = self.address.keys(),
-                data             = self.address.values(),
+                head             = list(self.address.keys()),
+                data             = list(self.address.values()),
                 force_in_one_row = True,
             ),
         )
@@ -142,24 +102,8 @@ class Address_(object):
             return self.address[name]
 
 
-def load_address_from_file(file: str) -> List[_A]:
-    if file is None or not os.path.isfile(file):
-        return []
-    with open(file, 'r') as f:
-        address_dict_list = json.load(f)
-    address_list = [Address(**address) for address in address_dict_list]
-    return address_list
-
-
-def dump_address_to_file(file: str, address_list: Union[_A, List[_A]]):
-    address_list      = convert_to_list(address_list)
-    address_dict_list = [address.address for address in address_list]
-    with open(file, "w") as f:
-        json.dump(address_dict_list, f)
-
-
 @overload
-def Address(args: Namespace):
+def Address(args: Namespace) -> Address_:
     """Load address from parser.
     """
 
@@ -170,7 +114,7 @@ def Address(backend: str,
             world_size : int = 2,
             rank       : int = -1,
             store      : Any = None,
-            group_name : str = ''):
+            group_name : str = '') -> Address_:
     """
     Initializes the default federated process group.
 
@@ -215,9 +159,61 @@ def Address(backend: str,
     """
 
 
-def Address(*args, **kwargs) -> _A:
+def Address(*args, **kwargs) -> Address_:
     address = Address_(*args, **kwargs)
     return add_address_to_pool(address)
+
+# address -> create time
+# Dict[Address_, float] 
+peeper.address_pool = {}
+
+
+def cmp_address(add_a: Address_, add_b: Address_) -> bool:
+    if add_a == add_b:
+        return True
+    else:
+        if add_a is None or add_b is None:
+            return False
+        else:
+            for k in add_a.address.keys():
+                if add_a.address[k] != add_b.address[k]:
+                    return False
+            else:
+                return True
+
+
+def add_address_to_pool(address: Address_) -> Address_:
+    # Check address is in pool or not
+    for add in peeper.address_pool:
+        if cmp_address(address, add):
+            del address
+            return add
+    else:
+        peeper.address_pool[address] = time.time()
+        return address
+
+
+def remove_address_from_pool(address) -> bool:
+    if address in peeper.address_pool:
+        del peeper.address_pool[address]
+        return True
+    else:
+        return False
+
+def load_address_from_file(file: str) -> List[Address_]:
+    if file is None or not os.path.isfile(file):
+        return []
+    with open(file, 'r') as f:
+        address_dict_list = json.load(f)
+    return [Address(**address) for address in address_dict_list]
+
+
+def dump_address_to_file(file: str, address_list: Union[Address_, List[Address_]]):
+    address_list      = convert_to_list(address_list)
+    address_dict_list = [address.address for address in address_list]
+    with open(file, "w") as f:
+        json.dump(address_dict_list, f)
+
 
 
 default_address = Address(

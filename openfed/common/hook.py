@@ -22,51 +22,53 @@
 
 
 from collections import OrderedDict
-from typing import Callable, Dict, List, Union, overload
+from typing import Any, Dict, List, Union, overload
 
 
 class Hook(object):
     """Provide some functions to register and manage hooks.
     """
 
-    _hook_dict: Dict[str, Callable] = None
-    _hook_list: List[Callable]      = None
+    _hook_dict: Dict[str, Any]
+    _hook_list: List[Any]
+
+    def __init__(self):
+        self._hook_dict = OrderedDict()
+        self._hook_list = list()
 
     @property
     def hook_list(self):
-        if self._hook_list is None:
-            self._hook_list = []
         return self._hook_list
 
     @property
     def hook_dict(self):
-        if self._hook_dict is None:
-            self._hook_dict = OrderedDict()
         return self._hook_dict
 
     @overload
-    def register_hook(self, key: str, func: Callable):
+    def register_hook(self, key: str, func: Any):
         """Register a func with key to hook dictionary.
         """
 
     @overload
-    def register_hook(self, func: Callable):
+    def register_hook(self, func: Any):
         """Register a func to hook list.
         """
 
-    def register_hook(self, **kwargs):
-        key = kwargs.get('key', None)
-        if key:
-            if key in self.hook_dict:
-                raise KeyError(f"Key {key} already registered.")
-            self.hook_dict[key] = kwargs['func']
-        else:
-            func = kwargs['func']
+    def register_hook(self, *args):
+        if len(args) == 1:
+            func = args[0]
             if func in self.hook_list:
                 raise KeyError(f"{func} is already registered.")
-            self.hook_list.append(func)
+            self._hook_list.append(func)
+        elif len(args) == 2:
+            key, func = args
+            if key in self.hook_dict:
+                raise KeyError(f"Key {key} already registered.")
+            self.hook_dict[key] = func
+        else:
+            raise RuntimeError("Too many parameters.")
 
-    def remove_hook(self, key: Union[str, Callable]):
+    def remove_hook(self, key: Union[str, Any]):
         """
         Args: 
             key: if key is str, remove it from hook dict.

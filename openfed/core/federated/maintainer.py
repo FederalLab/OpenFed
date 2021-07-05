@@ -26,7 +26,7 @@ from threading import Lock
 from typing import Dict, List, Tuple, Union
 
 import openfed
-from openfed.common import (Address_, Array, SafeTread, load_address_from_file,
+from openfed.common import (Address_, Array, SafeThread, load_address_from_file,
                             logger, remove_address_from_pool)
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
@@ -35,7 +35,7 @@ from ..utils.lock import add_mt_lock, del_maintainer_lock
 from .joint import Joint
 
 
-class Maintainer(Array, SafeTread):
+class Maintainer(Array, SafeThread):
     """
     Dynamic build the connection.
     """
@@ -87,7 +87,7 @@ class Maintainer(Array, SafeTread):
 
         self.read_address_from_file()
         # call here
-        SafeTread.__init__(self)
+        SafeThread.__init__(self)
 
         if self.world.leader:
             self.start()

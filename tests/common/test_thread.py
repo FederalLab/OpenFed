@@ -1,8 +1,8 @@
 from openfed.common.base import peeper
-from openfed.common.thread import SafeTread
+from openfed.common.thread import SafeThread
 
 
-class MyThread(SafeTread):
+class MyThread(SafeThread):
     def safe_run(self):
         return None
 

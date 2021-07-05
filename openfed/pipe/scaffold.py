@@ -74,11 +74,11 @@ class Scaffold(Pipe):
             >>> deliver.pack(scaffold)
         """
 
-        self.add_pack_key('c_para')
-        self.add_unpack_key('c_para')
-
         defaults = dict(lr=lr, frontend=frontend)
         super().__init__(params, defaults)
+        
+        self.add_pack_key('c_para')
+        self.add_unpack_key('c_para')
 
         # Set initial c_para_i
         for group in self.param_groups:

@@ -23,7 +23,7 @@
 
 import time
 
-from openfed.common import Address, SafeTread, logger
+from openfed.common import Address, SafeThread, logger
 from openfed.utils import openfed_class_fmt
 
 from ..reign import Reign
@@ -32,7 +32,7 @@ from ..utils.exceptions import BuildReignFailed, ConnectTimeout
 from ..utils.register import register
 
 
-class Joint(SafeTread):
+class Joint(SafeThread):
     """A thread to build connection among specified ends.
     """
 
@@ -52,7 +52,7 @@ class Joint(SafeTread):
         self.build_success = False
         self.world         = world
 
-        SafeTread.__init__(self)
+        SafeThread.__init__(self)
         # start this thread
         if auto_start:
             self.start()

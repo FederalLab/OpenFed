@@ -66,5 +66,9 @@ class Logger(object):
         depth = _pop_items(kwargs, 'depth', 1)
         self.logger.opt(depth=depth).debug(*args, **kwargs)
 
+    def success(self, *args, **kwargs):
+        depth = _pop_items(kwargs, 'depth', 1)
+        self.logger.opt(depth=depth).success(*args, **kwargs)
+
 
 logger = Logger()

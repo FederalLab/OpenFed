@@ -23,7 +23,7 @@
 
 import json
 from enum import Enum, unique
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Union
 
 import openfed.utils as utils
 from openfed.common import Hook, TaskInfo, logger
@@ -99,9 +99,11 @@ class Informer(Hook):
     fresh_read: bool
 
     # do not set this manually!
-    _nick_name: str = None
+    _nick_name: Union[None, str]
 
     def __init__(self):
+        Hook.__init__(self)
+        
         self._do_not_access_backup_info = {}
 
         # set nick name first!
@@ -129,6 +131,7 @@ class Informer(Hook):
         self.collect()
         self.fresh_read = True
         # make a copy
+        self._nick_name = None
         self._nick_name = self.nick_name
 
     @property
@@ -278,7 +281,7 @@ class Informer(Hook):
     def register_collector(self, collector: Collector):
         """Use collector to add new information is strongely recommended.
         """
-        super().register_hook(key=collector.bounding_name, func=collector)
+        super().register_hook(collector.bounding_name, collector)
 
     def collect(self):
         """Collect message from other side.

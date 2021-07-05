@@ -23,12 +23,9 @@
 
 import json
 from copy import deepcopy
-from typing import Any, Dict, TypeVar
+from typing import Any, Dict
 
 from openfed.utils import openfed_class_fmt, tablist
-
-_T = TypeVar("_T", bound='TaskInfo')
-
 
 class TaskInfo(object):
     r"""Provide same methods for better management of task info.
@@ -43,7 +40,7 @@ class TaskInfo(object):
         json.dumps(info_dict)
         return info_dict
 
-    def load_dict(self, o_dict: Dict[str, Any]) -> _T:
+    def load_dict(self, o_dict: Dict[str, Any]):
         self.__dict__.update(o_dict)
         return self
 

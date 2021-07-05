@@ -29,7 +29,7 @@ from itertools import chain
 from typing import Any, Dict, List
 
 import torch
-from openfed.common import Hook, Package, TaskInfo, Wrapper
+from openfed.common import Package, TaskInfo, Wrapper
 from torch import Tensor
 
 
@@ -43,7 +43,7 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Agg(Package, Wrapper, Hook):
+class Agg(Package, Wrapper):
     r"""Base class for Agg.
     """
     _received_infos: List[TaskInfo]
@@ -60,6 +60,7 @@ class Agg(Package, Wrapper, Hook):
             pipe_keys: other tensor that needed to saved.
             legacy: if True, just stack received data, otherwise will merge them.
         """
+        Wrapper.__init__(self)
         self.legacy = legacy
 
         # add info_keys to defaults

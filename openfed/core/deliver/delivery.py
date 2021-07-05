@@ -50,6 +50,7 @@ class Delivery(Package, Hook):
     follower_rank: int = 1
 
     def __init__(self) -> None:
+        Hook.__init__(self)
         self.key_tensor_bidict = bidict()
         self.packages          = defaultdict(dict)
         self.register_cypher(FormatCheck())
@@ -57,7 +58,7 @@ class Delivery(Package, Hook):
     def register_cypher(self, cypher: Cypher) -> None:
         """Register a cypher to encrypt/decrypt the Tensor.
         """
-        Hook.register_hook(self, func=cypher)
+        self.register_hook(cypher)
 
     def key_tensor_map(self, key: str, tensor: Tensor) -> None:
         """Add a new <key, tensor> pair to package.
