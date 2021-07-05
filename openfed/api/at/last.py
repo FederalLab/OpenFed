@@ -69,11 +69,12 @@ class Aggregate(AtLast):
             agg.clear_buffer()
 
         task_info_list = [reducer.reduce() for reducer in backend.reducer]
+        [reducer.clear_buffer() for reducer in backend.reducer]
 
         backend.task_info_list = task_info_list
 
         for task_info in task_info_list:
-            logger.info(f"Reduce information:\n{task_info}")
+            logger.info(f"Reduced:\n{task_info}")
 
         # update learning rate
         if self.lr_scheduler is not None:
@@ -82,7 +83,7 @@ class Aggregate(AtLast):
         # Reset same flags
         backend.received_numbers = 0
         logger.info(
-            f"Update: -> @{backend.version} >> @{backend.version+1}.")
+            f"-> @{backend.version} >> @{backend.version+1}.")
         backend.version += 1
 
         if self.checkpoint:
