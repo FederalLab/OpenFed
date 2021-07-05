@@ -62,14 +62,6 @@ word_dict               = None
 tag_dict                = None
 
 
-def get_word_count_file(data_dir):
-    # word_count_file_path
-    global word_count_file_path
-    if word_count_file_path is None:
-        word_count_file_path = os.path.join(data_dir, DEFAULT_WORD_COUNT_FILE)
-    return word_count_file_path
-
-
 def get_tag_count_file(data_dir):
     # tag_count_file_path
     global tag_count_file_path
@@ -77,28 +69,10 @@ def get_tag_count_file(data_dir):
         tag_count_file_path = os.path.join(data_dir, DEFAULT_TAG_COUNT_FILE)
     return tag_count_file_path
 
-
-def get_most_frequent_words(data_dir=None, vocab_size=10000):
-    frequent_words = []
-    with open(get_word_count_file(data_dir), 'r') as f:
-        frequent_words = [next(f).split()[0] for i in range(vocab_size)]
-    return frequent_words
-
-
 def get_tags(data_dir=None, tag_size=500):
     with open(get_tag_count_file(data_dir), 'r') as f:
         frequent_tags = json.load(f)
     return list(frequent_tags.keys())[:tag_size]
-
-
-def get_word_dict(data_dir):
-    global word_dict
-    if word_dict == None:
-        words     = get_most_frequent_words(data_dir)
-        word_dict = collections.OrderedDict()
-        for i, w in enumerate(words):
-            word_dict[w] = i
-    return word_dict
 
 
 def get_tag_dict(data_dir):
@@ -219,18 +193,6 @@ def get_word_dict(data_dir):
         for i, w in enumerate(words):
             word_dict[w] = i
     return word_dict
-
-
-def get_word_list(data_dir):
-    global word_list
-    if word_list == None:
-        word_dict = get_word_dict()
-        word_list = list(word_dict.keys())
-    return word_list
-
-
-def id_to_word(idx):
-    return get_word_list()[idx]
 
 
 def tokenizer(sentence, data_dir, max_seq_len=20):

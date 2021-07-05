@@ -229,7 +229,7 @@ class Reign(Informer, Delivery):
                 world._current_pg = pg
 
     @classmethod
-    def default_reign(cls) -> _R:
+    def default_reign(cls):
         """Return the only reign. If more then one, raise warning.
         """
         if len(register) == 0:

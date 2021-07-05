@@ -31,10 +31,10 @@ import numpy as np
 class Partitioner(object):
 
     @abstractmethod
-    def partition(self, total_parts: int, data_index_list: List[np.array]) -> List[np.array]:
+    def partition(self, total_parts: int, data_index_list: List) -> List:
         raise NotImplementedError
 
-    def __call__(self, total_parts: int, data_index_list: List[np.array]) -> List[np.array]:
+    def __call__(self, total_parts: int, data_index_list: List) -> List:
         return self.partition(total_parts, data_index_list)
 
 
@@ -52,7 +52,7 @@ class PowerLawPartitioner(Partitioner):
         self.mean        = mean
         self.sigma       = sigma
 
-    def partition(self, total_parts: int, data_index_list: List[np.array]) -> List[np.array]:
+    def partition(self, total_parts: int, data_index_list: List) -> List:
         """Refer to:
             https://github.com/litian96/FedProx/blob/master/data/mnist/generate_niid.py
         """
@@ -120,8 +120,8 @@ class DirichletPartitioner(Partitioner):
     def dirichlet_partition(self, 
                 total_samples   : int,
                 total_parts     : int,
-                parts_index_list: List[np.array],
-                data_index      : List[np.array]): 
+                parts_index_list: List,
+                data_index      : List): 
         data_index = deepcopy(data_index)
         np.random.shuffle(data_index)
         # using dirichlet distribution to determine the unbalanced proportion
@@ -144,7 +144,7 @@ class DirichletPartitioner(Partitioner):
 
     def __call__(self, 
         total_parts    : int,
-        data_index_list: List[np.array]) -> List[np.array]: 
+        data_index_list: List) -> List: 
         min_samples     = self.min_samples
         total_samples   = sum([len(x) for x in data_index_list])
         minimum_samples = -1
@@ -166,7 +166,7 @@ class DirichletPartitioner(Partitioner):
 
 
 class IIDPartitioner(Partitioner):
-    def partition(self, total_parts: int, data_index_list: List[np.array]) -> List[np.array]:
+    def partition(self, total_parts: int, data_index_list: List) -> List:
 
         parts_index_list = [[] for _ in range(total_parts)]
         for p in range(total_parts):

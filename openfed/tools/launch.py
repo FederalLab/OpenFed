@@ -273,6 +273,20 @@ def main():
 
     subprocess_file_handles = []
 
+    def sigkill_handler(signum, frame):
+        for process in processes:
+            print(f"Killing subprocess {process.pid}")
+            try:
+                process.kill()
+            except Exception:
+                pass
+        if last_return_code is not None and last_return_code != signal.SIGTERM:
+            raise subprocess.CalledProcessError(
+                returncode=last_return_code, cmd=cmd)
+        if signum in sig_names:
+            print(f"Main process received {sig_names[signum]}, exiting")
+        sys.exit(1)
+        
     for local_rank in range(args.nproc_per_node):
         # each process's rank
         fed_rank = args.nproc_per_node * args.node_rank + local_rank
@@ -326,20 +340,6 @@ def main():
 
         sig_names        = {2: "SIGINT", 15: "SIGTERM"}
         last_return_code = None
-
-        def sigkill_handler(signum, frame):
-            for process in processes:
-                print(f"Killing subprocess {process.pid}")
-                try:
-                    process.kill()
-                except Exception:
-                    pass
-            if last_return_code is not None and last_return_code != signal.SIGTERM:
-                raise subprocess.CalledProcessError(
-                    returncode=last_return_code, cmd=cmd)
-            if signum in sig_names:
-                print(f"Main process received {sig_names[signum]}, exiting")
-            sys.exit(1)
 
         # pass SIGINT/SIGTERM to children if the parent is being terminated
         signal.signal(signal.SIGINT, sigkill_handler)

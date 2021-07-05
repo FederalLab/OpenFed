@@ -25,7 +25,7 @@ import json
 import os
 import time
 from argparse import Namespace
-from typing import Any, Dict, List, TypeVar, Union, overload
+from typing import Any, Dict, List, Union, overload
 
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
@@ -208,7 +208,7 @@ def load_address_from_file(file: Union[None, str]) -> List[Address_]:
     return [Address(**address) for address in address_dict_list]
 
 
-def dump_address_to_file(file: str, address_list: Union[Address_, List[Address_]]):
+def dump_address_to_file(file: str, address_list: List[Address_]):
     address_list      = convert_to_list(address_list)
     address_dict_list = [address.address for address in address_list]
     with open(file, "w") as f:

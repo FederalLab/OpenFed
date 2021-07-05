@@ -25,7 +25,7 @@ import collections
 import json
 import os
 import re
-
+from typing import Dict
 import h5py
 import numpy as np
 from openfed.common import logger
@@ -267,7 +267,7 @@ class ShakespeareNWP(FederatedDataset):
             else:
                 raise FileNotFoundError(f"{data_file} not exists.")
 
-        data_h5          = h5py.File(data_file, "r")
+        data_h5:Dict[str, Dict] = h5py.File(data_file, "r")
         client_ids       = list(data_h5[_EXAMPLE].keys())
         self.total_parts = len(client_ids)
 
@@ -302,9 +302,9 @@ class ShakespeareNCP(FederatedDataset):
 
     def __init__(self, 
                 root     : str,
-                train    : bool = True,
-                download : bool = True,
-                transform: bool=None) : 
+                train    : bool    = True,
+                download : bool    = True,
+                transform: Callable = None): 
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE_PROX if train else DEFAULT_TEST_FILE_PROX)
 

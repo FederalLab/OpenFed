@@ -121,6 +121,8 @@ class Scaffold(Pipe):
                     # Modifed gradients
                     if "c_para_i" not in state:
                         c_para_i = state["c_para_i"] = torch.zeros_like(p)
+                    else:
+                        c_para_i = state["c_para_i"]
                     # c_para will be loaded from agg/deliver automatically.
                     assert "c_para" in state, "c_para must be loaded from agg/deliver."
                     c_para = state["c_para"]
@@ -130,6 +132,8 @@ class Scaffold(Pipe):
                     c_para = state["c_para"]
                     if "c_para_i" not in state:
                         c_para_i = state["c_para_i"] = torch.zeros_like(p)
+                    else:
+                        c_para_i = state["c_para_i"]
 
                     c_para_i.add_(c_para)
 

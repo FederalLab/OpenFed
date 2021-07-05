@@ -152,6 +152,7 @@ r"""
 import cmd
 import glob
 import os
+from typing import List, Any
 
 from openfed.common import (Address, dump_address_to_file,
                             load_address_from_file, InvalidAddress)
@@ -174,20 +175,20 @@ class Helper(cmd.Cmd):
         self.address_list = []
 
     # Config file manage
-    def do_conf(self, arg):
+    def do_conf(self, args):
         """Specify a configure file to used.
         It not exists, it will be created automatically.
         """
-        if not arg.endswith(".json"):
-            arg = arg + ".json"
-        if not os.path.exists(arg):
-            print("File not exists: %s" % arg)
+        if not args.endswith(".json"):
+            args = args + ".json"
+        if not os.path.exists(args):
+            print("File not exists: %s" % args)
             print("Create a new one.")
-        self.config_file = arg
+        self.config_file = args
 
         self.address_list = load_address_from_file(self.config_file)
 
-    def do_ls(self, arg):
+    def do_ls(self, args):
         """List all config files in current directory.
         """
         pwd = os.getcwd()
@@ -198,13 +199,13 @@ class Helper(cmd.Cmd):
         else:
             print(f"{len(config_file)} config files have listed.")
 
-    def do_cd(self, arg):
+    def do_cd(self, args):
         """Cd other directory.
         """
-        arg = self.parseline(arg)
-        os.chdir(arg[1])
+        args = self.parseline(args)
+        os.chdir(args[1])
 
-    def do_exit(self, arg):
+    def do_exit(self, args):
         """Write file and exit.
         """
         if self.config_file is not None:
@@ -216,7 +217,7 @@ class Helper(cmd.Cmd):
 
     # Address Manage.
 
-    def do_save(self, *arg):
+    def do_save(self, *args):
         """Save config files.
         """
         self.do_read()
@@ -224,7 +225,7 @@ class Helper(cmd.Cmd):
             dump_address_to_file(self.config_file, self.address_list)
             print(f"Saved address to {self.config_file}.")
 
-    def do_read(self, *arg):
+    def do_read(self, *args):
         """Print the address list to screen.
         """
         if len(self.address_list) == 0:
@@ -234,16 +235,16 @@ class Helper(cmd.Cmd):
                 print(f"Items: {i}/{len(self.address_list)}")
                 print(str(add))
 
-    def do_del(self, arg):
+    def do_del(self, args):
         """Delete a address from list.
         """
-        arg = int(arg)
-        print(f"Delete item {arg}")
-        print(str(self.address_list[arg]))
+        args = int(args)
+        print(f"Delete item {args}")
+        print(str(self.address_list[args]))
 
-        del self.address_list[arg]
+        del self.address_list[args]
 
-    def do_add(self, arg):
+    def do_add(self, args):
         """Add a new address to json file.
         """
         backend     = input("Backend (gloo, mpi, nccl): ")

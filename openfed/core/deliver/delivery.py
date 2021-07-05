@@ -138,7 +138,7 @@ class Delivery(Package, Hook):
         other_rank = self.follower_rank if self.world.leader else self.leader_rank
 
         def _op_after_gather(*args):
-            r_packages = received[other_rank]
+            r_packages: Dict = received[other_rank]
 
             # NOTE: decrypt data in the reverse order.
             for hook in self.hook_list[::-1]:

@@ -22,6 +22,7 @@
 
 
 import os
+from typing import Dict
 
 import h5py
 import numpy as np
@@ -59,7 +60,7 @@ class EMNIST(FederatedDataset):
             else:
                 raise FileNotFoundError(f"{data_file} not exists.")
 
-        data_h5    = h5py.File(data_file, "r")
+        data_h5: Dict = h5py.File(data_file, "r")
         client_ids = list(data_h5[_EXAMPLE].keys())
 
         self.total_parts = len(client_ids)

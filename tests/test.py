@@ -24,9 +24,9 @@ def main(args):
     # openfed_api.register_step(stop_at_version)
     # Or use the with context to add a sequence of step function to openfed_api automatically.
     with StepAt(openfed_api):
-        openfed.api.AggregateCount(
+        openfed.api.Aggregate(
             count=args.fed_world_size-1, checkpoint="/tmp/openfed-model")
-        openfed.api.StopAtVersion(max_version=3)
+        openfed.api.Terminate(max_version=3)
         openfed.api.AfterDownload()
         openfed.api.BeforeUpload()
 

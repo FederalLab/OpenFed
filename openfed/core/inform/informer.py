@@ -23,7 +23,7 @@
 
 import json
 from enum import Enum, unique
-from typing import Any, Callable, Dict, Union
+from typing import Any, Dict, Union
 
 import openfed.utils as utils
 from openfed.common import Hook, TaskInfo, logger

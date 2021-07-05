@@ -32,13 +32,34 @@ from torch.optim.lr_scheduler import _LRScheduler
 from ..step import AtLast
 
 
-
 class Aggregate(AtLast):
     checkpoint: Union[None, str]
+    tic: float
+    count: int
 
-    def __init__(self, lr_scheduler: _LRScheduler = None):
+    def __init__(self, count: int = -1, period: timedelta = timedelta(hours=24), checkpoint: str = None, lr_scheduler: _LRScheduler = None):
+        """
+        Args: 
+            period: The period to agg received model.
+            checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
+        """
         super().__init__()
+        self.period     = period
+        self.count      = count
+
+        self.tic        = time.time()
+        self.checkpoint = checkpoint
         self.lr_scheduler = lr_scheduler
+
+    def step(self, backend, *args, **kwargs) -> None:
+        if self.count > 0 and backend.received_numbers >= self.count:
+            self.aggregate(backend, *args, **kwargs)
+
+        toc = time.time()
+        if timedelta(seconds=toc - self.tic) >= self.period:
+            self.aggregate(backend, *args, **kwargs)
+            # Update tic times.
+            self.tic = time.time()
 
     def aggregate(self, backend, *args, **kwargs):
         """Aggregate received models.
@@ -83,47 +104,3 @@ class Aggregate(AtLast):
             path = f"{self.checkpoint}.{backend.version}"
             torch.save(backend.state_dict, path)
             logger.success(f"Save to {path}.")
-
-
-class AggregatePeriod(Aggregate):
-    tic: float
-
-    def __init__(self, period: timedelta, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
-        """
-        Args: 
-            period: The period to agg received model.
-            checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
-        """
-        super().__init__(lr_scheduler)
-        self.period     = period
-        self.tic        = time.time()
-        self.checkpoint = checkpoint
-
-    def step(self, backend, *args, **kwargs) -> None:
-        toc = time.time()
-        if timedelta(seconds=toc - self.tic) >= self.period:
-            self.aggregate(backend, *args, **kwargs)
-            # Update tic times.
-            self.tic = time.time()
-        else:
-            pass
-
-
-class AggregateCount(Aggregate):
-    count: int
-
-    def __init__(self, count: int, checkpoint: str = None, lr_scheduler: _LRScheduler = None):
-        """
-        Args:
-            count: when the number of received models reach count, agg.
-            checkpoint: if given, save the new aggregated model.
-        """
-        super().__init__(lr_scheduler)
-        self.count      = count
-        self.checkpoint = checkpoint
-
-    def step(self, backend, *args, **kwargs) -> None:
-        if backend.received_numbers >= self.count:
-            self.aggregate(backend, *args, **kwargs)
-        else:
-            pass

@@ -45,7 +45,7 @@ class FederatedDataset(Dataset):
 
 class PartitionerDataset(FederatedDataset):
     dataset         : Dataset
-    parts_index_list: List[np.array]
+    parts_index_list: List
     partitioner     : Partitioner
 
     def __init__(self,
@@ -63,7 +63,7 @@ class PartitionerDataset(FederatedDataset):
         self.parts_index_list = self.partitioner(
             total_parts, self.data_index_list())
 
-    def data_index_list(self) -> List[np.array]:
+    def data_index_list(self) -> List:
         """Rewrite for your dataset. If dataset.classes is not existed, you should rewrite this method for your dataset.
         """
         if not hasattr(self.dataset, "classes") and not hasattr(self.dataset, "targets"):
