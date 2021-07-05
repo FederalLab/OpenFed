@@ -44,4 +44,4 @@ class Reducer(object):
         self.task_info_buffer.append(task_info)
 
     def clear_buffer(self):
-        self.task_info_buffer.clear_buffer()
+        self.task_info_buffer = []
