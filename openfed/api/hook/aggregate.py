@@ -22,7 +22,7 @@
 
 
 from datetime import timedelta
-from time import time
+import time
 from typing import Union
 
 import torch
