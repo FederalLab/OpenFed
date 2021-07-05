@@ -87,7 +87,7 @@ class Delivery(Package, Hook):
     def key_tensor(self, key: str) -> Tensor:
         """Return the tensor for the given key.
         """
-        return self.key_tensor_bidict.get(key)
+        return self.key_tensor_bidict[key]
 
     def pack(self, key: Union[str, Tensor], rdict: Dict[str, Tensor]) -> None:
         """Update rdict to the key in package.
@@ -96,7 +96,7 @@ class Delivery(Package, Hook):
             assert isinstance(key, Tensor)
             key = self.key_name(key)
 
-        package = self.packages.get(key)
+        package = self.packages[key]
 
         package.update(rdict)
 
@@ -107,7 +107,7 @@ class Delivery(Package, Hook):
             assert isinstance(key, Tensor)
             key = self.key_name(key)
 
-        package = self.packages.get(key)
+        package = self.packages[key]
         rdict   = {k: package[k] for k in rdict}
 
         return rdict

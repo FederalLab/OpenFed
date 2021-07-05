@@ -23,7 +23,7 @@
 
 import time
 
-from openfed.common import Address, SafeThread, logger
+from openfed.common import Address_, SafeThread, logger
 from openfed.utils import openfed_class_fmt
 
 from ..reign import Reign
@@ -39,7 +39,7 @@ class Joint(SafeThread):
     # Indicates whether the connection is established correctly.
     build_success: bool
 
-    def __init__(self, address: Address, world: World, auto_start: bool = True) -> None:
+    def __init__(self, address: Address_, world: World, auto_start: bool = True) -> None:
         if address.rank == -1:
             if address.world_size == 2:
                 address.rank = 1 if world.follower else 0

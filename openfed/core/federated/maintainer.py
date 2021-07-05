@@ -23,7 +23,7 @@
 
 import time
 from threading import Lock
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Tuple
 
 import openfed
 from openfed.common import (Address_, Array, SafeThread, load_address_from_file,
@@ -31,7 +31,7 @@ from openfed.common import (Address_, Array, SafeThread, load_address_from_file,
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
 from ..space import World
-from ..utils.lock import add_mt_lock, del_maintainer_lock
+from ..utils.lock import add_mt_lock
 from .joint import Joint
 
 
@@ -59,17 +59,17 @@ class Maintainer(Array, SafeThread):
 
     def __init__(self,
                  world: World,
-                 address         : Union[Address_, List[Address_]] = None,
-                 address_file    : str                             = None,
-                 max_try_times   : int                             = 5,
-                 interval_seconds: float                           = 10) -> None:
+                 address          : Address_ = None,
+                 address_file     : str      = None,
+                 max_try_times    : int      = 5,
+                 interval_seconds: float     = 10) -> None:
         """
             Only a single valid address is allowed in client.
         """
         self.address_file = address_file
 
         address_list       = convert_to_list(address)
-        self.pending_queue = {address: [time.time(), 0]
+        self.pending_queue = {address: (time.time(), 0)
                               for address in address_list} if address_list is not None else {}
         self.finished_queue  = dict()
         self.discard_queue   = dict()
@@ -102,7 +102,7 @@ class Maintainer(Array, SafeThread):
             address, (create_time, try_times) = self[0]
             Joint(address, self.world)
             del self.pending_queue[address]
-            self.finished_queue[address] = [time.time(), try_times+1]
+            self.finished_queue[address] = (time.time(), try_times+1)
 
     def read_address_from_file(self) -> None:
         address_list = load_address_from_file(self.address_file)
@@ -120,7 +120,7 @@ class Maintainer(Array, SafeThread):
                 remove_address_from_pool(address)
             else:
                 # add address to pending queue
-                self.pending_queue[address] = [time.time(), 0]
+                self.pending_queue[address] = (time.time(), 0)
 
     def safe_run(self) -> str:
         while not self.stopped and self.world.ALIVE:
@@ -135,20 +135,20 @@ class Maintainer(Array, SafeThread):
                     joint = Joint(address, self.world)
                     joint.join()
                     if joint.build_success:
-                        self.finished_queue[address] = [
-                            time.time(), try_times + 1]
+                        self.finished_queue[address] = (
+                            time.time(), try_times + 1)
                         del self.pending_queue[address]
                     else:
                         try_times += 1
                         if try_times > self.max_try_times:
                             # Move to discard queue
-                            self.discard_queue[address] = [
-                                time.time(), try_times]
+                            self.discard_queue[address] = (
+                                time.time(), try_times)
                             del self.pending_queue[address]
                             break
                         else:
-                            self.pending_queue[address] = [
-                                time.time(), try_times]
+                            self.pending_queue[address] = (
+                                time.time(), try_times)
 
             if len(self) == 0:
                 if openfed.DAL.is_dal:
@@ -178,7 +178,7 @@ class Maintainer(Array, SafeThread):
             raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
 
         if self.world.leader:
-            self.pending_queue[address] = [time.time(), 0]
+            self.pending_queue[address] = (time.time(), 0)
         else:
             Joint(address, self.world)
 
@@ -193,10 +193,6 @@ class Maintainer(Array, SafeThread):
                 force_in_one_row = True,
             )
         )
-
-    def __del__(self) -> None:
-        del_maintainer_lock(self)
-        super().__del__()
 
     def clear_queue(self) -> None:
         """Clear all address in queue.

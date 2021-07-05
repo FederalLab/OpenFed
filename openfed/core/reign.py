@@ -23,7 +23,7 @@
 
 import time
 from datetime import timedelta
-from typing import Callable, Generator, Tuple, TypeVar
+from typing import Callable, Generator, TypeVar
 
 import openfed
 from openfed.common import ASYNC_OP, logger
@@ -48,8 +48,11 @@ class Reign(Informer, Delivery):
     country: Country
 
     # handler, step function, timestamp
-    _download_hang_up: Tuple[Work, Callable, int]
-    _upload_hang_up  : Tuple[Work, Callable, int]
+    # _download_hang_up: Tuple[Work, Callable, int]
+    # _upload_hang_up  : Tuple[Work, Callable, int]
+
+    download_hang_up: bool
+    upload_hang_up: bool
 
     def __init__(self,
                  store  : Store,
@@ -65,8 +68,8 @@ class Reign(Informer, Delivery):
         Informer.__init__(self)
         Delivery.__init__(self)
 
-        self._download_hang_up = []
-        self._upload_hang_up   = []
+        self.download_hang_up: bool = False
+        self.upload_hang_up: bool = False
 
     @property
     def upload_version(self) -> int:
@@ -81,14 +84,6 @@ class Reign(Informer, Delivery):
             return self.get("download_version")
         except Exception as e:
             return -1
-
-    @property
-    def upload_hang_up(self) -> bool:
-        return len(self._upload_hang_up) > 0
-
-    @property
-    def download_hang_up(self) -> bool:
-        return len(self._download_hang_up) > 0
 
     def transfer(self,
                  to       : bool,
@@ -136,7 +131,8 @@ class Reign(Informer, Delivery):
         # transfer
         if handler:
             handler.wait()
-            step_func()
+            if step_func is not None:
+                step_func()
         else:
             if to:
                 self.push()
@@ -165,9 +161,11 @@ class Reign(Informer, Delivery):
 
         if handler.is_completed():
             if self.upload_hang_up:
-                self._upload_hang_up = []
-            else:
-                self._download_hang_up = []
+                del self._upload_hang_up
+                self.upload_hang_up = False
+            if self.download_hang_up:
+                del self._download_hang_up
+                self.download_hang_up = False
             return flag
         else:
             toc = time.time()
@@ -187,7 +185,8 @@ class Reign(Informer, Delivery):
         if ASYNC_OP.is_async_op:
             handle, step_func = self.push()
             # store the necessary message, and hang up begining time.
-            self._upload_hang_up = [handle, step_func, time.time()]
+            self._upload_hang_up = (handle, step_func, time.time())
+            self.upload_hang_up = True
             return False
         else:
             return self.transfer(to=True)
@@ -201,7 +200,8 @@ class Reign(Informer, Delivery):
 
         if ASYNC_OP.is_async_op:
             handle, step_func = self.pull()
-            self._download_hang_up = [handle, step_func, time.time()]
+            self._download_hang_up = (handle, step_func, time.time())
+            self.download_hang_up = True
             return False
         else:
             return self.transfer(to=False)

@@ -293,9 +293,9 @@ class Agg(Package, Wrapper):
 
         self.param_groups.append(param_group)
 
-    def _check_defaults_keys(self, info_keys: List[str], received_info: Dict):
+    def _check_defaults_keys(self, info_keys: List[str], received_info: TaskInfo):
         for key in info_keys:
-            if key not in received_info:
+            if key not in received_info.info_dict:
                 raise KeyError(f"{key} is needed, but not returned.")
 
     def aggregate(self, clear_buffer: bool = True):
@@ -315,7 +315,7 @@ class Agg(Package, Wrapper):
         if clear_buffer:
             self.clear_buffer()
 
-    def step(self, received_params: Dict[str, Dict[str, Tensor]], received_info: Dict) -> None:
+    def step(self, received_params: Dict[str, Dict[str, Tensor]], received_info: TaskInfo) -> None:
         """Add a new received data.
         """
         for group in self.param_groups:

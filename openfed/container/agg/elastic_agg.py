@@ -23,6 +23,7 @@
 
 from typing import Any, Dict, List, Union
 
+import torch
 from openfed.utils import convert_to_list
 from torch import Tensor
 
@@ -90,8 +91,12 @@ class ElasticAgg(Agg):
                 new_p = state[key]
                 if key == "param":
                     if p.requires_grad:
-                        p.grad.copy_(self._elastic_update(
-                            p-new_p, state['importance'], group['quantile']))
+                        if p.grad is not None:
+                            p.grad.copy_(self._elastic_update(
+                                p-new_p, state['importance'], group['quantile']))
+                        else:
+                            p.grad = self._elastic_update(
+                                p-new_p, state['importance'], group['quantile'])
                     else:
                         p.copy_(new_p)
                 else:
@@ -100,14 +105,14 @@ class ElasticAgg(Agg):
     def _stack_aggregate(self, p: Tensor, group: Dict):
         state = self.state[p]
 
-        def agg(dl, k, t):
-            l = 0
+        def aggregate(dl, k, t) -> Tensor:
+            l: List[Tensor] = []
             for data in dl:
-                a, b = data[k], data['train_instances']
+                a, b = data[k], data['train_instance']
                 w  = b / t
                 p  = a * w
-                l += p
-            return l
+                l.append(p)
+            return torch.stack(l, dim=0).sum(dim=0, keepdim=False)
 
         total_instances = 0
         for data in state["received_params"]:
@@ -116,11 +121,11 @@ class ElasticAgg(Agg):
 
         for key in group['pipe_keys']:
             if key in state["received_params"][0]:
-                new_p = agg(
+                new_p = aggregate(
                     state["received_params"], key, total_instances)
                 if key == "param":
                     if p.requires_grad:
-                        new_imp = agg(
+                        new_imp = aggregate(
                             state["received_params"], "importance", total_instances)
                         grad = self._elastic_update(
                             p-new_p, new_imp, group["quantile"])

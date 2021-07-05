@@ -157,7 +157,7 @@ class Country(object):
                 f"The global rank {rank} is not part of the group {group}") from None
         return group_rank
 
-    def _get_global_rank(self, group: ProcessGroup, group_rank: int) -> bool:
+    def _get_global_rank(self, group: ProcessGroup, group_rank: int) -> int:
         """
         Helper that gets a given group's global rank from a given local rank in the
         group.
@@ -177,7 +177,8 @@ class Country(object):
         """
         if group is self.WORLD or group is None:
             default_pg = self._get_default_group()
-            return default_pg.size()
+            if default_pg is not None:
+                return default_pg.size()
         if group not in self._pg_group_ranks:
             raise RuntimeError("The given group does not exist")
         return len(self._pg_group_ranks[group])
@@ -821,5 +822,5 @@ class Country(object):
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name  = "Country",
-            description = f"Belongs to\n{self.world}"
+            description = f"Belongs to {self.world}"
         )

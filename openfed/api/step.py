@@ -103,7 +103,7 @@ class Step(Clone):
 
 
 class MultiStep(Step):
-    step_name: List[StepName] = []
+    step_name: List[str] = []
 
     def _after_destroy(self):
         """Call this if necessary at subclass init process."""

@@ -88,8 +88,11 @@ class AverageAgg(Agg):
                 new_p = state[key]
                 if key == "param":
                     if p.requires_grad:
-                        # NOTE: grad = p - new_p
-                        p.grad.copy_(p - new_p)
+                        if p.grad is not None:
+                            # NOTE: grad = p - new_p
+                            p.grad.copy_(p - new_p)
+                        else:
+                            p.grad = p - new_p
                     else:
                         p.copy_(new_p)
                 else:
@@ -99,7 +102,7 @@ class AverageAgg(Agg):
         state = self.state[p]
 
         def aggregate(dl, k):
-            return torch.stack([data[k] for data in dl], dim=0).mean(dim=0, keepdims=False)
+            return torch.stack([data[k] for data in dl], dim=0).mean(dim=0, keepdim=False)
 
         pipe_keys = group['pipe_keys']
         for key in pipe_keys:

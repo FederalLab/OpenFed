@@ -21,12 +21,16 @@
 # SOFTWARE.
 
 
+from typing import Callable, Dict, Tuple, Union
+
 import torch
+from torch import Tensor
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
                                         BroadcastOptions, GatherOptions,
                                         ReduceOp, ReduceOptions,
-                                        ReduceScatterOptions, ScatterOptions)
+                                        ReduceScatterOptions, ScatterOptions,
+                                        Work)
 from torch.distributed.distributed_c10d import (Backend, _batch_p2p_manager,
                                                 _check_single_tensor,
                                                 _check_tensor_list,
@@ -793,7 +797,6 @@ def all_gather_object(object_list, obj, group=None, country=None):
         tensor_size = object_size_list[i]
         object_list[i] = _tensor_to_object(tensor, tensor_size)
 
-
 def gather_object(obj, 
     object_gather_list = None,
     dst         = 0,
@@ -801,7 +804,7 @@ def gather_object(obj,
     async_op    = False,
     country     = None,
     global_rank = True
-):
+) -> Union[Tuple[Work, Callable], Callable]:
     """
     Gathers picklable objects from the whole group in a single process.
     Similar to :func:`gather`, but Python objects can be passed in. Note that the

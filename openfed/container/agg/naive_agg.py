@@ -23,6 +23,7 @@
 
 from typing import Any, Dict, List, Union
 
+import torch
 from openfed.utils import convert_to_list
 from torch import Tensor
 
@@ -84,7 +85,10 @@ class NaiveAgg(Agg):
                 new_p = state[key]
                 if key == "param":
                     if p.requires_grad:
-                        p.grad.copy_(p - new_p)
+                        if p.grad is not None:
+                            p.grad.copy_(p - new_p)
+                        else:
+                            p.grad = p - new_p
                     else:
                         p.copy_(new_p)
                 else:
@@ -93,14 +97,14 @@ class NaiveAgg(Agg):
     def _stack_aggregate(self, p: Tensor, group: Dict):
         state = self.state[p]
 
-        def agg(dl, k, t):
-            l = 0
+        def aggregate(dl, k, t) -> Tensor:
+            l: List[Tensor] = []
             for data in dl:
                 a, b = data[k], data['train_instance']
                 w  = b / t
                 p  = a * w
-                l += p
-            return l
+                l.append(p)
+            return torch.stack(l, dim=0).sum(dim=0, keepdim=False)
 
         total_instances = 0
         for data in state["received_params"]:
@@ -109,7 +113,7 @@ class NaiveAgg(Agg):
 
         for key in group['pipe_keys']:
             if key in state['received_params'][0]:
-                new_p = agg(
+                new_p = aggregate(
                     state['received_params'], key, total_instances)
                 if key == "param":
                     if p.requires_grad:

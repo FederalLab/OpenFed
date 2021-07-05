@@ -69,13 +69,30 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
         raise InvalidStoreWriting(e)
 
 
-def safe_store_get(store: Store, key: str) -> Dict:
+def safe_store_get(store: Store, key: str) -> Dict[str, Any]:
     try:
         jsonbytes = store.get(key)
         jsonstr   = str(jsonbytes, encoding='utf-8')
         return json.loads(jsonstr)
     except Exception as e:
         raise InvalidStoreReading(e)
+
+
+def _must_fresh_read(func):
+    """A decorate function that will raise error if the data is refresh.
+    """
+
+    def must_fresh_read(self, *args, **kwargs):
+        output = func(self, *args, **kwargs)
+        if not self.fresh_read:
+            logger.debug(
+                "Use an cached value instead a fresh required data."
+                "Which may cause Error."
+                f"func: {func}"
+                f"args: {args}"
+                f"kwargs: {kwargs}")
+        return output
+    return must_fresh_read
 
 
 class Informer(Hook):
@@ -135,7 +152,7 @@ class Informer(Hook):
         self._nick_name = self.nick_name
 
     @property
-    def nick_name(self) -> str:
+    def nick_name(self) -> Any:
         if self._nick_name:
             return self._nick_name
         else:
@@ -154,24 +171,23 @@ class Informer(Hook):
         """
         info["timestemp"] = utils.time_string()
         try:
-            flag = safe_store_set(self.store, self._i_key, info)
+            return safe_store_set(self.store, self._i_key, info)
         except InvalidStoreWriting as e:
             logger.info("Write Failed.")
-            flag = False
-        finally:
-            return flag
+            return False
 
     def _update(self, info: Dict[str, str]) -> bool:
         """rewrite the old message in kv-store.
         """
+        old_info = self._do_not_access_backup_info
         # read i_key information, then update it
         try:
             old_info = safe_store_get(self.store, self._i_key)
         except InvalidStoreReading as e:
             logger.debug(e)
-            old_info = self._do_not_access_backup_info
+            ...
         except Exception as e:
-            old_info = self._do_not_access_backup_info
+            raise e
         finally:
             old_info.update(info)
             self._do_not_access_backup_info = old_info
@@ -181,12 +197,12 @@ class Informer(Hook):
     def _read(self, key: str = None) -> Dict:
         """Read message from self._u_key.
         """
+        info = self._backup_info
         try:
             info = safe_store_get(self.store, self._u_key)
             self.fresh_read = True
         except InvalidStoreReading as e:
             logger.debug(e)
-            info = self._backup_info
             # use the cached one instead.
             # but at the same time, we need to set the state as zombie
             # otherwise the last state value may make the progress get stuck.
@@ -199,26 +215,10 @@ class Informer(Hook):
             self._backup_info = info
             return info[key] if key else info
 
-    def _must_fresh_read(func: Callable):
-        """A decorate function that will raise error if the data is refresh.
-        """
-
-        def wrapper(self, *args, **kwargs):
-            output = func(self, *args, **kwargs)
-            if not self.fresh_read:
-                logger.debug(
-                    "Use an cached value instead a fresh required data."
-                    "Which may cause Error."
-                    f"func: {func}"
-                    f"args: {args}"
-                    f"kwargs: {kwargs}")
-            return output
-        return wrapper
-
     def set(self, key: str, value: Any):
         self._update({key: value})
 
-    def get(self, key: str) -> Any:
+    def get(self, key: Union[None, str]) -> Any:
         return self._read(key)
 
     @property
@@ -288,11 +288,11 @@ class Informer(Hook):
         """
         # read all collection information
         # key = None will return the whole info dictionary.
-        info = self.get(key=None)
+        info = self.get(None)
         for key, value in info.items():
             if key.startswith("Collector"):
                 # don't forget () operation.
-                obj = Register(key, self)()
+                obj: Collector = Register(key, self)()
                 if obj is not None and self.world.leader and obj.leader_collector or \
                         self.world.follower and obj.follower_collector:
                     if not obj.once_only or not obj.collected:

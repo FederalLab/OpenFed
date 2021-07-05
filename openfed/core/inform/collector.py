@@ -157,7 +157,7 @@ class SystemInfo(Collector):
     def __init__(self) -> None:
         super().__init__(True)
 
-    def collect(self) -> Dict[str, str]:
+    def collect(self) -> Any:
         if self.scattered is False:
             self.scattered = True
             self.my_message = dict(
@@ -210,7 +210,7 @@ class GPUInfo(Collector):
     def __init__(self) -> None:
         super().__init__(True)
 
-    def collect(self) -> Dict[str, str]:
+    def collect(self) -> Any:
         if self.scattered is False:
             if torch.cuda.is_available():
                 self.my_message =  dict(

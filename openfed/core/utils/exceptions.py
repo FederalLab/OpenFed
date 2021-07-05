@@ -22,13 +22,13 @@
 
 
 from openfed.common import OpenFedException
-
+from typing import Union, Any
 
 class ConnectTimeout(OpenFedException):
     """Timeout while building a new connection.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str, Any] = ""):
         super().__init__("ConnectTimeout", msg=msg)
 
 
@@ -40,7 +40,7 @@ class InvalidStoreReading(OpenFedException):
     avoid this Error.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str, Any] = ""):
         super().__init__("InvalidStoreReading", msg=msg)
 
 
@@ -52,7 +52,7 @@ class InvalidStoreWriting(OpenFedException):
     avoid this Error.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str, Any] = ""):
         super().__init__("InvalidStoreWriting", msg=msg)
 
 
@@ -63,7 +63,7 @@ class BuildReignFailed(OpenFedException):
     You can try to rebuild this reign or just to discard this reign.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str, Any] = ""):
         super().__init__("BuildReignFailed", msg=msg)
 
 
@@ -71,7 +71,7 @@ class DeviceOffline(OpenFedException):
     """This error is raised when client/server is offline.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str, Any] = ""):
         super().__init__("DeviceOffline", msg=msg)
 
 
@@ -79,5 +79,5 @@ class WrongState(OpenFedException):
     """This error is raised when client in an unexpected state.
     """
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: Union[str, Any] = ""):
         super().__init__("WrongState", msg=msg)

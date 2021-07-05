@@ -200,7 +200,7 @@ def remove_address_from_pool(address) -> bool:
     else:
         return False
 
-def load_address_from_file(file: str) -> List[Address_]:
+def load_address_from_file(file: Union[None, str]) -> List[Address_]:
     if file is None or not os.path.isfile(file):
         return []
     with open(file, 'r') as f:

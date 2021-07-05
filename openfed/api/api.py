@@ -41,7 +41,7 @@ from .step import (Step, after_destroy, after_download, after_upload,
                    at_failed, at_first, at_invalid_state, at_last,
                    at_new_episode, at_zombie, before_destroy, before_download,
                    before_upload)
-
+from openfed.core.utils.lock import del_maintainer_lock
 
 def _device_offline_care(func):
     def device_offline_care(self, *args, **kwargs):
@@ -184,6 +184,7 @@ class API(SafeThread, Hook):
         if self.maintainer:
             Destroy.destroy_all_in_a_world(self.maintainer.world)
             self.maintainer.manual_stop()
+            del_maintainer_lock(self.maintainer)
 
         if auto_exit and self.backend:
             exit(15)
