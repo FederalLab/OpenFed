@@ -16,6 +16,7 @@ def main(args):
 
     # >>> Specify an API for building federated learning
     openfed_api = openfed.API(frontend=args.fed_rank > 0)
+    openfed_api.set_current_device(args.gpu)
     openfed_api.max_try_times = args.max_try_times
 
     # >>> Register more step functions.

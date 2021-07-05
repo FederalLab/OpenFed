@@ -23,7 +23,7 @@
 
 
 from abc import abstractmethod
-from typing import Dict
+from typing import Dict, Union
 
 from openfed.common import Clone
 from torch import Tensor
@@ -36,36 +36,46 @@ class Cypher(Clone):
     specify then as self.xxx=yyy.
     """
     
-    def encrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package before transfer to the other end.
         """
         raise NotImplementedError(
             "You must implement the encrypt function for Cypher.")
 
 
-    def decrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package received from the other end.
         """
         raise NotImplementedError(
             "You must implement the decrypt function for Cypher.")
 
 
-class FormotCheck(Cypher):
-    """Make sure the value is a dict.
+class FormatCheck(Cypher):
+    """Format Check.
+    1. Convert `value` to {'param': value} if value is a Tensor.
+    2. Align all other tensor in value to `param`'s device. 
     """
 
-    def encrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
-        if isinstance(value, dict):
-            return value
-        elif isinstance(value, Tensor):
-            return {"param": value}
-        else:
-            raise ValueError(f"{key}'s value is not desired.")
+    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+        assert isinstance(key, Tensor)
+        # Convert to dict
+        if isinstance(value, Tensor):
+            value = dict(param=value)
+        assert isinstance(value, dict)
 
-    def decrypt(self, key: str, value: Dict[str, Tensor]) -> Dict[str, Tensor]:
-        if isinstance(value, dict):
-            return value
-        elif isinstance(value, Tensor):
-            return {"param": value}
-        else:
-            raise ValueError(f"{key}'s value is not desired.")
+        # Align device
+        for k, v in value.items():
+            value[k] = v.cpu()
+        return value
+
+    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+        assert isinstance(key, Tensor)
+        # Convert to dict
+        if isinstance(value, Tensor):
+            value = dict(param=value)
+        assert isinstance(value, dict)
+
+        # Align device
+        for k, v in value.items():
+            value[k] = v.to(key.device)
+        return value

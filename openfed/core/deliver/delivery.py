@@ -32,7 +32,7 @@ from torch._C._distributed_c10d import Work
 
 from ..federated.functional import gather_object
 from ..space import Country, ProcessGroup, World
-from .cypher import Cypher, FormotCheck
+from .cypher import Cypher, FormatCheck
 
 
 class Delivery(Package, Hook):
@@ -52,7 +52,7 @@ class Delivery(Package, Hook):
     def __init__(self) -> None:
         self.key_tensor_bidict = bidict()
         self.packages          = defaultdict(dict)
-        self.register_cypher(FormotCheck())
+        self.register_cypher(FormatCheck())
 
     def register_cypher(self, cypher: Cypher) -> None:
         """Register a cypher to encrypt/decrypt the Tensor.
@@ -125,7 +125,7 @@ class Delivery(Package, Hook):
 
     def pull(self, auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Work, Callable]]:
         """Pull data from the other end. 
-        After received data, Queen will load `param` to Tensor by an in-place operation automatically.
+        After received data, Follower will load `param` to Tensor by an in-place operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
         """
         assert self.country._get_group_size(
@@ -141,10 +141,10 @@ class Delivery(Package, Hook):
 
             # NOTE: decrypt data in the reverse order.
             for hook in self.hook_list[::-1]:
-                r_packages = {k: hook.decrypt(k, v)
+                r_packages = {k: hook.decrypt(self.key_tensor(k), v)
                               for k, v in r_packages.items()}
 
-            # Queen will load `param` to Tensor by an in-place operation.
+            # Follower will load `param` to Tensor by an in-place operation.
             if auto_load_param and self.world.follower:
                 for k, v in r_packages.items():
                     if 'param' in v:
@@ -177,7 +177,7 @@ class Delivery(Package, Hook):
 
         # encrypt data
         for hook in self.hook_list:
-            self.packages = {k: hook.encrypt(k, v)
+            self.packages = {k: hook.encrypt(self.key_tensor(k), v)
                              for k, v in self.packages.items()}
 
         return gather_object(

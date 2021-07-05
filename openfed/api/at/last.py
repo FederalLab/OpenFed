@@ -86,8 +86,9 @@ class Aggregate(AtLast):
         backend.version += 1
 
         if self.checkpoint:
-            torch.save(backend.state_dict,
-                       f"{self.checkpoint}.{backend.version}")
+            path = f"{self.checkpoint}.{backend.version}"
+            torch.save(backend.state_dict, path)
+            logger.info(f"Save to {path}.")
 
 
 class AggregatePeriod(Aggregate):

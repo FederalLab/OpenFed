@@ -98,13 +98,13 @@ class AverageAgg(Agg):
     def _stack_aggregate(self, p: torch.Tensor, group: Dict):
         state = self.state[p]
 
-        def agg(dl, k):
+        def aggregate(dl, k):
             return torch.stack([data[k] for data in dl], dim=0).mean(dim=0, keepdims=False)
 
         pipe_keys = group['pipe_keys']
         for key in pipe_keys:
             if key in state['received_params'][0]:
-                new_p = agg(state["received_params"], key)
+                new_p = aggregate(state["received_params"], key)
                 if key == "param":
                     if p.requires_grad:
                         if p.grad is None:
