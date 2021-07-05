@@ -15,26 +15,28 @@
             "name": "Python: client",
             "type": "python",
             "request": "launch",
-            "program": "demo.py",
+            "program": "tests/test.py",
             "console": "integratedTerminal",
             "args": [
-                "--rank",
+                "--fed_rank",
                 "1",
-                "--world_size",
-                "2"
+                "--fed_world_size",
+                "2",
+                "--gpu",
             ]
         },
         {
             "name": "Python: server",
             "type": "python",
             "request": "launch",
-            "program": "demo.py",
+            "program": "tests/test.py",
             "console": "integratedTerminal",
             "args": [
-                "--rank",
+                "--fed_rank",
                 "0",
-                "--world_size",
-                "2"
+                "--fed_world_size",
+                "2",
+                "--gpu",
             ]
         },
     ]
