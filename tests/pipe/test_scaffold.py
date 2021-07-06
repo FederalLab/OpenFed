@@ -1,6 +1,6 @@
 import torch
-from openfed.pipe.scaffold import Scaffold
+from openfed.pipe.scaffold_pipe import ScaffoldPipe
 
 
-def test_scaffold():
-    Scaffold([torch.nn.Parameter(torch.randn(1))])
+def test_scaffold_pipe():
+    ScaffoldPipe([torch.nn.Parameter(torch.randn(1))])
