@@ -21,12 +21,14 @@
 # SOFTWARE.
 
 
-from datetime import timedelta
 import time
-from typing import Union
+from datetime import timedelta
+from turtle import back
+from typing import List, Union
 
 import torch
 from openfed.common.logging import logger
+from openfed.utils import convert_to_list
 from torch.optim.lr_scheduler import _LRScheduler
 
 from ..step import AtLast
@@ -37,19 +39,23 @@ class Aggregate(AtLast):
     tic: float
     count: int
 
-    def __init__(self, count: int = -1, period: timedelta = timedelta(hours=24), checkpoint: str = None, lr_scheduler: _LRScheduler = None):
+    def __init__(self, 
+        count       : int                                     = -1,
+        period      : timedelta                               = timedelta(hours=24),
+        checkpoint  : str                                     = None,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None):
         """
         Args: 
             period: The period to agg received model.
             checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
         """
         super().__init__()
-        self.period     = period
-        self.count      = count
+        self.period = period
+        self.count = count
 
-        self.tic        = time.time()
+        self.tic = time.time()
         self.checkpoint = checkpoint
-        self.lr_scheduler = lr_scheduler
+        self.lr_scheduler = convert_to_list(lr_scheduler)
 
     def step(self, backend, *args, **kwargs) -> None:
         if self.count > 0 and backend.received_numbers >= self.count:
@@ -64,9 +70,7 @@ class Aggregate(AtLast):
     def aggregate(self, backend, *args, **kwargs):
         """Aggregate received models.
         """
-        # Agg
-        task_info_list = []
-        for agg, optimizer in zip(backend.aggregator, backend.optimizer):
+        for agg, optimizer, pipe in zip(backend.aggregator, backend.bk_optimizer, backend.pipe):
             # Zero grad first
             optimizer.zero_grad()
 
@@ -76,11 +80,15 @@ class Aggregate(AtLast):
             # Unpack state from agg
             agg.unpack_state(optimizer)
 
+            # Pipe 
+            pipe.step(frontend=False)
+
             # Update models
             optimizer.step()
 
             # Clear buffers
             agg.clear_buffer()
+            pipe.finish_round(frontend=False)
 
         task_info_list = [reducer.reduce() for reducer in backend.reducer]
         [reducer.clear_buffer() for reducer in backend.reducer]
@@ -92,7 +100,8 @@ class Aggregate(AtLast):
 
         # update learning rate
         if self.lr_scheduler is not None:
-            self.lr_scheduler.step()
+            for lr_sch in self.lr_scheduler:
+                lr_sch.step()
 
         # Reset same flags
         backend.received_numbers = 0

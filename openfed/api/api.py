@@ -31,6 +31,8 @@ from openfed.container import Agg, Reducer
 from openfed.core import (Collector, Cypher, Destroy, Maintainer, Reign, World,
                           openfed_lock)
 from openfed.core.utils import DeviceOffline
+from openfed.core.utils.lock import del_maintainer_lock
+from openfed.pipe import Pipe
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
 from torch import Tensor
@@ -40,7 +42,7 @@ from .step import (Step, after_destroy, after_download, after_upload,
                    at_failed, at_first, at_invalid_state, at_last,
                    at_new_episode, at_zombie, before_destroy, before_download,
                    before_upload)
-from openfed.core.utils.lock import del_maintainer_lock
+
 
 def _device_offline_care(func):
     def device_offline_care(self, *args, **kwargs):
@@ -51,13 +53,14 @@ def _device_offline_care(func):
             return False
     return device_offline_care
 
+
 class API(SafeThread, Hook):
     """Provide a unified api for backend and frontend.
     """
 
     # Communication related
     maintainer: Maintainer
-    reign     : Reign      
+    reign: Reign
 
     def __init__(self,
                  frontend: bool = True,
@@ -70,7 +73,7 @@ class API(SafeThread, Hook):
         SafeThread.__init__(self, daemon=True)
         Hook.__init__(self)
 
-        self.dal     : bool = dal
+        self.dal: bool = dal
         self.frontend: bool = frontend
 
         # Set a flag for backend.
@@ -83,21 +86,21 @@ class API(SafeThread, Hook):
         # Set default value
         self.version: int = 0
 
-        self._hooks_del: List[Cypher]    = []
+        self._hooks_del: List[Cypher] = []
         self._hooks_inf: List[Collector] = []
 
-        self.stopped            : bool           = False
-        self.received_numbers   : int            = 0
-        self.last_aggregate_time: float          = time.time()
-        self.reign_task_info    : TaskInfo       = TaskInfo()
-        self.task_info_list     : List[TaskInfo] = []
+        self.stopped: bool = False
+        self.received_numbers: int = 0
+        self.last_aggregate_time: float = time.time()
+        self.reign_task_info: TaskInfo = TaskInfo()
+        self.task_info_list: List[TaskInfo] = []
 
         # Data handle
-        self.state_dict   : Dict[str, Tensor] = {}
-        self.aggregator   : List[Agg]         = []
-        self.optimizer    : List[Optimizer]   = []
-        self.ft_optimizer: List[Optimizer]    = []
-        self.reducer      : List[Reducer]     = []
+        self.state_dict: Dict[str, Tensor] = {}
+        self.aggregator: List[Agg] = []
+        self.optimizer: List[Optimizer] = []
+        self.ft_optimizer: List[Optimizer] = []
+        self.reducer: List[Reducer] = []
 
         # how many times for backend waiting for connections.
         self.max_try_times: int = 5
@@ -167,8 +170,8 @@ class API(SafeThread, Hook):
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name  = "OpenFedAPI",
-            description = f"{'Frontend' if self.frontend else 'Backend'}."
+            class_name="OpenFedAPI",
+            description=f"{'Frontend' if self.frontend else 'Backend'}."
         )
 
     def finish(self, auto_exit: bool = False):
@@ -240,7 +243,7 @@ class API(SafeThread, Hook):
                 # unpack state
                 [self.unpack_state(ft_opt)
                  for ft_opt in self.ft_optimizer]
-                self.version         = self.reign.upload_version
+                self.version = self.reign.upload_version
                 self.reign_task_info = self.reign.task_info
         if flag:
             callback()
@@ -271,14 +274,27 @@ class API(SafeThread, Hook):
             Actually, you can put the pipe_optimizer to ft_optimizer, it will automatically 
             pack the state before upload and unpack state after download.
         """
-        self.aggregator   = convert_to_list(aggregator)
-        self.optimizer    = convert_to_list(optimizer)
+        self.aggregator = convert_to_list(aggregator)
+        self.optimizer = convert_to_list(optimizer)
         if ft_optimizer is not None:
             self.ft_optimizer = convert_to_list(ft_optimizer)
         else:
             self.ft_optimizer = convert_to_list(optimizer)
-        
-        assert len(self.aggregator) == len(self.optimizer), "Aggregator must be corresponding to Optimizer."
+
+        assert len(self.aggregator) == len(
+            self.optimizer), "Aggregator must be corresponding to Optimizer."
+
+    def set_aggregator(self, aggregator: Union[Agg, List[Agg]]):
+        pass
+
+    def set_ft_optimizer(self, optimizer: Union[Optimizer, List[Optimizer]]):
+        pass
+
+    def set_bk_optimizer(self, optimizer: Union[Optimizer, List[Optimizer]]):
+        pass
+
+    def set_pipe(self, pipe: Union[Pipe, List[Pipe]]):
+        pass
 
     def set_reducer(self, reducer: Union[Reducer, List[Reducer]]) -> None:
         """
