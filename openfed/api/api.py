@@ -25,7 +25,6 @@ import time
 from typing import Any, Callable, Dict, List, Union
 
 import openfed
-import torch
 from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.container import Agg, Reducer
@@ -103,6 +102,10 @@ class API(SafeThread, Hook):
         # how many times for backend waiting for connections.
         self.max_try_times: int = 5
 
+        # Set them here to avoid get attribute error.
+        self.reign = None
+        self.maintainer = None
+
     def add_informer_hook(self, hook: Collector):
         self._hooks_inf.append(hook)
 
@@ -139,18 +142,6 @@ class API(SafeThread, Hook):
 
         if self.frontend:
             self.reign = Reign.default_reign()
-
-    def set_current_device(self, device: int):
-        r"""Set current device. You should specify current device via this function or 
-        torch.set_current_device(). If current device is not specified, it will come across
-        error while aggregating.
-
-        Args:
-            device: if device < 0, use cpu.
-        """
-        torch.cuda.set_device(device)
-        if torch.cuda.current_device() >= 0:
-            logger.warning(f"Use cuda:{torch.cuda.current_device()}. Currently, only `gloo` backend is supported.")
 
     def init_reign(self):
         """Init a reign.
@@ -267,12 +258,6 @@ class API(SafeThread, Hook):
                 return True
         else:
             return False
-
-    def pack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
-        self.reign.pack_state(obj, keys)
-
-    def unpack_state(self, obj: Optimizer, keys: Union[str, List[str]] = None):
-        self.reign.unpack_state(obj, keys)
 
     def set_aggregator_and_optimizer(self,
                                      aggregator: Union[Agg, List[Agg]],
