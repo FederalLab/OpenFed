@@ -24,6 +24,7 @@
 import torch
 from openfed.common import Wrapper
 from torch.optim import Optimizer
+from typing_extensions import final
 
 
 class Pipe(Optimizer, Wrapper):
@@ -33,15 +34,44 @@ class Pipe(Optimizer, Wrapper):
     some regulation, but not necessarily rewrite all the updating process.
     So, we device this Pipe class to do this.
     """
+
+    # frontend pipe or backend pipe or both.
+    frontend: bool = True
+    backend: bool = False
+
     def __init__(self, *args, **kwargs):
         Optimizer.__init__(self, *args, **kwargs)
         Wrapper.__init__(self)
 
     @torch.no_grad()
-    def finish_round(self):
+    @final
+    def step(self, frontend: bool = True, *args, **kwargs):
+        if frontend and self.frontend:
+            return self.frontend_step(*args, **kwargs)
+        if not frontend and self.backend:
+            return self.backend_step(*args, **kwargs)
+
+    def frontend_step(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def backend_step(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @torch.no_grad()
+    @final
+    def finish_round(self, frontend: bool = True):
         """Update self state after train a round. (Mostly clear the state directly.)
         """
+        if frontend and self.frontend:
+            self.frontend_finish_round()
+        if not frontend and self.backend:
+            self.backend_finish_round()
+
+    def frontend_finish_round(self):
         for group in self.param_groups:
             for p in group["params"]:
                 if p in self.state[p]:
                     del self.state[p]
+
+    def backend_finish_round(self):
+        return self.frontend_finish_round()

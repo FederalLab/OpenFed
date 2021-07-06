@@ -48,8 +48,7 @@ class ElasticPipe(Pipe):
 
         self.add_pack_key('importance')
 
-    @torch.no_grad()
-    def step(self, closure=None):
+    def frontend_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:

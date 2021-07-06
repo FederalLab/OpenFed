@@ -22,6 +22,7 @@
 
 
 import torch
+
 from .pipe import Pipe
 
 
@@ -29,7 +30,7 @@ class ScaffoldPipe(Pipe):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
 
-    def __init__(self, params, lr: float = None, frontend: bool = True):
+    def __init__(self, params, lr: float = None):
         """Scaffold need to run on both frontend and backend.
         If lr is given, we will use the second way provided in the paper to update c.
         Otherwise, we will use the first way provided in the paper.
@@ -74,9 +75,9 @@ class ScaffoldPipe(Pipe):
             >>> deliver.pack(scaffold)
         """
 
-        defaults = dict(lr=lr, frontend=frontend)
+        defaults = dict(lr=lr)
         super().__init__(params, defaults)
-        
+
         self.add_pack_key('c_para')
         self.add_unpack_key('c_para')
 
@@ -86,8 +87,7 @@ class ScaffoldPipe(Pipe):
                 if p.requires_grad:
                     self.state[p]["c_para"] = torch.zeros_like(p)
 
-    @torch.no_grad()
-    def step(self, closure=None, accumulate_gradient: bool = True):
+    def frontend_step(self, closure=None, accumulate_gradient: bool = True):
         """Performs a single optimization step.
 
         Args:
@@ -100,7 +100,6 @@ class ScaffoldPipe(Pipe):
                 loss = closure()
 
         for group in self.param_groups:
-            frontend = group['frontend']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -111,60 +110,96 @@ class ScaffoldPipe(Pipe):
                     else:
                         state["init_p_g"].add_(p.grad)
                     continue
-                if frontend:
-                    if "init_p" not in state:
-                        state["init_p"] = p.clone().detach()
-                    if 'step' not in state:
-                        state["step"] = 0
-                    else:
-                        state["step"] += 1
-                    # Modifed gradients
-                    if "c_para_i" not in state:
-                        c_para_i = state["c_para_i"] = torch.zeros_like(p)
-                    else:
-                        c_para_i = state["c_para_i"]
-                    # c_para will be loaded from agg/deliver automatically.
-                    assert "c_para" in state, "c_para must be loaded from agg/deliver."
-                    c_para = state["c_para"]
-                    p.grad.add_(c_para-c_para_i, alpha=1)
+
+                if "init_p" not in state:
+                    state["init_p"] = p.clone().detach()
+                if 'step' not in state:
+                    state["step"] = 0
                 else:
-                    # Update backend
-                    c_para = state["c_para"]
-                    if "c_para_i" not in state:
-                        c_para_i = state["c_para_i"] = torch.zeros_like(p)
-                    else:
-                        c_para_i = state["c_para_i"]
-
-                    c_para_i.add_(c_para)
-
-                    # copy c_para_i to c_para
-                    c_para.copy_(c_para_i)
+                    state["step"] += 1
+                # Modifed gradients
+                if "c_para_i" not in state:
+                    c_para_i = state["c_para_i"] = torch.zeros_like(p)
+                else:
+                    c_para_i = state["c_para_i"]
+                # c_para will be loaded from agg/deliver automatically.
+                assert "c_para" in state, "c_para must be loaded from agg/deliver."
+                c_para = state["c_para"]
+                p.grad.add_(c_para-c_para_i, alpha=1)
 
         return loss
 
-    def finish_round(self):
+    def backend_step(self, closure=None):
+        """Performs a single optimization step.
+
+        Args:
+            closure (callable, optional): A closure that reevaluates the model
+                and returns the loss.
+        """
+        loss = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+                state = self.state[p]
+
+                # Update backend
+                c_para = state["c_para"]
+                if "c_para_i" not in state:
+                    c_para_i = state["c_para_i"] = torch.zeros_like(p)
+                else:
+                    c_para_i = state["c_para_i"]
+
+                c_para_i.add_(c_para)
+
+                # copy c_para_i to c_para
+                c_para.copy_(c_para_i)
+
+        return loss
+
+    def frontend_finish_round(self):
         """Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
         """
 
         for group in self.param_groups:
-            lr       = group['lr']
-            frontend = group['frontend']
+            lr = group['lr']
             for p in group["params"]:
                 if p.grad is None:
                     continue
                 state = self.state[p]
                 c_para_i = state["c_para_i"]
-                if frontend:
-                    # Update frontend
-                    if lr is None:
-                        # Use the first way to update c_para
-                        assert "init_p_g" in state, "You should accumulate init_p_g first!"
-                        c_para_i.copy_(state["init_p_g"])
-                    else:
-                        # Use the second way to update c_para
-                        c_para_i.copy_(
-                            c_para_i - state["c_para"] + 1 / (state["step"] * lr) * (state["init_p"] - p))
+                # Update frontend
+                if lr is None:
+                    # Use the first way to update c_para
+                    assert "init_p_g" in state, "You should accumulate init_p_g first!"
+                    c_para_i.copy_(state["init_p_g"])
+                else:
+                    # Use the second way to update c_para
+                    c_para_i.copy_(
+                        c_para_i - state["c_para"] + 1 / (state["step"] * lr) * (state["init_p"] - p))
+                state["c_para"].copy_(c_para_i - state["c_para"])
+
+                # del them
+                del state["init_p"]
+                del state["step"]
+
+    def backend_finish_round(self):
+        """Scaffold do a special round operation.
+        Do not forget to call this when the round is finished.
+        """
+
+        for group in self.param_groups:
+            lr = group['lr']
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                state = self.state[p]
+                c_para_i = state["c_para_i"]
                 state["c_para"].copy_(c_para_i - state["c_para"])
 
                 # del them

@@ -37,8 +37,7 @@ class ProxPipe(Pipe):
         defaults = dict(mu=mu)
         super().__init__(params, defaults)
 
-    @torch.no_grad()
-    def step(self, closure=None):
+    def frontend_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
