@@ -25,7 +25,7 @@ import torch
 from .pipe import Pipe
 
 
-class Scaffold(Pipe):
+class ScaffoldPipe(Pipe):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
 
