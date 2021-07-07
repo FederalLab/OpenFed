@@ -70,28 +70,39 @@ class Aggregate(AtLast):
     def aggregate(self, backend, *args, **kwargs):
         """Aggregate received models.
         """
-        for agg, optimizer, pipe in zip(backend.aggregator, backend.bk_optimizer, backend.pipe):
+        if backend.pipe is None:
+            pipe = [None for _ in range(len(backend.aggregator))]
+        else:
+            pipe = backend.pipe
+    
+
+        for aggregator, bk_optimizer, pipe in zip(backend.aggregator, backend.bk_optimizer, pipe):
             # Zero grad first
-            optimizer.zero_grad()
+            bk_optimizer.zero_grad()
 
             # Aggregate
-            agg.aggregate()
+            aggregator.aggregate()
 
             # Unpack state from agg
-            agg.unpack_state(optimizer)
+            aggregator.unpack_state(bk_optimizer)
 
             # Pipe 
-            pipe.step(frontend=False)
+            if pipe is not None:
+                pipe.step(frontend=False)
 
             # Update models
-            optimizer.step()
+            bk_optimizer.step()
 
             # Clear buffers
-            agg.clear_buffer()
-            pipe.finish_round(frontend=False)
+            aggregator.clear_buffer()
+            if pipe is not None:
+                pipe.finish_round(frontend=False)
 
-        task_info_list = [reducer.reduce() for reducer in backend.reducer]
-        [reducer.clear_buffer() for reducer in backend.reducer]
+        if backend.reducer is not None:
+            task_info_list = [reducer.reduce() for reducer in backend.reducer]
+            [reducer.clear_buffer() for reducer in backend.reducer]
+        else:
+            task_info_list = []
 
         backend.task_info_list = task_info_list
 
@@ -100,8 +111,7 @@ class Aggregate(AtLast):
 
         # update learning rate
         if self.lr_scheduler is not None:
-            for lr_sch in self.lr_scheduler:
-                lr_sch.step()
+            [lr_sch.step() for lr_sch in self.lr_scheduler]
 
         # Reset same flags
         backend.received_numbers = 0

@@ -28,7 +28,7 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Type
 
 import torch
-from openfed.common import Clone, logger
+from openfed.common import Clone, logger, peeper
 from openfed.utils import openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
@@ -104,6 +104,9 @@ class Collector(Clone):
         # Only be used while once_only is True
         self.collected: bool = False
         self.scattered: bool = False
+
+        if peeper.api is not None:
+            peeper.api.register_everything(self)
 
     @abstractmethod
     def collect(self) -> Any:

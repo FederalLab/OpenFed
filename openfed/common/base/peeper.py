@@ -34,21 +34,10 @@ class Peeper(object):
     def __init__(self):
         self.obj_item_mapping = dict()
 
-    def add_to_peeper(self, obj: Any, item: Any) -> None:
-        if obj not in self.obj_item_mapping:
-            self.obj_item_mapping[obj] = item
-
-    def get_from_peeper(self, obj: Any) -> Any:
-        return self.obj_item_mapping[obj]
-
-    def remove_from_peeper(self, obj: Any) -> None:
-        if obj in self.obj_item_mapping:
-            del self.obj_item_mapping[obj]
-
     def __setattr__(self, name: str, value: Any):
         if name == "obj_item_mapping":
             super().__setattr__(name, value)
-        self.add_to_peeper(name, value)
+        self.obj_item_mapping[name] = value
 
     def __getattribute__(self, name: str) -> Any:
         if name == "obj_item_mapping":
@@ -65,3 +54,4 @@ class Peeper(object):
 
 
 peeper = Peeper()
+peeper.api = None

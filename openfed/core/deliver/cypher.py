@@ -22,10 +22,9 @@
 
 
 
-from abc import abstractmethod
 from typing import Dict, Union
 
-from openfed.common import Clone
+from openfed.common import Clone, peeper
 from torch import Tensor
 
 
@@ -35,6 +34,10 @@ class Cypher(Clone):
     You can store the inner operation in the returned dictionary directly, but not 
     specify then as self.xxx=yyy.
     """
+    def __init__(self):
+        super().__init__()
+        if peeper.api is not None:
+            peeper.api.register_everything(self)
     
     def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package before transfer to the other end.

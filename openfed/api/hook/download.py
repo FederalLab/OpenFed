@@ -23,6 +23,7 @@
 
 from openfed.common.logging import logger
 
+from ..functional import download_callback
 from ..step import AfterDownload
 
 
@@ -35,23 +36,9 @@ class Download(AfterDownload):
                 logger.warning(
                     f"Excepted @{backend.version}, received @{backend.reign.upload_version}, discard.")
                 return
-            # Fetch data from federated core
-            packages  = backend.reign.tensor_indexed_packages
-            task_info = backend.reign.task_info
 
-            # Add them to agg
-            for agg in backend.aggregator:
-                agg.step(packages, task_info)
-
-            # Add them to reducer
-            for reducer in backend.reducer:
-                reducer.step(task_info)
-
-            # Increase the total number of received models
-            backend.received_numbers += 1
-            # Record current reign_task_info, which can be used in the following steps.
-            backend.reign_task_info = task_info
-
+            download_callback(backend)
+            
             logger.info(
                 f"{backend.received_numbers} at v.{backend.version} from {backend.nick_name}.")
         else:

@@ -22,11 +22,13 @@
 
 
 import time
-from typing import Any, Callable, Dict, List, Union
+from threading import Lock
+from typing import Any, Dict, List, Union
 
 import openfed
 from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
+from openfed.common.base.peeper import peeper
 from openfed.container import Agg, Reducer
 from openfed.core import (Collector, Cypher, Destroy, Maintainer, Reign, World,
                           openfed_lock)
@@ -38,10 +40,13 @@ from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
 from torch import Tensor
 from torch.optim import Optimizer
 
+from .functional import download_callback
 from .step import (Step, after_destroy, after_download, after_upload,
                    at_failed, at_first, at_invalid_state, at_last,
                    at_new_episode, at_zombie, before_destroy, before_download,
                    before_upload)
+
+peeper.api_lock = Lock()
 
 
 def _device_offline_care(func):
@@ -53,7 +58,6 @@ def _device_offline_care(func):
             return False
     return device_offline_care
 
-
 class API(SafeThread, Hook):
     """Provide a unified api for backend and frontend.
     """
@@ -61,9 +65,16 @@ class API(SafeThread, Hook):
     # Communication related
     maintainer: Maintainer
     reign: Reign
+    current_step: str
 
     def __init__(self,
-                 frontend: bool = True,
+                 frontend: bool,
+                 state_dict: Dict[str, Tensor],
+                 ft_optimizer: Union[Optimizer, List[Optimizer]],
+                 aggregator: Union[Agg, List[Agg]],
+                 bk_optimizer: Union[Optimizer, List[Optimizer]]=None,
+                 pipe: Union[Pipe, List[Pipe]] = None,
+                 reducer: Union[Reducer, List[Reducer]] = None,
                  dal: bool = True):
         """Whether act as a frontend.
         Frontend is always in sync mode, which will ease the coding burden.
@@ -96,24 +107,40 @@ class API(SafeThread, Hook):
         self.task_info_list: List[TaskInfo] = []
 
         # Data handle
-        self.state_dict: Dict[str, Tensor] = {}
-        self.aggregator: List[Agg] = []
-        self.optimizer: List[Optimizer] = []
-        self.ft_optimizer: List[Optimizer] = []
-        self.reducer: List[Reducer] = []
+        self.state_dict: Dict[str, Tensor] = state_dict
+        self.aggregator: List[Agg] = convert_to_list(aggregator)
+        if bk_optimizer is None:
+            bk_optimizer = ft_optimizer
+        self.pipe: List[Pipe] = convert_to_list(pipe)
+        self.bk_optimizer: List[Optimizer] = convert_to_list(bk_optimizer)
+        self.ft_optimizer: List[Optimizer] = convert_to_list(ft_optimizer)
+        self.reducer: List[Reducer] = convert_to_list(reducer)
+
+        assert len(self.aggregator) == len(self.bk_optimizer) == len(self.ft_optimizer)
 
         # how many times for backend waiting for connections.
         self.max_try_times: int = 5
 
-        # Set them here to avoid get attribute error.
-        self.reign = None
-        self.maintainer = None
-
-    def add_informer_hook(self, hook: Collector):
-        self._hooks_inf.append(hook)
-
-    def add_deliver_hook(self, hook: Cypher):
-        self._hooks_del.append(hook)
+    def register_everything(self, hook: Any):
+        """register hook to the corresponding class based on different hook types.
+        """
+        if isinstance(hook, Step):
+            step = hook
+            """Register the step function to step possition call."""
+            for name in convert_to_list(step.step_name):
+                cnt = 0
+                for n in self.hook_dict.keys():
+                    if n.startswith(name):
+                        cnt = max(cnt, int(n.split(".")[-1]))
+                else:
+                    self.register_hook(f"{name}.{cnt+1}", step)
+        elif isinstance(hook, Collector):
+            self._hooks_inf.append(hook)
+        elif isinstance(hook, Cypher):
+            self._hooks_del.append(hook)
+        else:
+            raise NotImplementedError(
+                f'Hook type is not supported: {type(hook)}.')
 
     def _add_hook_to_reign(self):
         # register a clone of informer hook.
@@ -145,70 +172,7 @@ class API(SafeThread, Hook):
 
         if self.frontend:
             self.reign = Reign.default_reign()
-
-    def init_reign(self):
-        """Init a reign.
-        First, register hook to reign, including hook for informer and deliver.
-        Second, apply collect and scatter hook.
-        Third, set self task info and load others task info
-        Last, set the state dict.
-
-        """
-        # 1. register hook first
-        self._add_hook_to_reign()
-
-        # 2. gather hook information
-        self.reign.collect()
-        self.reign.scatter()
-
-        # 4. set state dict
-        assert self.state_dict
-        self.reign.reset_state_dict(self.state_dict)
-
-    def set_state_dict(self, state_dict: Dict[str, Tensor]):
-        self.state_dict = state_dict
-
-    def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="OpenFedAPI",
-            description=f"{'Frontend' if self.frontend else 'Backend'}."
-        )
-
-    def finish(self, auto_exit: bool = False):
-        if self.maintainer:
-            Destroy.destroy_all_in_a_world(self.maintainer.world)
-            self.maintainer.manual_stop()
-            del_maintainer_lock(self.maintainer)
-
-        if auto_exit and self.backend:
-            exit(15)
-
-    def backend_loop(self) -> bool:
-        """If go into run() func, will return True, otherwise False.
-        """
-        return self.run() if self.backend else False
-
-    def __enter__(self):
-        self.original_state = [
-            openfed.DAL.is_dal,
-            openfed.ASYNC_OP.is_async_op,
-        ]
-
-        openfed.DAL.set(self.dal)
-        openfed.ASYNC_OP.set(self.async_op)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # restore state
-        dal, async_op = self.original_state
-
-        openfed.DAL.set(dal)
-        openfed.ASYNC_OP.set(async_op)
-
-    def set_task_info(self, task_info: TaskInfo) -> None:
-        self.reign_task_info = task_info
-
-    def get_task_info(self) -> TaskInfo:
-        return self.reign_task_info
+            self._add_hook_to_reign()
 
     def update_version(self, version: int = None):
         """Update inner model version.
@@ -216,98 +180,96 @@ class API(SafeThread, Hook):
         self.version = version if version is not None else self.version + 1
 
     @_device_offline_care
-    def upload(self) -> bool:
-        """As for frontend, it is much easier for us to judge the new version.
-        A download and upload is build a version updating.
-        So increase version number here.
+    def transfer(self, to: bool = False, task_info: TaskInfo = None) -> bool:
+        r"""Transfer inner state to other ends.
+        Args:
+            to: if true, upload data to the other end.
+                if false, download data from the other end.
+            task_info: task info want to upload or download.
+                The new task info will be updated directly to this parameters.
         """
-        self.init_reign()
+        # 1. gather hook information
+        self.reign.collect()
+        self.reign.scatter()
 
-        self.reign.set_task_info(self.reign_task_info)
-        # unpack state
-        [self.pack_state(ft_opt) for ft_opt in self.ft_optimizer]
+        # 2. set state dict
+        assert self.state_dict
+        self.reign.reset_state_dict(self.state_dict)
 
-        flag = self.reign.upload(self.version)
-        return flag if flag or self.backend else self._wait_handler()
+        if to:
+            # 3. set task info
+            if task_info is not None:
+                self.reign.set_task_info(task_info)
+                self.reign_task_info = task_info
+            else:
+                self.reign.set_task_info(self.reign_task_info)
 
-    @_device_offline_care
-    def download(self) -> bool:
-        """In frontend, the frontend optimizer state dict will automatically unpack after download.
-        But, in backend, it won't. You should deal with this in hook step.
-        """
-        self.init_reign()
-        flag = self.reign.download(self.version)
+            # 4. Pack state
+            if self.frontend:
+                [self.pack_state(ft_opt) for ft_opt in self.ft_optimizer]
+            elif self.backend:
+                [self.pack_state(bk_opt) for bk_opt in self.bk_optimizer]
+            if self.pipe is not None:
+                [self.pack_state(pipe) for pipe in self.pipe]
+
+            # 5. transfer
+            flag = self.reign.upload(self.version)
+        else:
+            flag = self.reign.download(self.version)
 
         def callback():
-            if self.frontend:
-                # unpack state
-                [self.unpack_state(ft_opt)
-                 for ft_opt in self.ft_optimizer]
-                self.version = self.reign.upload_version
-                self.reign_task_info = self.reign.task_info
+            if not to:
+                download_callback(self)
+                if task_info is not None:
+                    task_info.info_dict.update(self.reign_task_info.info_dict)
+
+        # 7. hand on
         if flag:
             callback()
-
-        return flag if flag or self.backend else self._wait_handler(callback)
-
-    def _wait_handler(self, callback: Callable = lambda: ...):
-        if openfed.ASYNC_OP.is_async_op:
-            while not self.reign.deal_with_hang_up():
-                if self.reign.is_offline:
-                    return False
-                time.sleep(0.1)
+            return True
+        else:
+            if self.backend:
+                # return directly.
+                return flag
             else:
-                callback()
-                return True
-        else:
-            return False
-
-    def set_aggregator_and_optimizer(self,
-                                     aggregator: Union[Agg, List[Agg]],
-                                     optimizer: Union[Optimizer, List[Optimizer]],
-                                     ft_optimizer: Union[Optimizer, List[Optimizer]] = None):
-        """
-        Args:
-            We will set the same optimizer for frontend and backend.
-            If you have specified different optimizer for frontend, we will use it.
-
-            Actually, you can put the pipe_optimizer to ft_optimizer, it will automatically 
-            pack the state before upload and unpack state after download.
-        """
-        self.aggregator = convert_to_list(aggregator)
-        self.optimizer = convert_to_list(optimizer)
-        if ft_optimizer is not None:
-            self.ft_optimizer = convert_to_list(ft_optimizer)
-        else:
-            self.ft_optimizer = convert_to_list(optimizer)
-
-        assert len(self.aggregator) == len(
-            self.optimizer), "Aggregator must be corresponding to Optimizer."
-
-    def set_aggregator(self, aggregator: Union[Agg, List[Agg]]):
-        pass
-
-    def set_ft_optimizer(self, optimizer: Union[Optimizer, List[Optimizer]]):
-        pass
-
-    def set_bk_optimizer(self, optimizer: Union[Optimizer, List[Optimizer]]):
-        pass
-
-    def set_pipe(self, pipe: Union[Pipe, List[Pipe]]):
-        pass
-
-    def set_reducer(self, reducer: Union[Reducer, List[Reducer]]) -> None:
-        """
-        Args: 
-            reducer: used to aggregate task info.
-        """
-        self.reducer.extend(convert_to_list(reducer))
+                # wait for finished.
+                if openfed.ASYNC_OP.is_async_op:
+                    while not self.reign.deal_with_hang_up():
+                        if self.reign.is_offline:
+                            return False
+                        time.sleep(0.1)
+                    else:
+                        callback()
+                        return True
+                else:
+                    return False
 
     def safe_run(self):
         """
             Use self.run() to start this loop in the main thread.
             Use self.start() to start this loop in the thread.
         """
+
+        def step(step_name: str, *args, **kwargs) -> Union[None, bool]:
+            """
+                You can chain the same type hook together.
+                Hook will return a bool value or None.
+                If bool is returned, we will use `and` to reduce them.
+                If None is returned, we will return `None` directly.
+                You should directly store other variables in self object.
+            """
+            self.current_step = step_name
+            output = [hook(self, *args, **kwargs) for name,
+                      hook in self.hook_dict.items() if name.startswith(step_name)]
+
+            # reduce output
+            if None in output:
+                return None
+            elif False in output:
+                return False
+            else:
+                return True
+
         if self.frontend:
             return None
         # NOTE: release openfed_lock here.
@@ -317,7 +279,7 @@ class API(SafeThread, Hook):
         try_times = 0
         while not self.stopped:
             with self.maintainer.mt_lock:
-                self.step(at_new_episode)
+                step(at_new_episode)
                 rg = Reign.reign_generator()
                 cnt = 0
                 for reign in rg:
@@ -330,30 +292,30 @@ class API(SafeThread, Hook):
                     self._add_hook_to_reign()
 
                     cnt += 1
-                    self.step(at_first)
+                    step(at_first)
                     if reign.is_offline:
-                        [self.step(after_destroy, Destroy.destroy_reign(reign)) if self.step(
-                            before_destroy) else self.step(at_failed)]
+                        [step(after_destroy, Destroy.destroy_reign(reign)) if step(
+                            before_destroy) else step(at_failed)]
                     elif reign.upload_hang_up:
-                        self.step(after_upload,
-                                  reign.deal_with_hang_up())
+                        step(after_upload,
+                             reign.deal_with_hang_up())
                     elif reign.download_hang_up:
-                        self.step(after_download,
-                                  reign.deal_with_hang_up())
+                        step(after_download,
+                             reign.deal_with_hang_up())
                     elif reign.is_zombie:
-                        self.step(at_zombie)
+                        step(at_zombie)
                     elif reign.is_pushing:
                         # Client want to push data to server, we need to download.
-                        [self.step(after_download, self.download()) if self.step(
-                            before_download) else self.step(at_failed)]
+                        [step(after_download, self.transfer(to=False)) if step(
+                            before_download) else step(at_failed)]
                     elif reign.is_pulling:
                         # Client want to pull data from server, we need to upload
-                        [self.step(after_upload, self.upload()) if self.step(
-                            before_upload) else self.step(at_failed)]
+                        [step(after_upload,self.transfer(to=True)) if step(
+                            before_upload) else step(at_failed)]
                     else:
-                        self.step(at_invalid_state)
+                        step(at_invalid_state)
                     # update regularly.
-                    self.step(at_last)
+                    step(at_last)
 
             try_times = 0 if cnt else try_times + 1
 
@@ -369,35 +331,19 @@ class API(SafeThread, Hook):
             time.sleep(0.1)
         return "Backend exited."
 
-    def register_step(self, step: Step):
-        """Register the step function to step possition call."""
-        for name in convert_to_list(step.step_name):
-            cnt = 0
-            for n in self.hook_dict.keys():
-                if n.startswith(name):
-                    cnt = max(cnt, int(n.split(".")[-1]))
-            else:
-                self.register_hook(f"{name}.{cnt+1}", step)
-
-    def step(self, step_name: str, *args, **kwargs) -> Union[None, bool]:
+    def backend_loop(self) -> bool:
+        """If go into run() func, will return True, otherwise False.
         """
-            You can chain the same type hook together.
-            Hook will return a bool value or None.
-            If bool is returned, we will use `and` to reduce them.
-            If None is returned, we will return `None` directly.
-            You should directly store other variables in self object.
-        """
-        self.current_step = step_name
-        output = [hook(self, *args, **kwargs) for name,
-                  hook in self.hook_dict.items() if name.startswith(step_name)]
+        return self.run() if self.backend else False
 
-        # reduce output
-        if None in output:
-            return None
-        elif False in output:
-            return False
-        else:
-            return True
+    def finish(self, auto_exit: bool = False):
+        if self.maintainer:
+            Destroy.destroy_all_in_a_world(self.maintainer.world)
+            self.maintainer.manual_stop()
+            del_maintainer_lock(self.maintainer)
+
+        if auto_exit and self.backend:
+            exit(15)
 
     def __getattribute__(self, name: str) -> Any:
         """Try to fetch the attribute of api. If failed, try to fetch it from reign.
@@ -406,3 +352,31 @@ class API(SafeThread, Hook):
             return super().__getattribute__(name)
         except AttributeError as e:
             return getattr(self.reign, name)
+
+    def __str__(self):
+        return openfed_class_fmt.format(
+            class_name="OpenFedAPI",
+            description=f"{'Frontend' if self.frontend else 'Backend'}."
+        )
+
+    def __enter__(self):
+        self.original_state = [
+            openfed.DAL.is_dal,
+            openfed.ASYNC_OP.is_async_op,
+        ]
+
+        openfed.DAL.set(self.dal)
+        openfed.ASYNC_OP.set(self.async_op)
+        peeper.api_lock.acquire()
+        peeper.api = self
+
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # restore state
+        dal, async_op = self.original_state
+
+        openfed.DAL.set(dal)
+        openfed.ASYNC_OP.set(async_op)
+        peeper.api = None
+        peeper.api_lock.release()
+

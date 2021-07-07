@@ -22,7 +22,6 @@
 
 
 from enum import Enum, unique
-from threading import Lock
 from typing import List, Union
 
 from openfed.common import Clone
@@ -32,59 +31,38 @@ from openfed.common.base import peeper
 @unique
 class StepName(Enum):
     # After
-    AFTER_DESTROY  = 'AFTER_DESTROY'
+    AFTER_DESTROY = 'AFTER_DESTROY'
     AFTER_DOWNLOAD = 'AFTER_DOWNLOAD'
-    AFTER_UPLOAD   = 'AFTER_UPLOAD'
+    AFTER_UPLOAD = 'AFTER_UPLOAD'
 
     # At
-    AT_FIRST         = "AT_FIRST"
-    AT_FAILED        = 'AT_FAILED'
+    AT_FIRST = "AT_FIRST"
+    AT_FAILED = 'AT_FAILED'
     AT_INVALID_STATE = 'AT_INVALID_STATE'
-    AT_LAST          = 'AT_LAST'
-    AT_NEW_EPISODE   = 'AT_NEW_EPISODE'
-    AT_ZOMBIE        = 'AT_ZOMBIE'
+    AT_LAST = 'AT_LAST'
+    AT_NEW_EPISODE = 'AT_NEW_EPISODE'
+    AT_ZOMBIE = 'AT_ZOMBIE'
 
     # Before
-    BEFORE_DESTROY  = 'BEFORE_DESTROY'
+    BEFORE_DESTROY = 'BEFORE_DESTROY'
     BEFORE_DOWNLOAD = 'BEFORE_DOWNLOAD'
-    BEFORE_UPLOAD   = 'BEFORE_UPLOAD'
+    BEFORE_UPLOAD = 'BEFORE_UPLOAD'
 
 
-after_destroy  = StepName.AFTER_DESTROY.value
+after_destroy = StepName.AFTER_DESTROY.value
 after_download = StepName.AFTER_DOWNLOAD.value
-after_upload   = StepName.AFTER_UPLOAD.value
+after_upload = StepName.AFTER_UPLOAD.value
 
-at_first         = StepName.AT_FIRST.value
-at_failed        = StepName.AT_FAILED.value
+at_first = StepName.AT_FIRST.value
+at_failed = StepName.AT_FAILED.value
 at_invalid_state = StepName.AT_INVALID_STATE.value
-at_last          = StepName.AT_LAST.value
-at_new_episode   = StepName.AT_NEW_EPISODE.value
-at_zombie        = StepName.AT_ZOMBIE.value
+at_last = StepName.AT_LAST.value
+at_new_episode = StepName.AT_NEW_EPISODE.value
+at_zombie = StepName.AT_ZOMBIE.value
 
-before_destroy  = StepName.BEFORE_DESTROY.value
+before_destroy = StepName.BEFORE_DESTROY.value
 before_download = StepName.BEFORE_DOWNLOAD.value
-before_upload   = StepName.BEFORE_UPLOAD.value
-
-peeper.step_lock = Lock()
-peeper.backend   = list()
-
-
-class StepAt(object):
-    """Get a lock, and register all step hooks into _backend automatically.
-    """
-
-    def __init__(self, backend):
-        self.backend = backend
-
-    def __enter__(self):
-        peeper.step_lock.acquire()
-        assert len(peeper.backend) == 0, "Not empty backend."
-        peeper.backend.append(self.backend)
-
-    def __exit__(self, *unused):
-        peeper.backend.pop()
-        assert len(peeper.backend) == 0
-        peeper.step_lock.release()
+before_upload = StepName.BEFORE_UPLOAD.value
 
 
 class Step(Clone):
@@ -92,18 +70,19 @@ class Step(Clone):
 
     def __init__(self):
         # automatically register step hooks to backend
-        if len(peeper.backend) == 1:
-            peeper.backend[0].register_step(self)
+        if peeper.api is not None:
+            peeper.api.register_everything(self)
 
     def __call__(self, backend, *args, **kwargs) -> Union[None, bool]:
         return self.step(backend, *args, **kwargs)
 
     def step(self, backend, *args, **kwargs) -> Union[None, bool]:
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
 
 class AfterDestroy(Step):
     step_name = after_destroy
+
 
 class AfterDownload(Step):
     step_name = after_download
@@ -112,12 +91,14 @@ class AfterDownload(Step):
 class AfterUpload(Step):
     step_name = after_upload
 
+
 class AtFirst(Step):
     step_name = at_first
 
 
 class AtFailed(Step):
     step_name = at_failed
+
 
 class AtInvalidState(Step):
     step_name = at_invalid_state
@@ -126,6 +107,7 @@ class AtInvalidState(Step):
 class AtLast(Step):
     step_name = at_last
 
+
 class AtNewEpisode(Step):
     step_name = at_new_episode
 
@@ -133,8 +115,10 @@ class AtNewEpisode(Step):
 class AtZombie(Step):
     step_name = at_zombie
 
+
 class BeforeDestroy(Step):
     step_name = before_destroy
+
 
 class BeforeDownload(Step):
     step_name = before_download
@@ -152,77 +136,77 @@ class MultiStep(Step):
         self.step_name.append(after_destroy)
 
     def after_destroy(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _after_download(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(after_download)
 
     def after_download(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _after_upload(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append('after_upload')
 
     def after_upload(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _at_failed(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_failed)
 
     def at_failed(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _at_invalid_state(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_invalid_state)
 
     def at_invalid_state(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _at_last(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_last)
 
     def at_last(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _at_new_episode(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_new_episode)
 
     def at_new_episode(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _at_zombie(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_zombie)
 
     def at_zombie(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _before_destroy(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(before_destroy)
 
     def before_destroy(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _before_download(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(before_download)
 
     def before_download(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def _before_upload(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(before_upload)
 
     def before_upload(self, backend, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented!")
 
     def __call__(self, backend, *args, **kwargs):
         if backend.current_step in self.step_name:
