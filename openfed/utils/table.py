@@ -71,3 +71,9 @@ def tablist(head: List[Any],
                 table_list.append(_tablist(head[i:], data[i:]))
             i += items_per_row
     return "\n".join(table_list)
+
+
+def process_bar(percentage, do='>', undo='-', length=80, prefix:str = ''):
+    do_str = do * int(length * percentage)
+    undo_str = undo * (length - len(do_str))
+    return str(prefix) + ':[' + do_str + undo_str + ']'

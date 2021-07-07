@@ -23,12 +23,11 @@
 
 import time
 from datetime import timedelta
-from turtle import back
 from typing import List, Union
 
 import torch
 from openfed.common.logging import logger
-from openfed.utils import convert_to_list
+from openfed.utils import convert_to_list, process_bar
 from torch.optim.lr_scheduler import _LRScheduler
 
 from ..step import AtLast
@@ -58,15 +57,24 @@ class Aggregate(AtLast):
         self.tic = time.time()
         self.checkpoint = checkpoint
         self.lr_scheduler = convert_to_list(lr_scheduler)
+        self.last_received_numbers = 0
 
     def step(self, backend, *args, **kwargs) -> None:
         cnt = self.count[self.idx]
+        if self.last_received_numbers != backend.received_numbers:
+            self.last_received_numbers = backend.received_numbers
+            logger.success('\n'+
+                process_bar(
+                self.last_received_numbers / self.count[self.idx],
+                prefix=f"@{backend.version}",
+            ))
+
         if cnt > 0 and backend.received_numbers >= cnt:
             self.aggregate(backend, *args, **kwargs)
             self.idx += 1
             if self.idx >= len(self.count):
                 self.idx = 0
-
+                backend.version += 1
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             self.aggregate(backend, *args, **kwargs)
@@ -120,11 +128,8 @@ class Aggregate(AtLast):
 
         # Reset same flags
         backend.received_numbers = 0
-        logger.success(
-            f"-> @{backend.version} >> @{backend.version+1}.")
-        backend.version += 1
 
         if self.checkpoint:
             path = f"{self.checkpoint}.{backend.version}"
             torch.save(backend.state_dict, path)
-            logger.success(f"Save to {path}.")
+            logger.info(f"Save to {path}.")
