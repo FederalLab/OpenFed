@@ -32,35 +32,35 @@ from ..step import MultiStep
 
 
 class Dispatch(MultiStep):
-    """
-    NOTE: If you choose this step function, `BeforeUpload` must be disabled.
-    """
     pending_queue: List[int]
 
     # part_id -> nick name
-    running_queue : Dict[int, str]
+    running_queue: Dict[int, str]
     finished_queue: Dict[int, str]
 
     @overload
-    def __init__(self, total_parts: int, samples: int = None):
+    def __init__(self, parts_list: int, samples: int = None):
         """
         Args:
             total_parts: the total number of parts splitted in a simulation federated work.
             samples: the number of parts activated during simulation.
+            total_test_parts: the number of test dataset parts.
         """
 
     @overload
-    def __init__(self, total_parts: int, sample_ratio: float = None):
+    def __init__(self, total_parts: int, sample_ratio: float = None, total_test_parts: int = None):
         """
         Args:
             total_parts: the total number of parts splitted in a simulation federated work.
             sample_ratio: the ratio to be activated during simulation.
+            total_test_parts: the number of test dataset parts.
         """
 
     def __init__(self, *args, **kwargs):
         total_parts = args[0]
-        samples = kwargs.get('samples', None)
-        sample_ratio = kwargs.get('sample_ratio', None)
+        samples          = kwargs.get('samples', None)
+        sample_ratio     = kwargs.get('sample_ratio', None)
+        total_test_parts = kwargs.get('total_test_parts', None)
 
         # Count the finished parts
         # If finished all parts in this round, reset inner part buffer.
@@ -75,24 +75,34 @@ class Dispatch(MultiStep):
             samples is None and sample_ratio is None), "one of samples or sample_ratio must be specified."
 
         self.total_parts = total_parts
-        self.samples     = int(samples) if samples else int(total_parts * sample_ratio)
+        self.samples     = int(samples) if samples else int(
+            total_parts * sample_ratio)
+        self.total_test_parts = total_test_parts
 
         # Initialize queue
-        self.reset()
+        self.reset(mode='train')
 
     def _permutation(self):
         return [int(x) for x in np.random.permutation(self.total_parts)[
             :self.samples]]
 
-    def reset(self):
-        self.pending_queue  = self._permutation()
-        self.running_queue  = dict()
-        self.finished_queue = dict()
+    def reset(self, mode: str = 'train'):
+        assert mode in ['train', 'test']
+        if mode == 'train':
+            self.pending_queue  = self._permutation()
+            self.running_queue  = dict()
+            self.finished_queue = dict()
+        elif mode == 'test':
+            self.pending_queue  = list(range(self.total_test_parts))
+            self.running_queue  = dict()
+            self.finished_queue = dict()
+        else:
+            raise RuntimeError(f"{mode} is not supported.")
 
     def after_download(self, backend, flag: bool):
         if flag:
             task_info = backend.reign_task_info
-            part_id   = task_info.part_id
+            part_id = task_info.part_id
 
             logger.debug(f"Download a model from {backend.nick_name}.")
 
@@ -118,7 +128,7 @@ class Dispatch(MultiStep):
             self.running_queue[part_id] = backend.nick_name
 
             # generate task_info
-            task_info         = TaskInfo()
+            task_info = TaskInfo()
             task_info.part_id = part_id
             task_info.version = backend.version
 
