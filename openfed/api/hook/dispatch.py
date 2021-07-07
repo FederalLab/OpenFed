@@ -27,8 +27,9 @@ import numpy as np
 from openfed.common import TaskInfo, logger
 from openfed.utils import openfed_class_fmt, tablist
 from typing_extensions import overload
-
+import random
 from ..step import MultiStep
+from typing import Union, Any
 
 
 class Dispatch(MultiStep):
@@ -38,29 +39,25 @@ class Dispatch(MultiStep):
     running_queue: Dict[int, str]
     finished_queue: Dict[int, str]
 
-    @overload
-    def __init__(self, parts_list: int, samples: int = None, total_test_parts: int = None):
+    def __init__(self,
+                 samples: int,
+                 parts_list: Union[int, List[Any]],
+                 test_samples: int = None,
+                 test_parts_list: Union[int, List[Any]] = None
+                 ):
         """
         Args:
-            total_parts: the total number of parts splitted in a simulation federated work.
-            samples: the number of parts activated during simulation.
-            total_test_parts: the number of test dataset parts.
+            samples: the total number of parts used in a train round.
+            parts_list: a list contains all part ids.
+            test_samples: the total number of parts used in a test round.
+            test_parts_list: a list contains all part ids of test.
         """
-
-    @overload
-    def __init__(self, total_parts: int, sample_ratio: float = None, total_test_parts: int = None):
-        """
-        Args:
-            total_parts: the total number of parts splitted in a simulation federated work.
-            sample_ratio: the ratio to be activated during simulation.
-            total_test_parts: the number of test dataset parts.
-        """
-
-    def __init__(self, *args, **kwargs):
-        total_parts = args[0]
-        samples = kwargs.get('samples', None)
-        sample_ratio = kwargs.get('sample_ratio', None)
-        total_test_parts = kwargs.get('total_test_parts', None)
+        self.samples = samples
+        self.parts_list = list(range(parts_list)) if isinstance(
+            parts_list, int) else parts_list
+        self.test_samples = test_samples
+        self.test_parts_list = list(range(test_parts_list)) if isinstance(
+            test_parts_list, int) else test_parts_list
 
         # Count the finished parts
         # If finished all parts in this round, reset inner part buffer.
@@ -71,34 +68,24 @@ class Dispatch(MultiStep):
         # Support auto register method.
         super().__init__()
 
-        assert not (
-            samples is None and sample_ratio is None), "one of samples or sample_ratio must be specified."
-
-        self.total_parts = total_parts
-        self.samples = int(samples) if samples else int(
-            total_parts * sample_ratio)
-        self.total_test_parts = total_test_parts
-
-        self.train = True
+        self.train = False
 
         # Initialize queue
         self.reset()
 
-    def _permutation(self):
-        return [int(x) for x in np.random.permutation(self.total_parts)[
-            :self.samples]]
-
     def reset(self):
+        self.train = not self.train if self.test_samples is not None else True
+
         if self.train:
-            self.pending_queue = self._permutation()
+            self.pending_queue = random.sample(self.parts_list, self.samples)
             self.running_queue = dict()
             self.finished_queue = dict()
         else:
-            self.pending_queue = list(range(self.total_test_parts))
-            self.running_queue = dict()
-            self.finished_queue = dict()
-        # reverse
-        self.train = not self.train
+            if self.test_samples is not None and self.test_parts_list is not None:
+                self.pending_queue = random.sample(
+                    self.test_parts_list, self.test_samples)
+                self.running_queue = dict()
+                self.finished_queue = dict()
 
     def after_download(self, backend, flag: bool):
         if flag:
@@ -133,7 +120,7 @@ class Dispatch(MultiStep):
             task_info.part_id = part_id
             task_info.version = backend.version
             # opside with self.train
-            task_info.train = not self.train
+            task_info.train = self.train
 
             # set task_info
             backend.reign_task_info = task_info
