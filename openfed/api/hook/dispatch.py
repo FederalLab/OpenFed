@@ -39,7 +39,7 @@ class Dispatch(MultiStep):
     finished_queue: Dict[int, str]
 
     @overload
-    def __init__(self, parts_list: int, samples: int = None):
+    def __init__(self, parts_list: int, samples: int = None, total_test_parts: int = None):
         """
         Args:
             total_parts: the total number of parts splitted in a simulation federated work.
@@ -58,8 +58,8 @@ class Dispatch(MultiStep):
 
     def __init__(self, *args, **kwargs):
         total_parts = args[0]
-        samples          = kwargs.get('samples', None)
-        sample_ratio     = kwargs.get('sample_ratio', None)
+        samples = kwargs.get('samples', None)
+        sample_ratio = kwargs.get('sample_ratio', None)
         total_test_parts = kwargs.get('total_test_parts', None)
 
         # Count the finished parts
@@ -75,29 +75,30 @@ class Dispatch(MultiStep):
             samples is None and sample_ratio is None), "one of samples or sample_ratio must be specified."
 
         self.total_parts = total_parts
-        self.samples     = int(samples) if samples else int(
+        self.samples = int(samples) if samples else int(
             total_parts * sample_ratio)
         self.total_test_parts = total_test_parts
 
+        self.train = True
+
         # Initialize queue
-        self.reset(mode='train')
+        self.reset()
 
     def _permutation(self):
         return [int(x) for x in np.random.permutation(self.total_parts)[
             :self.samples]]
 
-    def reset(self, mode: str = 'train'):
-        assert mode in ['train', 'test']
-        if mode == 'train':
-            self.pending_queue  = self._permutation()
-            self.running_queue  = dict()
-            self.finished_queue = dict()
-        elif mode == 'test':
-            self.pending_queue  = list(range(self.total_test_parts))
-            self.running_queue  = dict()
+    def reset(self):
+        if self.train:
+            self.pending_queue = self._permutation()
+            self.running_queue = dict()
             self.finished_queue = dict()
         else:
-            raise RuntimeError(f"{mode} is not supported.")
+            self.pending_queue = list(range(self.total_test_parts))
+            self.running_queue = dict()
+            self.finished_queue = dict()
+        # reverse
+        self.train = not self.train
 
     def after_download(self, backend, flag: bool):
         if flag:
@@ -131,24 +132,11 @@ class Dispatch(MultiStep):
             task_info = TaskInfo()
             task_info.part_id = part_id
             task_info.version = backend.version
+            # opside with self.train
+            task_info.train = not self.train
 
             # set task_info
-            backend.set_task_info(task_info)
-
-            # reset old state
-
-            assert backend.optimizer
-            assert backend.aggregator
-            assert backend.state_dict
-
-            # reset old state
-            backend.reign.reset()
-
-            # pack new data
-            backend.reign.reset_state_dict(backend.state_dict)
-            for agg, optimizer in zip(backend.aggregator, backend.optimizer):
-                backend.reign.pack_state(agg)
-                backend.reign.pack_state(optimizer)
+            backend.reign_task_info = task_info
 
             return True
 

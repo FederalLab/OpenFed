@@ -37,29 +37,35 @@ from ..step import AtLast
 class Aggregate(AtLast):
     checkpoint: Union[None, str]
     tic: float
-    count: int
+    count: List[int]
 
-    def __init__(self, 
-        count       : int                                     = -1,
-        period      : timedelta                               = timedelta(hours=24),
-        checkpoint  : str                                     = None,
-        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None):
+    def __init__(self,
+                 count: Union[int, List[int]] = -1,
+                 period: timedelta = timedelta(hours=24),
+                 checkpoint: str = None,
+                 lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None):
         """
         Args: 
+            count: The circle times to do the aggregation operation.
             period: The period to agg received model.
             checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
         """
         super().__init__()
         self.period = period
-        self.count = count
+        self.count = convert_to_list(count)
+        self.idx = 0
 
         self.tic = time.time()
         self.checkpoint = checkpoint
         self.lr_scheduler = convert_to_list(lr_scheduler)
 
     def step(self, backend, *args, **kwargs) -> None:
-        if self.count > 0 and backend.received_numbers >= self.count:
+        cnt = self.count[self.idx]
+        if cnt > 0 and backend.received_numbers >= cnt:
             self.aggregate(backend, *args, **kwargs)
+            self.idx += 1
+            if self.idx >= len(self.count):
+                self.idx = 0
 
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
@@ -74,7 +80,6 @@ class Aggregate(AtLast):
             pipe = [None for _ in range(len(backend.aggregator))]
         else:
             pipe = backend.pipe
-    
 
         for aggregator, bk_optimizer, pipe in zip(backend.aggregator, backend.bk_optimizer, pipe):
             # Zero grad first
@@ -86,7 +91,7 @@ class Aggregate(AtLast):
             # Unpack state from agg
             aggregator.unpack_state(bk_optimizer)
 
-            # Pipe 
+            # Pipe
             if pipe is not None:
                 pipe.step(frontend=False)
 
@@ -111,7 +116,7 @@ class Aggregate(AtLast):
 
         # update learning rate
         if self.lr_scheduler is not None:
-            [lr_sch.step() for lr_sch in self.lr_scheduler]
+            [lr_sch.step() for lr_sch in self.lr_scheduler if lr_sch is not None]
 
         # Reset same flags
         backend.received_numbers = 0

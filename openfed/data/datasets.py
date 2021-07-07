@@ -38,8 +38,8 @@ class FederatedDataset(Dataset):
         assert 0 <= part_id <= self.total_parts
         self.part_id = part_id
 
-    @abstractmethod
-    def total_samples(self):
+    @property
+    def total_samples(self) -> int:
         raise NotImplementedError
 
 
