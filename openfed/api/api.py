@@ -221,7 +221,7 @@ class API(SafeThread, Hook):
             if not to:
                 download_callback(self)
                 if task_info is not None:
-                    task_info.info_dict.update(self.reign_task_info.info_dict)
+                    task_info.load_dict(self.reign_task_info.info_dict)
 
         # 7. hand on
         if flag:

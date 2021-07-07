@@ -1,5 +1,4 @@
 def download_callback(api):
-    api.version = api.reign.upload_version
     task_info = api.reign.task_info
     api.reign_task_info = task_info
 
