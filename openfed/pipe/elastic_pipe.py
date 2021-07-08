@@ -48,13 +48,16 @@ class ElasticPipe(Pipe):
 
         self.add_pack_key('importance')
 
-    def _ft_step(self, closure=None):
+    def _ft_step(self, closure=None, acg: bool = False):
         """Performs a single optimization step.
 
         Args:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
         """
+        if not acg:
+            return 
+
         loss = None
         if closure is not None:
             with torch.enable_grad():

@@ -348,6 +348,9 @@ class API(SafeThread, Hook):
     def __getattribute__(self, name: str) -> Any:
         """Try to fetch the attribute of api. If failed, try to fetch it from reign.
         """
+        if name == 'regin':
+            return super().__getattribute__(name)
+
         try:
             return super().__getattribute__(name)
         except AttributeError as e:
