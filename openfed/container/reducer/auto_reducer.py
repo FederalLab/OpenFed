@@ -51,4 +51,4 @@ class AutoReducer(Reducer):
                     rdict[k] += v * w
                 else:
                     pass
-        return TaskInfo().load_dict(rdict)
+        return TaskInfo().load_dict(task_info_list[0].info_dict).load_dict(rdict)
