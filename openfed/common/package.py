@@ -47,7 +47,7 @@ class Package(object):
             for group in obj.param_groups:
                 for p in group["params"]:
                     state = obj.state[p]
-                    rdict = {k: state[k] for k in keys}
+                    rdict = {k: state[k] for k in keys if k in state}
                     self.pack(p, rdict)
 
     def unpack_state(self, obj, keys: Union[None, str, List[str]] = None) -> None:

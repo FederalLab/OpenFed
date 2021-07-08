@@ -44,7 +44,7 @@ class AutoReducer(Reducer):
             weight_key: if specified, we will apply a weighed reduce operation accross all values.
                 weight_keys must be in the returned task_info_dict.
             additional_keys: the keys which do not apply reduce operation, but contains some message to indicate the task.
-                we will keep this keys in the reduced task info.
+                we will keep these keys in the reduced task info.
         """
         super().__init__()
         self.weight_key = weight_key

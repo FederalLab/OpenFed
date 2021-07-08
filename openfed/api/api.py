@@ -63,19 +63,19 @@ class API(SafeThread, Hook):
     """
 
     # Communication related
-    maintainer: Maintainer
-    reign: Reign
+    maintainer  : Maintainer
+    reign       : Reign
     current_step: str
 
     def __init__(self,
-                 frontend: bool,
-                 state_dict: Dict[str, Tensor],
+                 frontend    : bool,
+                 state_dict  : Dict[str, Tensor],
                  ft_optimizer: Union[Optimizer, List[Optimizer]],
-                 aggregator: Union[Agg, List[Agg]],
+                 aggregator  : Union[Agg, List[Agg]],
                  bk_optimizer: Union[Optimizer, List[Optimizer]]=None,
-                 pipe: Union[Pipe, List[Pipe]] = None,
-                 reducer: Union[Reducer, List[Reducer]] = None,
-                 dal: bool = True):
+                 pipe        : Union[Pipe, List[Pipe]] = None,
+                 reducer     : Union[Reducer, List[Reducer]] = None,
+                 dal         : bool = True)                          : 
         """Whether act as a frontend.
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
@@ -84,7 +84,7 @@ class API(SafeThread, Hook):
         SafeThread.__init__(self, daemon=True)
         Hook.__init__(self)
 
-        self.dal: bool = dal
+        self.dal     : bool = dal
         self.frontend: bool = frontend
 
         # Set a flag for backend.
@@ -97,24 +97,24 @@ class API(SafeThread, Hook):
         # Set default value
         self.version: int = 0
 
-        self._hooks_del: List[Cypher] = []
+        self._hooks_del: List[Cypher]    = []
         self._hooks_inf: List[Collector] = []
 
-        self.stopped: bool = False
-        self.received_numbers: int = 0
-        self.last_aggregate_time: float = time.time()
-        self.reign_task_info: TaskInfo = TaskInfo()
-        self.task_info_list: List[TaskInfo] = []
+        self.stopped            : bool           = False
+        self.received_numbers   : int            = 0
+        self.last_aggregate_time: float          = time.time()
+        self.reign_task_info    : TaskInfo       = TaskInfo()
+        self.task_info_list     : List[TaskInfo] = []
 
         # Data handle
         self.state_dict: Dict[str, Tensor] = state_dict
-        self.aggregator: List[Agg] = convert_to_list(aggregator)
+        self.aggregator: List[Agg]         = convert_to_list(aggregator)
         if bk_optimizer is None:
             bk_optimizer = ft_optimizer
-        self.pipe: List[Pipe] = convert_to_list(pipe)
+        self.pipe        : List[Pipe]      = convert_to_list(pipe)
         self.bk_optimizer: List[Optimizer] = convert_to_list(bk_optimizer)
         self.ft_optimizer: List[Optimizer] = convert_to_list(ft_optimizer)
-        self.reducer: List[Reducer] = convert_to_list(reducer)
+        self.reducer     : List[Reducer]   = convert_to_list(reducer)
 
         assert len(self.aggregator) == len(self.bk_optimizer) == len(self.ft_optimizer)
 
@@ -280,7 +280,7 @@ class API(SafeThread, Hook):
         while not self.stopped:
             with self.maintainer.mt_lock:
                 step(at_new_episode)
-                rg = Reign.reign_generator()
+                rg  = Reign.reign_generator()
                 cnt = 0
                 for reign in rg:
                     if self.stopped or reign is None:
@@ -355,8 +355,8 @@ class API(SafeThread, Hook):
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name="OpenFedAPI",
-            description=f"{'Frontend' if self.frontend else 'Backend'}."
+            class_name  = "OpenFedAPI",
+            description = f"{'Frontend' if self.frontend else 'Backend'}."
         )
 
     def __enter__(self):

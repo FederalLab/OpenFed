@@ -24,8 +24,6 @@
 from typing import Any, List
 
 from prettytable import PrettyTable
-import os
-
 
 def _string_trim(string: str, length: int = 15):
     # make sure string is string
@@ -43,8 +41,8 @@ def _string_trim(string: str, length: int = 15):
 
 def _tablist(head: List[Any], data: List[Any]) -> str:
     columns = 80
-    length  = (columns - len(head) * 3 - 1)                         // len(head)
-    table   = PrettyTable([_string_trim(h, length) for h in head])
+    length  = (columns - len(head) * 3 - 1)  // len(head)
+    table  = PrettyTable([_string_trim(h, length) for h in head])
     table.add_row([_string_trim(d, length) for d in data])
 
     return str(table)
@@ -74,6 +72,6 @@ def tablist(head: List[Any],
 
 
 def process_bar(percentage, do='>', undo='-', length=80, prefix:str = ''):
-    do_str = do * int(length * percentage)
+    do_str   = do * int(length * percentage)
     undo_str = undo * (length - len(do_str))
     return str(prefix) + ':[' + do_str + undo_str + ']'

@@ -37,7 +37,7 @@ class Terminate(AtLast):
         """
         super().__init__()
         self.max_loop_times = max_loop_times
-        self.max_version = max_version
+        self.max_version    = max_version
 
     def step(self, backend, *args, **kwargs) -> None:
         if self.max_version != -1 and backend.version >= self.max_version:

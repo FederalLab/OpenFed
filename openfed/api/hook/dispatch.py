@@ -36,13 +36,13 @@ class Dispatch(MultiStep):
     pending_queue: List[int]
 
     # part_id -> nick name
-    running_queue: Dict[int, str]
+    running_queue : Dict[int, str]
     finished_queue: Dict[int, str]
 
     def __init__(self,
-                 samples: int,
-                 parts_list: Union[int, List[Any]],
-                 test_samples: int = None,
+                 samples        : int,
+                 parts_list     : Union[int, List[Any]],
+                 test_samples   : int = None,
                  test_parts_list: Union[int, List[Any]] = None
                  ):
         """
@@ -52,10 +52,10 @@ class Dispatch(MultiStep):
             test_samples: the total number of parts used in a test round.
             test_parts_list: a list contains all part ids of test.
         """
-        self.samples = samples
+        self.samples    = samples
         self.parts_list = list(range(parts_list)) if isinstance(
             parts_list, int) else parts_list
-        self.test_samples = test_samples
+        self.test_samples    = test_samples
         self.test_parts_list = list(range(test_parts_list)) if isinstance(
             test_parts_list, int) else test_parts_list
 
@@ -77,20 +77,20 @@ class Dispatch(MultiStep):
         self.train = not self.train if self.test_samples is not None else True
 
         if self.train:
-            self.pending_queue = random.sample(self.parts_list, self.samples)
-            self.running_queue = dict()
+            self.pending_queue  = random.sample(self.parts_list, self.samples)
+            self.running_queue  = dict()
             self.finished_queue = dict()
         else:
-            if self.test_samples is not None and self.test_parts_list is not None:
+            if self.test_samples is not None and self.test_parts_list is not None: 
                 self.pending_queue = random.sample(
                     self.test_parts_list, self.test_samples)
-                self.running_queue = dict()
+                self.running_queue  = dict()
                 self.finished_queue = dict()
 
     def after_download(self, backend, flag: bool):
         if flag:
             task_info = backend.reign_task_info
-            part_id = task_info.part_id
+            part_id   = task_info.part_id
 
             logger.debug(f"Download a model from {backend.nick_name}.")
 
@@ -116,7 +116,7 @@ class Dispatch(MultiStep):
             self.running_queue[part_id] = backend.nick_name
 
             # generate task_info
-            task_info = TaskInfo()
+            task_info         = TaskInfo()
             task_info.part_id = part_id
             task_info.version = backend.version
             # opside with self.train
@@ -140,8 +140,8 @@ class Dispatch(MultiStep):
         return openfed_class_fmt.format(
             class_name="Dispatch",
             description=tablist(
-                head=["Pending", "Running", "Finished"],
-                data=[len(self.pending_queue), len(
+                head = ["Pending", "Running", "Finished"],
+                data = [len(self.pending_queue), len(
                     self.running_queue), len(self.finished_queue)]
             )
         )

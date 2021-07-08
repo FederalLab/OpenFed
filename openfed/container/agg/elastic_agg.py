@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Union
 import torch
 from openfed.utils import convert_to_list
 from torch import Tensor
-
+from openfed.common import TaskInfo
 from .agg import Agg
 
 
@@ -62,8 +62,12 @@ class ElasticAgg(Agg):
             pipe_keys = pipe_keys,
             legacy    = legacy)
 
-    def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
-        instances = received_info['instances']
+    def merge(self, 
+            p            : Tensor,
+            r_p          : Dict[str, Tensor],
+            received_info: TaskInfo,
+            group        : Dict) -> Any     : 
+        instances = received_info.instances
         state = self.state[p]
         if 'step' not in state:
             state['step'] = 0
@@ -75,12 +79,16 @@ class ElasticAgg(Agg):
                     state[key] * step + r_p[key] * instances) / (step + instances)
         state['step'] += instances
 
-    def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, **unused) -> Any:
+    def stack(self, 
+            p            : Tensor,
+            r_p          : Dict[str, Tensor],
+            received_info: TaskInfo,
+            **unused) -> Any:
         state = self.state[p]
         if 'received_params' not in state:
             state['received_params'] = []
 
-        r_p["instances"] = received_info['instances']
+        r_p["instances"] = received_info.instances
         state['received_params'].append(r_p)
 
     def _merge_aggregate(self, p: Tensor, group: Dict):
@@ -108,7 +116,7 @@ class ElasticAgg(Agg):
         def aggregate(dl, k, t) -> Tensor:
             l: List[Tensor] = []
             for data in dl:
-                a, b = data[k], data['train_instance']
+                a, b = data[k], data['instances']
                 w  = b / t
                 p  = a * w
                 l.append(p)
@@ -138,7 +146,10 @@ class ElasticAgg(Agg):
                 else:
                     state[key] = new_p
 
-    def _elastic_update(self, grad: Tensor, importance: Tensor, quantile: float):
+    def _elastic_update(self, 
+        grad      : Tensor,
+        importance: Tensor,
+        quantile  : float): 
         norm_importance = importance / (importance.max() + 1e-13)
         weight          = 1 + quantile - norm_importance
 

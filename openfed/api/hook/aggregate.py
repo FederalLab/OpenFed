@@ -51,12 +51,12 @@ class Aggregate(AtLast):
         """
         super().__init__()
         self.period = period
-        self.count = convert_to_list(count)
-        self.idx = 0
+        self.count  = convert_to_list(count)
+        self.idx    = 0
 
-        self.tic = time.time()
-        self.checkpoint = checkpoint
-        self.lr_scheduler = convert_to_list(lr_scheduler)
+        self.tic                   = time.time()
+        self.checkpoint            = checkpoint
+        self.lr_scheduler          = convert_to_list(lr_scheduler)
         self.last_received_numbers = 0
 
     def step(self, backend, *args, **kwargs) -> None:
@@ -73,7 +73,7 @@ class Aggregate(AtLast):
             self.aggregate(backend, *args, **kwargs)
             self.idx += 1
             if self.idx >= len(self.count):
-                self.idx = 0
+                self.idx         = 0
                 backend.version += 1
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:

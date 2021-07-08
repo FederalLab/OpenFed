@@ -1,5 +1,5 @@
 def download_callback(api):
-    task_info = api.reign.task_info
+    task_info           = api.reign.task_info
     api.reign_task_info = task_info
 
     # unpack state
