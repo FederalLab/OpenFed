@@ -40,7 +40,7 @@ class NaiveAgg(Agg):
                  legacy    : bool                  = True):
         other_keys = [] if other_keys is None else convert_to_list(other_keys)
 
-        info_keys: List[str] = ['train_instances']
+        info_keys: List[str] = ['instances']
         pipe_keys: List[str] = ["step", "received_params", "param"]
 
         for k in other_keys:
@@ -57,7 +57,7 @@ class NaiveAgg(Agg):
             legacy    = legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
-        train_instances = received_info['train_instances']
+        instances = received_info['instances']
         state = self.state[p]
         if 'step' not in state:
             state['step'] = 0
@@ -66,15 +66,15 @@ class NaiveAgg(Agg):
         for key in group['pipe_keys']:
             if key in r_p:
                 state[key] = r_p[key] if key not in state else (
-                    state[key] * step + r_p[key] * train_instances) / (step + train_instances)
-        state['step'] += train_instances
+                    state[key] * step + r_p[key] * instances) / (step + instances)
+        state['step'] += instances
 
     def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, **unused) -> Any:
         state = self.state[p]
         if 'received_params' not in state:
             state['received_params'] = []
 
-        r_p["train_instances"] = received_info['train_instances']
+        r_p["instances"] = received_info['instances']
         state['received_params'].append(r_p)
 
     def _merge_aggregate(self, p: Tensor, group: Dict):
