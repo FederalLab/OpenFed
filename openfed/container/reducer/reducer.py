@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 
-"""This file will provide same useful functions to do the auto reduce operation among received task infos.
+"""This file provides some useful functions fpr auto-reduce operation among received task infos.
 """
 
 from typing import List
