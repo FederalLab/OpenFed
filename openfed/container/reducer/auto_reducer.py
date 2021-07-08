@@ -11,22 +11,28 @@ class AutoReducer(Reducer):
     """Auto reducer based on specified keys.
     """
 
-    def __init__(self, reduce_keys: Union[str, List[str]] = None, weight_key: str = None):
+    def __init__(self,
+                 weight_key: str = None,
+                 reduce_keys: Union[str, List[str]] = None,
+                 additional_keys: Union[str, List[str]] = None):
         """
         Args:
             reduce_keys: if not specified, we will try to apply auto reduce on all int and float numbers.
             weight_key: if specified, we will apply a weighed reduce operation accross all values.
                 weight_keys must be in the returned task_info_dict.
+            additional_keys: the keys which do not apply reduce operation, but contains some message to indicate the task.
+                we will keep this keys in the reduced task info.
         """
         super().__init__()
+        self.weight_key = weight_key
         self.reduce_keys = convert_to_list(reduce_keys)
-        self.weight_key  = weight_key
+        self.additional_keys = convert_to_list(additional_keys)
 
     def reduce(self) -> TaskInfo:
         task_info_list = self.task_info_buffer
-        rdict          = defaultdict(lambda: 0.0)
+        rdict = defaultdict(lambda: 0.0)
+        task_info = task_info_list[0].info_dict
         if self.weight_key is not None:
-            task_info = task_info_list[0].info_dict
             assert self.weight_key in task_info, "weight key is not contained in task info."
 
             demo = sum([ti.info_dict[self.weight_key]
@@ -51,4 +57,10 @@ class AutoReducer(Reducer):
                     rdict[k] += v * w
                 else:
                     pass
-        return TaskInfo().load_dict(task_info_list[0].info_dict).load_dict(rdict)
+
+        r_task_info = TaskInfo()
+        if self.additional_keys is not None:
+            for k in self.additional_keys:
+                r_task_info.load_dict({k: task_info[k]})
+
+        return r_task_info.load_dict(rdict)
