@@ -35,43 +35,36 @@ class Pipe(Optimizer, Wrapper):
     So, we device this Pipe class to do this.
     """
 
-    # frontend pipe or backend pipe or both.
-    frontend: bool = True
-    backend : bool = False
-
     def __init__(self, *args, **kwargs):
         Optimizer.__init__(self, *args, **kwargs)
         Wrapper.__init__(self)
 
     @torch.no_grad()
     @final
-    def step(self, frontend: bool = True, *args, **kwargs):
-        if frontend and self.frontend:
-            return self.frontend_step(*args, **kwargs)
-        if not frontend and self.backend:
-            return self.backend_step(*args, **kwargs)
+    def step(self, ft: bool = True, *args, **kwargs):
+        return self._ft_step(*args, **kwargs) if ft else self._bk_step(*args, **kwargs)
 
-    def frontend_step(self, *args, **kwargs):
-        raise NotImplementedError
+    def _ft_step(self, *args, **kwargs):
+        ...
 
-    def backend_step(self, *args, **kwargs):
-        raise NotImplementedError
+    def _bk_step(self, *args, **kwargs):
+        ...
 
     @torch.no_grad()
     @final
-    def finish_round(self, frontend: bool = True):
-        """Update self state after train a round. (Mostly clear the state directly.)
-        """
-        if frontend and self.frontend:
-            self.frontend_finish_round()
-        if not frontend and self.backend:
-            self.backend_finish_round()
+    def round(self, ft: bool = True):
+        return self._ft_round() if ft else self._bk_round()
 
-    def frontend_finish_round(self):
+    def _ft_round(self):
+        ...
+
+    def _bk_round(self):
+        ...
+
+    def clear_buffer(self):
+        """Only called at ft.
+        """
         for group in self.param_groups:
             for p in group["params"]:
                 if p in self.state[p]:
                     del self.state[p]
-
-    def backend_finish_round(self):
-        return self.frontend_finish_round()

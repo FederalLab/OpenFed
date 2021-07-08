@@ -101,15 +101,16 @@ class Aggregate(AtLast):
 
             # Pipe
             if pipe is not None:
-                pipe.step(frontend=False)
+                pipe.step(ft=False)
 
             # Update models
             bk_optimizer.step()
 
             # Clear buffers
             aggregator.clear_buffer()
+
             if pipe is not None:
-                pipe.finish_round(frontend=False)
+                pipe.round(ft=False)
 
         if backend.reducer is not None:
             task_info_list = [reducer.reduce() for reducer in backend.reducer]

@@ -37,7 +37,7 @@ class ProxPipe(Pipe):
         defaults = dict(mu=mu)
         super().__init__(params, defaults)
 
-    def frontend_step(self, closure=None):
+    def _ft_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:

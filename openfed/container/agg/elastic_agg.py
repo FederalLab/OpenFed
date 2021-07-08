@@ -31,7 +31,9 @@ from .agg import Agg
 
 
 class ElasticAgg(Agg):
-    """a data-awarded aggregation method.
+    """A data-award aggregation method.
+
+    This aggregator must be paired with `elastic pipe`.
     """
 
     def __init__(self, params,

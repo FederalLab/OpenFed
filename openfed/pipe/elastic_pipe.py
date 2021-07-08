@@ -48,7 +48,7 @@ class ElasticPipe(Pipe):
 
         self.add_pack_key('importance')
 
-    def frontend_step(self, closure=None):
+    def _ft_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:

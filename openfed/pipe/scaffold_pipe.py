@@ -31,14 +31,14 @@ class ScaffoldPipe(Pipe):
     """
 
     def __init__(self, params, lr: float = None):
-        """Scaffold need to run on both frontend and backend.
+        """Scaffold need to run on both ft and backend.
         If lr is given, we will use the second way provided in the paper to update c.
         Otherwise, we will use the first way provided in the paper.
         If lr is not given, accumulate_gradient is needed.
 
         .. Example::
             >>> # lr is given.
-            >>> scaffold = Scaffold(net.parameters(), lr=0.1, frontend=True)
+            >>> scaffold = Scaffold(net.parameters(), lr=0.1, ft=True)
             >>> openfed_api.unpack(scaffold)
             >>> for data in dataloader:
             >>>     optim.zero_grad()
@@ -50,7 +50,7 @@ class ScaffoldPipe(Pipe):
             >>> openfed_api.pack(scaffold)
 
             >>> # lr not given
-            >>> scaffold = Scaffold(net.parameters(), frontend=True)
+            >>> scaffold = Scaffold(net.parameters(), ft=True)
             >>> openfed_api.unpack(scaffold)
             >>> # Accumulate Gradient Stage
             >>> for data in dataloader:
@@ -67,7 +67,7 @@ class ScaffoldPipe(Pipe):
             >>> openfed_api.pack(scaffold)
 
             >>> # Backend
-            >>> scaffold = Scaffold(net.parameters(), frontend=False)
+            >>> scaffold = Scaffold(net.parameters(), ft=False)
             >>> agg = Agg(net.parameters(), pipe_keys=scaffold.pack_key_list)
             >>> agg.agg()
             >>> scaffold.step()
@@ -87,12 +87,14 @@ class ScaffoldPipe(Pipe):
                 if p.requires_grad:
                     self.state[p]["c_para"] = torch.zeros_like(p)
 
-    def frontend_step(self, closure=None, accumulate_gradient: bool = True):
+    def _ft_step(self, closure=None, acg: bool = False):
         """Performs a single optimization step.
 
         Args:
+
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
+            acg: accumulate gradient.
         """
         loss = None
         if closure is not None:
@@ -104,7 +106,7 @@ class ScaffoldPipe(Pipe):
                 if p.grad is None:
                     continue
                 state = self.state[p]
-                if accumulate_gradient:
+                if acg:
                     if "init_p_g" not in state:
                         state["init_p_g"] = p.grad.clone().detach()
                     else:
@@ -129,7 +131,7 @@ class ScaffoldPipe(Pipe):
 
         return loss
 
-    def backend_step(self, closure=None):
+    def _bk_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
@@ -161,7 +163,7 @@ class ScaffoldPipe(Pipe):
 
         return loss
 
-    def frontend_finish_round(self):
+    def _ft_round(self):
         """Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
         """
@@ -173,7 +175,7 @@ class ScaffoldPipe(Pipe):
                     continue
                 state = self.state[p]
                 c_para_i = state["c_para_i"]
-                # Update frontend
+                # Update ft
                 if lr is None:
                     # Use the first way to update c_para
                     assert "init_p_g" in state, "You should accumulate init_p_g first!"
@@ -184,17 +186,12 @@ class ScaffoldPipe(Pipe):
                         c_para_i - state["c_para"] + 1 / (state["step"] * lr) * (state["init_p"] - p))
                 state["c_para"].copy_(c_para_i - state["c_para"])
 
-                # del them
-                del state["init_p"]
-                del state["step"]
-
-    def backend_finish_round(self):
+    def _bk_round(self):
         """Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
         """
 
         for group in self.param_groups:
-            lr = group['lr']
             for p in group["params"]:
                 if p.grad is None:
                     continue
@@ -202,6 +199,15 @@ class ScaffoldPipe(Pipe):
                 c_para_i = state["c_para_i"]
                 state["c_para"].copy_(c_para_i - state["c_para"])
 
-                # del them
-                del state["init_p"]
-                del state["step"]
+    def clear_buffer(self):
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                state = self.state[p]
+
+                # delete init_p and step
+                if 'init_p' in state:
+                    del state["init_p"]
+                if 'step' in state:
+                    del state["step"]
