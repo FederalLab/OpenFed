@@ -109,8 +109,12 @@ class ScaffoldPipe(Pipe):
                 if acg:
                     if "init_p_g" not in state:
                         state["init_p_g"] = p.grad.clone().detach()
+                        state["init_p_g_cnt"] = 1
                     else:
-                        state["init_p_g"].add_(p.grad)
+                        g = (state["init_p_g"] * state["init_p_g_cnt"] +
+                             p.grad) / (state["init_p_g_cnt"] + 1)
+                        state["init_p_g"].copy_(g)
+                        state['init_p_g_cnt'] += 1
                     continue
 
                 if "init_p" not in state:
@@ -211,3 +215,7 @@ class ScaffoldPipe(Pipe):
                     del state["init_p"]
                 if 'step' in state:
                     del state["step"]
+                if 'init_p_g' in state:
+                    del state["init_p_g"]
+                if 'init_p_g_cnt' in state:
+                    del state["init_p_g_cnt"]
