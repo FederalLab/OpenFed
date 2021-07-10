@@ -279,7 +279,8 @@ class API(SafeThread, Hook):
 
         try_times = 0
         while not self.stopped:
-            with self.maintainer.mt_lock:
+            # with self.maintainer.mt_lock:
+            if True:
                 step(at_new_episode)
                 rg  = Reign.reign_generator()
                 cnt = 0
