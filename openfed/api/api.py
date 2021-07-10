@@ -279,8 +279,7 @@ class API(SafeThread, Hook):
 
         try_times = 0
         while not self.stopped:
-            # with self.maintainer.mt_lock:
-            if True:
+            with self.maintainer.mt_lock:
                 step(at_new_episode)
                 rg  = Reign.reign_generator()
                 cnt = 0
@@ -319,18 +318,18 @@ class API(SafeThread, Hook):
                     # update regularly.
                     step(at_last)
 
-            # try_times = 0 if cnt else try_times + 1
+            try_times = 0 if cnt else try_times + 1
 
-            # if cnt == 0:
-            #     logger.info(
-            #         f"Empty reign, waiting {try_times}/{self.max_try_times}...")
-            #     time.sleep(5.0)
+            if cnt == 0:
+                logger.info(
+                    f"Empty reign, waiting {try_times}/{self.max_try_times}...")
+                time.sleep(5.0)
 
-            # if try_times >= self.max_try_times:
-            #     self.manual_stop()
+            if try_times >= self.max_try_times:
+                self.manual_stop()
 
             # left some time to maintainer lock
-            time.sleep(0.1)
+            # time.sleep(0.1)
         return "Backend exited."
 
     def backend_loop(self) -> bool:
