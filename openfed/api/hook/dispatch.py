@@ -99,7 +99,7 @@ class Dispatch(MultiStep):
             # add to finished queue
             self.finished_queue[part_id] = (nick_name, toc-tic)
 
-            logger.debug(f"Received: from {backend.nick_name}, duration: {toc-tic:.2f} seconds.")
+            logger.debug(f"Received: from {backend.nick_name}, duration: {toc-tic:.2f} seconds.\n{task_info}")
 
             # All finished
             if len(self.running_queue) == 0 and len(self.pending_queue) == 0:
