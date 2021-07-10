@@ -152,7 +152,8 @@ class Maintainer(Array, SafeThread):
 
             if len(self) == 0:
                 if openfed.DAL.is_dal:
-                    time.sleep(self.interval_seconds)
+                    # time.sleep(self.interval_seconds)
+                    pass
                 else:
                     break
             else:
@@ -161,7 +162,8 @@ class Maintainer(Array, SafeThread):
                         self.abnormal_exited = True
                         break
                 else:
-                    time.sleep(self.interval_seconds)
+                    # time.sleep(self.interval_seconds)
+                    pass
 
         return f"Build connection to {len(self.finished_queue)} addresses."
 
