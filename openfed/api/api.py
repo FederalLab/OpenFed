@@ -284,7 +284,6 @@ class API(SafeThread, Hook):
                 rg  = Reign.reign_generator()
                 cnt = 0
                 for reign in rg:
-                    print(">>>> LOOPING")
                     if self.stopped or reign is None:
                         break
                     # assign reign to self first.
