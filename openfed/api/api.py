@@ -72,10 +72,11 @@ class API(SafeThread, Hook):
                  state_dict  : Dict[str, Tensor],
                  ft_optimizer: Union[Optimizer, List[Optimizer]],
                  aggregator  : Union[Agg, List[Agg]],
-                 bk_optimizer: Union[Optimizer, List[Optimizer]]=None,
-                 pipe        : Union[Pipe, List[Pipe]] = None,
-                 reducer     : Union[Reducer, List[Reducer]] = None,
-                 dal         : bool = True)                          : 
+                 bk_optimizer: Union[Optimizer, List[Optimizer]] = None,
+                 pipe         : Union[Pipe, List[Pipe]]          = None,
+                 reducer      : Union[Reducer, List[Reducer]]    = None,
+                 dal          : bool                             = True,
+                 async_op     : bool                             = True)                         :
         """Whether act as a frontend.
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
@@ -92,7 +93,7 @@ class API(SafeThread, Hook):
         keyboard_interrupt_handle()
 
         # Enable async_op if this is backend.
-        self.async_op: bool = self.backend
+        self.async_op: bool = async_op if self.backend else True
 
         # Set default value
         self.version: int = 0
