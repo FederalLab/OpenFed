@@ -29,15 +29,15 @@ from openfed.utils import openfed_class_fmt, tablist
 from typing_extensions import overload
 import random
 from ..step import MultiStep
-from typing import Union, Any
-
+from typing import Union, Any, Tuple
+import time
 
 class Dispatch(MultiStep):
     pending_queue: List[int]
 
-    # part_id -> nick name
-    running_queue : Dict[int, str]
-    finished_queue: Dict[int, str]
+    # part_id -> [nick name, time]
+    running_queue : Dict[int, Tuple[str, float]]
+    finished_queue: Dict[int, Tuple[str, float]]
 
     def __init__(self,
                  samples        : int,
@@ -92,13 +92,14 @@ class Dispatch(MultiStep):
             task_info = backend.reign_task_info
             part_id   = task_info.part_id
 
-            logger.debug(f"Download a model from {backend.nick_name}.")
-
             # pop from running queue
-            self.running_queue.pop(part_id)
+            nick_name, tic = self.running_queue.pop(part_id)
+            toc = time.time()
 
             # add to finished queue
-            self.finished_queue[part_id] = backend.nick_name
+            self.finished_queue[part_id] = (nick_name, toc-tic)
+
+            logger.debug(f"Received: from {backend.nick_name}, duration: {toc-tic:.2f} seconds.")
 
             # All finished
             if len(self.running_queue) == 0 and len(self.pending_queue) == 0:
@@ -113,7 +114,7 @@ class Dispatch(MultiStep):
         if len(self.pending_queue) > 0:
             # assign a new part id
             part_id = self.pending_queue.pop(-1)
-            self.running_queue[part_id] = backend.nick_name
+            self.running_queue[part_id] = (backend.nick_name, time.time())
 
             # generate task_info
             task_info         = TaskInfo()
