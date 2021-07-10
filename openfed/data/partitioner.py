@@ -97,7 +97,7 @@ class PowerLawPartitioner(Partitioner):
 class DirichletPartitioner(Partitioner):
     _MAX_LOOP = 1000
 
-    def partition(self, alpha: float = 100, min_samples: int = 10):
+    def __init__(self, alpha: float = 100, min_samples: int = 10):
         """
             Obtain sample index list for each client from the Dirichlet distribution.
 
