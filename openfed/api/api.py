@@ -329,7 +329,7 @@ class API(SafeThread, Hook):
                 self.manual_stop()
 
             # left some time to maintainer lock
-            # time.sleep(0.1)
+            time.sleep(0.1)
         return "Backend exited."
 
     def backend_loop(self) -> bool:
