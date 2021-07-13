@@ -29,25 +29,20 @@ from openfed.utils import convert_to_list
 class Wrapper(object):
     """Provide some methods to wrap a class with support of Package.
     """
-    _pack_key_list  : List[str]
+    _pack_key_list: List[str]
     _unpack_key_list: List[str]
 
     @property
     def pack_key_list(self):
-        if hasattr(self, '_pack_key_list'):
-            return self._pack_key_list
-        else:
+        if not hasattr(self, '_pack_key_list'):
             self._pack_key_list = list()
-            return self._pack_key_list
-    
+        return self._pack_key_list
 
     @property
     def unpack_key_list(self):
-        if hasattr(self, '_unpack_key_list'):
-            return self._unpack_key_list
-        else:
+        if not hasattr(self, '_unpack_key_list'):
             self._unpack_key_list = list()
-            return self._unpack_key_list
+        return self._unpack_key_list
 
     def add_pack_key(self, key: Union[str, List[str]]) -> None:
         key = convert_to_list(key)

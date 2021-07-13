@@ -203,7 +203,7 @@ class Helper(cmd.Cmd):
         """Cd other directory.
         """
         args = self.parseline(args)
-        os.chdir(args[1])
+        os.chdir(args[1]) # type: ignore
 
     def do_exit(self, args):
         """Write file and exit.

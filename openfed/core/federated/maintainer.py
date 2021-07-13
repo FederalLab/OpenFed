@@ -26,8 +26,9 @@ from threading import Lock
 from typing import Dict, Tuple
 
 import openfed
-from openfed.common import (Address_, Array, SafeThread, load_address_from_file,
-                            logger, remove_address_from_pool)
+from openfed.common import (Address_, Array, SafeThread,
+                            load_address_from_file, logger,
+                            remove_address_from_pool)
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 
 from ..space import World
@@ -59,23 +60,23 @@ class Maintainer(Array, SafeThread):
 
     def __init__(self,
                  world: World,
-                 address          : Address_ = None,
-                 address_file     : str      = None,
-                 max_try_times    : int      = 5,
-                 interval_seconds: float     = 10) -> None:
+                 address: Address_ = None,
+                 address_file: str = None,
+                 max_try_times: int = 5,
+                 interval_seconds: float = 10) -> None:
         """
             Only a single valid address is allowed in client.
         """
         self.address_file = address_file
 
-        address_list       = convert_to_list(address)
+        address_list = convert_to_list(address)
         self.pending_queue = {address: (time.time(), 0)
                               for address in address_list} if address_list is not None else {}
-        self.finished_queue  = dict()
-        self.discard_queue   = dict()
+        self.finished_queue = dict()
+        self.discard_queue = dict()
         self.abnormal_exited = False
 
-        self.max_try_times    = max_try_times
+        self.max_try_times = max_try_times
         self.interval_seconds = interval_seconds
 
         Array.__init__(self, self.pending_queue)
@@ -186,13 +187,13 @@ class Maintainer(Array, SafeThread):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name  = "Maintainer",
-            description = tablist(
-                head = ["Pending", "Finished", "Discard"],
-                data = [len(self.pending_queue),
+            class_name="Maintainer",
+            description=tablist(
+                head=["Pending", "Finished", "Discard"],
+                data=[len(self.pending_queue),
                       len(self.finished_queue),
                       len(self.discard_queue)],
-                force_in_one_row = True,
+                force_in_one_row=True,
             )
         )
 

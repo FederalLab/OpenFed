@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+# type: ignore
 import logging
 import time
 import warnings
@@ -210,7 +210,7 @@ class Country(object):
         if not self.is_initialized():
             raise RuntimeError("Default process group has not been initialized, "
                                "please make sure to call init_process_group.")
-        return self.WORLD
+        return self.WORLD # type: ignore
 
     def _get_default_store(self) -> Store:
         """
@@ -221,7 +221,7 @@ class Country(object):
                                "please make sure to call init_process_group.")
         default_pg = self._get_default_group()
         _, default_store = self._pg_map[default_pg]
-        return default_store
+        return default_store # type: ignore
 
     def _update_default_pg(self, pg: ProcessGroup) -> None:
         self.WORLD = pg
@@ -247,7 +247,7 @@ class Country(object):
             raise RuntimeError("Invalid process group specified")
         pg_store = self._pg_map.get(pg, None)
         assert pg_store is not None
-        return pg_store[0]
+        return pg_store[0] # type: ignore
 
     def get_store(self, group: ProcessGroup = None) -> Store:
         """
@@ -269,7 +269,7 @@ class Country(object):
             raise RuntimeError("Invalid process group specified")
         pg_store = self._pg_map.get(pg, None)
         assert pg_store is not None
-        return pg_store[1]
+        return pg_store[1] # type: ignore
 
     def init_process_group(self,
                            backend    : Union[str, Backend],

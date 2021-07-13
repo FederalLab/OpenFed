@@ -172,32 +172,32 @@ print(f"Finished.\nExit Client @{openfed_api.nick_name}.")
 (openfed) python demo.py --rank 0 --world_size 3
 [W ProcessGroupGloo.cpp:684] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
 2021-06-29 10:08:48.136 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
-From <OpenFed> Reign
+From <OpenFed> Delivery
 mixture
 
 2021-06-29 10:08:48.139 | WARNING  | openfed.unified.step.before_upload:__call__:15 - Version not aligned. (request @1, but @0).
 2021-06-29 10:08:48.142 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @2
-From <OpenFed> Reign
+From <OpenFed> Delivery
 blinks
 
 2021-06-29 10:08:48.142 | INFO     | openfed.unified.step.at_last:__call__:94 - Agg operation triggered by count.
 2021-06-29 10:08:48.159 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
-From <OpenFed> Reign
+From <OpenFed> Delivery
 mixture
 
 2021-06-29 10:08:48.163 | WARNING  | openfed.unified.step.before_upload:__call__:15 - Version not aligned. (request @2, but @1).
 2021-06-29 10:08:48.169 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @2
-From <OpenFed> Reign
+From <OpenFed> Delivery
 blinks
 
 2021-06-29 10:08:48.170 | INFO     | openfed.unified.step.at_last:__call__:94 - Agg operation triggered by count.
 2021-06-29 10:08:48.193 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @1
-From <OpenFed> Reign
+From <OpenFed> Delivery
 mixture
 
 2021-06-29 10:08:48.197 | WARNING  | openfed.unified.step.before_upload:__call__:15 - Version not aligned. (request @3, but @2).
 2021-06-29 10:08:48.201 | INFO     | openfed.unified.step.after_download:__call__:27 - Receive @2
-From <OpenFed> Reign
+From <OpenFed> Delivery
 blinks
 
 2021-06-29 10:08:48.201 | INFO     | openfed.unified.step.at_last:__call__:94 - Agg operation triggered by count.

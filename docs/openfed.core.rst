@@ -15,10 +15,10 @@ Subpackages
 Submodules
 ----------
 
-openfed\.core\.reign module
+openfed\.core\.delivery module
 ---------------------------
 
-.. automodule:: openfed.core.reign
+.. automodule:: openfed.core.delivery
     :members:
     :undoc-members:
     :show-inheritance:

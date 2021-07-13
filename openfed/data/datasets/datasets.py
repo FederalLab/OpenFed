@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+# type: ignore
 from abc import abstractmethod
 from typing import Any, List
 from torch import Tensor

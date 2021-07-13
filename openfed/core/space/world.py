@@ -41,13 +41,13 @@ class _ROLE(Enum):
 peeper.world_list = list()
 
 class World(Array):
-    """Relation map between World, Country and Reign:
+    """Relation map between World, Country and Delivery:
         World: n master, varied roles
         ├── Country-a: singe master, n client
-        │   └── Reign-1: single master, single client.
+        │   └── Delivery-1: single master, single client.
         └── Country-b
-            ├── Reign-1
-            └── Reign-2
+            ├── Delivery-1
+            └── Delivery-2
     """
     # If you want to exist current World, set it False
     ALIVE: bool
@@ -89,10 +89,10 @@ class World(Array):
 
     def killed(self) -> None:
         """Shout down this world with force. 
-        If any reign still uses, make them offline directly.
+        If any delivery still uses, make them offline directly.
         """
-        for _, reign in self:
-            reign.offline()
+        for _, delivery in self:
+            delivery.offline()
         else:
             self.ALIVE = False
 
@@ -105,7 +105,7 @@ class World(Array):
         return self.ROLE == _ROLE.FOLLOWER
 
     @property
-    def default_reign(self) -> Any:
+    def default_delivery(self) -> Any:
         return self.default_value
 
     @property

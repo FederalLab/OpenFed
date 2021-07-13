@@ -26,9 +26,9 @@ import time
 from openfed.common import Address_, SafeThread, logger
 from openfed.utils import openfed_class_fmt
 
-from ..reign import Reign
+from ..delivery import Delivery
 from ..space import Country, World
-from ..utils.exceptions import BuildReignFailed, ConnectTimeout
+from ..utils.exceptions import BuilddeliveryFailed, ConnectTimeout
 from ..utils.register import register
 
 
@@ -42,15 +42,15 @@ class Joint(SafeThread):
     def __init__(self, address: Address_, world: World, auto_start: bool = True) -> None:
         if address.rank == -1:
             if address.world_size == 2:
-                address.rank = 1 if world.follower else 0
+                address.rank = 1 if world.follower else 0  # type: ignore
             else:
                 msg = "Please specify the correct rank when world size is not 2"
                 logger.error(msg)
                 raise RuntimeError(msg)
 
-        self.address       = address
+        self.address = address
         self.build_success = False
-        self.world         = world
+        self.world = world
 
         SafeThread.__init__(self)
         # start this thread
@@ -99,16 +99,16 @@ class Joint(SafeThread):
             # bound pg with the country
             for sub_pg in sub_pg_list:
                 try:
-                    reign = Reign(country.get_store(
+                    delivery = Delivery(country.get_store(
                         sub_pg), sub_pg, country, self.world)
                     # it may failed to create connection sometimes between same subprocess.
                     # if any is success, we take it okay.
                     self.build_success = True
-                except BuildReignFailed as e:
+                except BuilddeliveryFailed as e:
                     logger.debug(e)
                     continue
                 with self.world.joint_lock:
-                    self.world._pg_mapping[sub_pg] = reign
+                    self.world._pg_mapping[sub_pg] = delivery
 
                 # python(5766,0x70000fe24000) malloc: can't allocate region
                 # :*** mach_vm_map(size=5639989190273028096, flags: 100) failed (error code=3)
@@ -116,15 +116,15 @@ class Joint(SafeThread):
                 # The following will make openfed more stable under tcp mode.
                 time.sleep(0.1)
         else:
-            # add the world group as reign if it is already a point to point connection.
-            pg    = country._get_default_group()
+            # add the world group as delivery if it is already a point to point connection.
+            pg = country._get_default_group()
             store = country._get_default_store()
             try:
-                reign = Reign(store, pg, country, self.world)
+                delivery = Delivery(store, pg, country, self.world)
                 with self.world.joint_lock:
-                    self.world._pg_mapping[pg] = reign
+                    self.world._pg_mapping[pg] = delivery
                 self.build_success = True
-            except BuildReignFailed as e:
+            except BuilddeliveryFailed as e:
                 logger.debug(e)
                 self.build_success = False
 
@@ -134,6 +134,6 @@ class Joint(SafeThread):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name  = "Joint",
-            description = self.address,
+            class_name="Joint",
+            description=self.address,
         )

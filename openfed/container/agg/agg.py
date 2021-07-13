@@ -178,7 +178,7 @@ class Agg(Package, Wrapper):
             elif isinstance(value, dict):
                 return {k: cast(param, v) for k, v in value.items()}
             elif isinstance(value, container_abcs.Iterable):
-                return type(value)(cast(param, v) for v in value)
+                return type(value)(cast(param, v) for v in value) # type: ignore
             else:
                 return value
 
@@ -189,7 +189,7 @@ class Agg(Package, Wrapper):
         for k, v in state_dict['state'].items():
             if k in id_map:
                 param = id_map[k]
-                state[param] = cast(param, v)
+                state[param] = cast(param, v) # type: ignore
             else:
                 state[k] = v
 

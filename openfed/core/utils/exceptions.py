@@ -56,15 +56,15 @@ class InvalidStoreWriting(OpenFedException):
         super().__init__("InvalidStoreWriting", msg=msg)
 
 
-class BuildReignFailed(OpenFedException):
+class BuilddeliveryFailed(OpenFedException):
     """This Error is raised when we failed to other ends data at
-    the initialization of Reign.
+    the initialization of Delivery.
 
-    You can try to rebuild this reign or just to discard this reign.
+    You can try to rebuild this delivery or just to discard this delivery.
     """
 
     def __init__(self, msg: Union[str, Any] = ""):
-        super().__init__("BuildReignFailed", msg=msg)
+        super().__init__("BuilddeliveryFailed", msg=msg)
 
 
 class DeviceOffline(OpenFedException):

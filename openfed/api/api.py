@@ -30,7 +30,7 @@ from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.common.base.peeper import peeper
 from openfed.container import Agg, Reducer
-from openfed.core import (Collector, Cypher, Destroy, Maintainer, Reign, World,
+from openfed.core import (Collector, Cypher, Destroy, Maintainer, Delivery, World,
                           openfed_lock)
 from openfed.core.utils import DeviceOffline
 from openfed.core.utils.lock import del_maintainer_lock
@@ -64,7 +64,7 @@ class API(SafeThread, Hook):
 
     # Communication related
     maintainer  : Maintainer
-    reign       : Reign
+    delivery       : Delivery
     current_step: str
 
     def __init__(self,
@@ -104,7 +104,7 @@ class API(SafeThread, Hook):
         self.stopped            : bool           = False
         self.received_numbers   : int            = 0
         self.last_aggregate_time: float          = time.time()
-        self.reign_task_info    : TaskInfo       = TaskInfo()
+        self.delivery_task_info    : TaskInfo       = TaskInfo()
         self.task_info_list     : List[TaskInfo] = []
 
         # Data handle
@@ -143,17 +143,17 @@ class API(SafeThread, Hook):
             raise NotImplementedError(
                 f'Hook type is not supported: {type(hook)}.')
 
-    def _add_hook_to_reign(self):
+    def _add_hook_to_delivery(self):
         # register a clone of informer hook.
         # informer hook may contain some inner variable, which is not allowed
         # to share with each other.
-        [self.reign.register_collector(hook.clone(
-        )) for hook in self._hooks_inf if hook.bounding_name not in self.reign._hook_dict]
+        [self.delivery.register_collector(hook.clone(
+        )) for hook in self._hooks_inf if hook.bounding_name not in self.delivery._hook_dict]
         # register the hook directly.
         # deliver hook is not allowed to have inner parameters.
-        # it can be used among all reign.
-        [self.reign.register_cypher(
-            hook) for hook in self._hooks_del if hook not in self.reign._hook_list]
+        # it can be used among all delivery.
+        [self.delivery.register_cypher(
+            hook) for hook in self._hooks_del if hook not in self.delivery._hook_list]
 
     def build_connection(self, world: World = None, address: Union[Address_, List[Address_]] = None, address_file: str = None):
         world = world if world is not None else World(leader=self.backend)
@@ -169,11 +169,11 @@ class API(SafeThread, Hook):
             # otherwise, it may interrupt the process and cause error before you go into loop()
             openfed_lock.acquire()
         self.maintainer = Maintainer(
-            world, address=address, address_file=address_file)
+            world, address=address, address_file=address_file) # type: ignore
 
         if self.frontend:
-            self.reign = Reign.default_reign()
-            self._add_hook_to_reign()
+            self.delivery = Delivery.default_delivery()
+            self._add_hook_to_delivery()
 
     def update_version(self, version: int = None):
         """Update inner model version.
@@ -190,20 +190,20 @@ class API(SafeThread, Hook):
                 The new task info will be updated directly to this parameters.
         """
         # 1. gather hook information
-        self.reign.collect()
-        self.reign.scatter()
+        self.delivery.collect()
+        self.delivery.scatter()
 
         # 2. set state dict
         assert self.state_dict
-        self.reign.reset_state_dict(self.state_dict)
+        self.delivery.reset_state_dict(self.state_dict)
 
         if to:
             # 3. set task info
             if task_info is not None:
-                self.reign.set_task_info(task_info)
-                self.reign_task_info = task_info
+                self.delivery.set_task_info(task_info)
+                self.delivery_task_info = task_info
             else:
-                self.reign.set_task_info(self.reign_task_info)
+                self.delivery.set_task_info(self.delivery_task_info)
 
             # 4. Pack state
             if self.frontend:
@@ -214,15 +214,15 @@ class API(SafeThread, Hook):
                 [self.pack_state(pipe) for pipe in self.pipe]
 
             # 5. transfer
-            flag = self.reign.upload(self.version)
+            flag = self.delivery.upload(self.version)
         else:
-            flag = self.reign.download(self.version)
+            flag = self.delivery.download(self.version)
 
         def callback():
             if not to:
                 download_callback(self)
                 if task_info is not None:
-                    task_info.load_dict(self.reign_task_info.info_dict)
+                    task_info.load_dict(self.delivery_task_info.info_dict)
 
         # 7. hand on
         if flag:
@@ -235,8 +235,8 @@ class API(SafeThread, Hook):
             else:
                 # wait for finished.
                 if openfed.ASYNC_OP.is_async_op:
-                    while not self.reign.deal_with_hang_up():
-                        if self.reign.is_offline:
+                    while not self.delivery.deal_with_hang_up():
+                        if self.delivery.is_offline:
                             return False
                         time.sleep(0.1)
                     else:
@@ -281,35 +281,35 @@ class API(SafeThread, Hook):
         while not self.stopped:
             with self.maintainer.mt_lock:
                 step(at_new_episode)
-                rg  = Reign.reign_generator()
+                rg  = Delivery.delivery_generator()
                 cnt = 0
-                for reign in rg:
-                    if self.stopped or reign is None:
+                for delivery in rg:
+                    if self.stopped or delivery is None:
                         break
-                    # assign reign to self first.
-                    self.reign = reign
+                    # assign delivery to self first.
+                    self.delivery = delivery
 
-                    # register hook to reign if necessary.
-                    self._add_hook_to_reign()
+                    # register hook to delivery if necessary.
+                    self._add_hook_to_delivery()
 
                     cnt += 1
                     step(at_first)
-                    if reign.is_offline:
-                        [step(after_destroy, Destroy.destroy_reign(reign)) if step(
+                    if delivery.is_offline:
+                        [step(after_destroy, Destroy.destroy_delivery(delivery)) if step(
                             before_destroy) else step(at_failed)]
-                    elif reign.upload_hang_up:
+                    elif delivery.upload_hang_up:
                         step(after_upload,
-                             reign.deal_with_hang_up())
-                    elif reign.download_hang_up:
+                             delivery.deal_with_hang_up())
+                    elif delivery.download_hang_up:
                         step(after_download,
-                             reign.deal_with_hang_up())
-                    elif reign.is_zombie:
+                             delivery.deal_with_hang_up())
+                    elif delivery.is_zombie:
                         step(at_zombie)
-                    elif reign.is_pushing:
+                    elif delivery.is_pushing:
                         # Client want to push data to server, we need to download.
                         [step(after_download, self.transfer(to=False)) if step(
                             before_download) else step(at_failed)]
-                    elif reign.is_pulling:
+                    elif delivery.is_pulling:
                         # Client want to pull data from server, we need to upload
                         [step(after_upload,self.transfer(to=True)) if step(
                             before_upload) else step(at_failed)]
@@ -322,7 +322,7 @@ class API(SafeThread, Hook):
 
             if cnt == 0:
                 logger.info(
-                    f"Empty reign, waiting {try_times}/{self.max_try_times}...")
+                    f"Empty delivery, waiting {try_times}/{self.max_try_times}...")
                 time.sleep(5.0)
 
             if try_times >= self.max_try_times:
@@ -347,7 +347,7 @@ class API(SafeThread, Hook):
             exit(15)
 
     def __getattribute__(self, name: str) -> Any:
-        """Try to fetch the attribute of api. If failed, try to fetch it from reign.
+        """Try to fetch the attribute of api. If failed, try to fetch it from delivery.
         """
         if name == 'regin':
             return super().__getattribute__(name)
@@ -355,7 +355,7 @@ class API(SafeThread, Hook):
         try:
             return super().__getattribute__(name)
         except AttributeError as e:
-            return getattr(self.reign, name)
+            return getattr(self.delivery, name)
 
     def __str__(self):
         return openfed_class_fmt.format(

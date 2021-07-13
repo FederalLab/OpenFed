@@ -69,7 +69,7 @@ class ElasticAgg(Agg):
             r_p          : Dict[str, Tensor],
             received_info: TaskInfo,
             group        : Dict) -> Any     : 
-        instances = received_info.instances
+        instances = received_info.instances # type: ignore
         state = self.state[p]
         if 'step' not in state:
             state['step'] = 0
@@ -90,7 +90,7 @@ class ElasticAgg(Agg):
         if 'received_params' not in state:
             state['received_params'] = []
 
-        r_p["instances"] = received_info.instances
+        r_p["instances"] = received_info.instances # type: ignore
         state['received_params'].append(r_p)
 
     def _merge_aggregate(self, p: Tensor, group: Dict):

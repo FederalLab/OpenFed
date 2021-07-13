@@ -1,5 +1,5 @@
-from openfed.core.reign import Reign
+from openfed.core.delivery import Delivery
 
 
-def test_reign():
+def test_delivery():
     pass

@@ -23,7 +23,7 @@
 
 from openfed.common import logger
 
-from ..reign import Reign
+from ..delivery import Delivery
 from ..space import ProcessGroup, World
 from ..utils.register import register
 
@@ -39,11 +39,11 @@ class Destroy(object):
         if pg == world._current_pg:
             world._current_pg = world._NULL_GP
 
-        reign = world._pg_mapping[pg]
-        reign.offline()
+        delivery = world._pg_mapping[pg]
+        delivery.offline()
         del world._pg_mapping[pg]
 
-        country = reign.country
+        country = delivery.country
         country.destroy_process_group(pg)
 
         if not country.is_initialized() or country._group_count == 1:
@@ -75,10 +75,10 @@ class Destroy(object):
                 cls.destroy_all_in_a_world(world)
 
     @classmethod
-    def destroy_reign(cls, reign: Reign) -> bool:
+    def destroy_delivery(cls, delivery: Delivery) -> bool:
         try:
-            cls.destroy(reign.pg, reign.world)
-            del reign
+            cls.destroy(delivery.pg, delivery.world)
+            del delivery
             return True
         except Exception as e:
             logger.debug(e)

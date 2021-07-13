@@ -267,7 +267,7 @@ class ShakespeareNWP(FederatedDataset):
             else:
                 raise FileNotFoundError(f"{data_file} not exists.")
 
-        data_h5:Dict[str, Dict] = h5py.File(data_file, "r")
+        data_h5:Dict[str, Dict] = h5py.File(data_file, "r") # type: ignore
         client_ids       = list(data_h5[_EXAMPLE].keys())
         self.total_parts = len(client_ids)
 

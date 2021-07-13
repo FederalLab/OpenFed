@@ -32,16 +32,16 @@ class Hook(object):
     _hook_dict: Dict[str, Any]
     _hook_list: List[Any]
 
-    def __init__(self):
-        self._hook_dict = OrderedDict()
-        self._hook_list = list()
-
     @property
     def hook_list(self):
+        if not hasattr(self, '_hook_list'):
+            self._hook_list = list()
         return self._hook_list
 
     @property
     def hook_dict(self):
+        if not hasattr(self, '_hook_dict'):
+            self._hook_dict = OrderedDict()
         return self._hook_dict
 
     @overload

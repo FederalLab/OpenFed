@@ -89,7 +89,7 @@ class Dispatch(MultiStep):
 
     def after_download(self, backend, flag: bool):
         if flag:
-            task_info = backend.reign_task_info
+            task_info = backend.delivery_task_info
             part_id   = task_info.part_id
 
             # pop from running queue
@@ -118,13 +118,13 @@ class Dispatch(MultiStep):
 
             # generate task_info
             task_info         = TaskInfo()
-            task_info.part_id = part_id
-            task_info.version = backend.version
+            task_info.part_id = part_id # type: ignore
+            task_info.version = backend.version # type: ignore
             # opside with self.train
-            task_info.train = self.train
+            task_info.train = self.train # type: ignore
 
             # set task_info
-            backend.reign_task_info = task_info
+            backend.delivery_task_info = task_info
 
             return True
 

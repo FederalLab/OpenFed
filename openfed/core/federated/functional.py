@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 
-from typing import Callable, Dict, Tuple, Union
+from typing import Callable, Dict, Tuple, Union, Any
 
 import torch
 from torch import Tensor
@@ -804,7 +804,7 @@ def gather_object(obj,
     async_op    = False,
     country     = None,
     global_rank = True
-) -> Union[Tuple[Work, Callable], Callable]:
+) -> Union[Tuple[Work, Callable], Callable, Any]:
     """
     Gathers picklable objects from the whole group in a single process.
     Similar to :func:`gather`, but Python objects can be passed in. Note that the
@@ -877,7 +877,7 @@ def gather_object(obj,
         object_sizes_tensor[i].unsqueeze(dim=0) for i in range(group_size)
     ]
 
-    def _step_func():
+    def _step_func() -> Any:
         max_object_size = int(max(object_size_list).item())  # type: ignore
         # Resize tensor to max size across all ranks.
         input_tensor.resize_(max_object_size)
@@ -895,7 +895,7 @@ def gather_object(obj,
         # All ranks call gather with equal-sized tensors.
         gather(
             input_tensor,
-            gather_list = output_tensors if my_rank == dst else None,
+            gather_list = output_tensors if my_rank == dst else None, # type: ignore
             dst         = dst,
             group       = group,
             async_op    = False,
@@ -905,9 +905,9 @@ def gather_object(obj,
 
         if my_rank != dst:
             return
-        for i, tensor in enumerate(output_tensors):
+        for i, tensor in enumerate(output_tensors): # type: ignore
             # type: ignore[call-overload]
-            tensor      = tensor.type(torch.ByteTensor)
+            tensor      = tensor.type(torch.ByteTensor) # type: ignore
             tensor_size = object_size_list[i]
             object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
 
@@ -1007,7 +1007,7 @@ def broadcast_object_list(object_list, src=0, group=None, country=None):
 
     # Concatenate and broadcast serialized object tensors
     if my_rank == src:
-        object_tensor = torch.cat(tensor_list)
+        object_tensor = torch.cat(tensor_list) # type: ignore
     else:
         object_tensor = torch.ByteTensor(torch.sum(object_sizes_tensor).item())
 
@@ -1023,7 +1023,7 @@ def broadcast_object_list(object_list, src=0, group=None, country=None):
         for i, obj_size in enumerate(object_sizes_tensor):
             obj_view = object_tensor[offset: offset + obj_size]
             # type: ignore[call-overload]
-            obj_view  = obj_view.type(torch.ByteTensor)
+            obj_view  = obj_view.type(torch.ByteTensor) # type: ignore
             offset   += obj_size
             object_list[i] = _tensor_to_object(obj_view, obj_size)
 
@@ -1109,8 +1109,8 @@ def scatter_object_list(scatter_object_output_list,
     # Src rank broadcasts the maximum tensor size. This is because all ranks are
     # expected to call into scatter() with equal-sized tensors.
     if my_rank == src:
-        max_tensor_size = max(tensor_sizes)
-        for tensor in tensor_list:
+        max_tensor_size = max(tensor_sizes) # type: ignore
+        for tensor in tensor_list: # type: ignore
             tensor.resize_(max_tensor_size)
     else:
         max_tensor_size = torch.LongTensor([0])
@@ -1121,7 +1121,7 @@ def scatter_object_list(scatter_object_output_list,
     output_tensor = torch.ByteTensor(max_tensor_size.item())
     scatter(
         output_tensor,
-        scatter_list = None if my_rank != src else tensor_list,
+        scatter_list = None if my_rank != src else tensor_list, # type: ignore
         src          = src,
         group        = group,
         global_rank  = global_rank,
@@ -1130,7 +1130,7 @@ def scatter_object_list(scatter_object_output_list,
     # Scatter per-object sizes to trim tensors when deserializing back to object
     scatter(
         obj_tensor_size,
-        scatter_list = None if my_rank != src else tensor_sizes,
+        scatter_list = None if my_rank != src else tensor_sizes, # type: ignore
         src          = src,
         group        = group,
         global_rank  = global_rank

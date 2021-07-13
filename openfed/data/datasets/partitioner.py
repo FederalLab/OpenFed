@@ -162,7 +162,7 @@ class DirichletPartitioner(Partitioner):
                 raise RuntimeError(
                     f"Exceed maximum loop times: {self._MAX_LOOP}.")
 
-        return [np.array(p) for p in parts_index_list]
+        return [np.array(p) for p in parts_index_list] # type: ignore
 
 
 class IIDPartitioner(Partitioner):

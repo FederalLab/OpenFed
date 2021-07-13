@@ -18,8 +18,8 @@ def test_exception():
         print(e)
 
     try:
-        raise BuildReignFailed()
-    except BuildReignFailed as e:
+        raise BuilddeliveryFailed()
+    except BuilddeliveryFailed as e:
         print(e)
 
     try:

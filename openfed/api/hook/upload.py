@@ -31,9 +31,9 @@ class Upload(BeforeUpload):
 
         # Check version requirements
         # upload is to check other download version.
-        if backend.reign.download_version > backend.version:
+        if backend.delivery.download_version > backend.version:
             logger.warning(
-                f"Version not aligned. (request @{backend.reign.download_version}, but @{backend.version}).")
+                f"Version not aligned. (request @{backend.delivery.download_version}, but @{backend.version}).")
             # Version is not satisfied.
             return False
 

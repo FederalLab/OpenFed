@@ -1,6 +1,6 @@
 def download_callback(api):
-    task_info           = api.reign.task_info
-    api.reign_task_info = task_info
+    task_info           = api.delivery.task_info
+    api.delivery_task_info = task_info
 
     # unpack state
     if api.frontend:
@@ -12,5 +12,5 @@ def download_callback(api):
         api.received_numbers += 1
         if api.reducer is not None:
             [reducer.step(task_info) for reducer in api.reducer]
-        packages = api.reign.tensor_indexed_packages
+        packages = api.delivery.tensor_indexed_packages
         [aggregator.step(packages, task_info) for aggregator in api.aggregator]

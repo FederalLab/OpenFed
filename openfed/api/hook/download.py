@@ -32,9 +32,9 @@ class Download(AfterDownload):
     def step(self, backend, flag: bool) -> None:
         if flag:  # Download success
             # download is to check others upload version
-            if backend.reign.upload_version <= backend.version:
+            if backend.delivery.upload_version <= backend.version:
                 logger.warning(
-                    f"Excepted @{backend.version}, received @{backend.reign.upload_version}, discard.")
+                    f"Excepted @{backend.version}, received @{backend.delivery.upload_version}, discard.")
                 return
 
             download_callback(backend)
