@@ -1,4 +1,4 @@
-from openfed.utils import glue
+from openfed.common import glue
 
 from .agg import Agg
 from .reducer import Reducer

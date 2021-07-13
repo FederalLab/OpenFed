@@ -1,4 +1,4 @@
-from openfed.utils import glue
+from openfed.common import glue
 from torch.optim import Optimizer
 
 from .penal import Penalizer

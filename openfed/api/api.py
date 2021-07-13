@@ -29,7 +29,7 @@ import openfed
 from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.common.base import DeviceOffline, peeper
-from openfed.container import Agg, Container
+from openfed.container import Container
 from openfed.core import (Collector, Cypher, Delivery, Destroy, Maintainer,
                           World, del_maintainer_lock, openfed_lock)
 from openfed.pipe import Pipe
@@ -68,8 +68,8 @@ class API(SafeThread, Hook):
     def __init__(self,
                  frontend: bool,
                  state_dict: Dict[str, Tensor],
-                 container: Container,
                  pipe: Pipe,
+                 container: Container = None,
                  dal: bool = True,
                  async_op: bool = True):
         """Whether act as a frontend.
@@ -333,7 +333,7 @@ class API(SafeThread, Hook):
     def __getattribute__(self, name: str) -> Any:
         """Try to fetch the attribute of api. If failed, try to fetch it from delivery.
         """
-        if name == 'regin':
+        if name == 'delivery':
             return super().__getattribute__(name)
 
         try:

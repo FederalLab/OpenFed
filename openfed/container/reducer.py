@@ -95,4 +95,7 @@ class AutoReducer(Reducer):
             for k in self.additional_keys:
                 r_task_info.load_dict({k: task_info[k]})
 
+        # Clear buffers
+        self.task_info_buffer = []
+
         return r_task_info.load_dict(rdict)

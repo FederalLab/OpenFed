@@ -1,5 +1,18 @@
 from typing import List
 
+from openfed.utils import openfed_class_fmt
+
+
+class Gluer(object):
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return openfed_class_fmt.format(
+            class_name='Gluer',
+            description=''
+        )
+
 
 def glue(inst_a, inst_b, parall_func_list: List[str] = None):
     """Glue inst_a of TypeA with inst_b of TypeB, return a new inst_c of TypeC.
@@ -41,7 +54,9 @@ def glue(inst_a, inst_b, parall_func_list: List[str] = None):
             func_dict[func_name] = parall_func(
                 getattr(TypeA, func_name), getattr(TypeB, func_name))
 
-    TypeC = type('TypeC', (TypeA, TypeB), func_dict)
+    name = f"Gluer_{inst_a.__class__.__name__}_{inst_b.__class__.__name__}"
+
+    TypeC = type(name, (Gluer, TypeA, TypeB), func_dict)
     inst_c = TypeC()
 
     inst_c.__dict__.update(inst_a.__dict__)

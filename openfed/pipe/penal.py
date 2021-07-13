@@ -24,12 +24,12 @@
 from typing import List
 
 import torch
-from openfed.common import Wrapper
+from openfed.common import Wrapper, Buffer
 from openfed.utils import convert_to_list
 from typing_extensions import final
 
 
-class Penalizer(Wrapper):
+class Penalizer(Wrapper, Buffer):
     """The basic class for federated pipe.
 
     Most federated optimizer just rectify the gradients according to
@@ -52,7 +52,7 @@ class Penalizer(Wrapper):
 
     @torch.no_grad()
     @final
-    def step(self, closure):
+    def step(self, closure=None):
         return self._ft_step(closure) if self.ft else self._bk_step(closure)
 
     def _ft_step(self, closure):
@@ -71,22 +71,6 @@ class Penalizer(Wrapper):
 
     def _bk_round(self):
         ...
-
-    def clear_buffer(self, keep_keys: List[str] = None):
-        """Clear state buffers.
-        Args:
-            keep_keys: if not specified, we will directly remove all buffers.
-                Otherwise, the key in keep_keys will be kept.
-        """
-        for group in self.param_groups:
-            for p in group["params"]:
-                if p in self.state[p]:
-                    if keep_keys is None:
-                        del self.state[p]
-                    else:
-                        for k in self.state[p].keys():
-                            if k not in keep_keys:
-                                del self.state[p][k]
 
 
 class ElasticPenalizer(Penalizer):
@@ -237,6 +221,14 @@ class ScaffoldPenalizer(Penalizer):
 
         self.lr = lr
 
+    def init_c_para(self):
+        """Call this function after glue operation.
+        """
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.requires_grad:
+                    self.state[p]["c_para"] = torch.zeros_like(p)
+
     def acg_step(self):
         for group in self.param_groups:
             for p in group['params']:
@@ -366,4 +358,4 @@ class ScaffoldPenalizer(Penalizer):
                 state["c_para"].copy_(c_para_i - state["c_para"])
 
     def clear_buffer(self):
-        super().clear_buffer(keep_keys=['c_para_i'])
+        super().clear_buffer(keep_keys=['c_para_i', 'c_para'])

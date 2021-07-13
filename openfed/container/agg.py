@@ -29,7 +29,7 @@ from itertools import chain
 from typing import Any, Dict, List, Union
 
 import torch
-from openfed.common import Package, TaskInfo, Wrapper
+from openfed.common import Package, TaskInfo, Wrapper, Buffer
 from openfed.utils import convert_to_list
 from torch import Tensor
 
@@ -44,28 +44,31 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Agg(Package, Wrapper):
+class Agg(Package, Wrapper, Buffer):
     r"""Base class for Agg.
     """
-    task_info_list: List[TaskInfo]
+    task_info_buffer: List[TaskInfo]  # Used by Reducer, it will be cleared once .reduce() is callled.
 
     def __init__(self,
                  params,
                  defaults: Dict,
                  info_keys: List[str],
                  pipe_keys: List[str],
+                 keep_keys: List[str] = None,
                  legacy: bool = False):
         """
         Args:
             info_keys: necessary keys saved in returned info dict.
             pipe_keys: other tensor that needed to saved.
+            keep_keys: the state which will not be cleared while .clear_buffer() is called
             legacy: if True, just stack received data, otherwise will merge them.
         """
         self.legacy = legacy
 
         # add info_keys to defaults
-        defaults['info_keys'] = info_keys
-        defaults['pipe_keys'] = pipe_keys
+        defaults['info_keys'] = convert_to_list(info_keys)
+        defaults['pipe_keys'] = convert_to_list(pipe_keys)
+        defaults['keep_keys']  = convert_to_list(keep_keys)
         defaults['legacy'] = legacy
 
         self.defaults = defaults
@@ -87,7 +90,7 @@ class Agg(Package, Wrapper):
         for param_group in param_groups:
             self.add_param_group(param_group)
 
-        self.task_info_list = []
+        self.task_info_buffer = []
 
     def __getstate__(self):
         return {
@@ -228,20 +231,6 @@ class Agg(Package, Wrapper):
                             p.grad.requires_grad_(False)
                         p.grad.zero_()
 
-    def clear_buffer(self):
-        r"""clear cached data.
-        """
-        # Clear buffers
-        self.task_info_list = []
-
-        for group in self.param_groups:
-            for p in group['params']:
-                # Clear buffer
-                state = self.state[p]
-                for k in group["pipe_keys"]:
-                    if k in state:
-                        del state[k]
-
     def add_param_group(self, param_group):
         r"""Add a param group to the :class:`Agg` s `param_groups`.
 
@@ -329,7 +318,7 @@ class Agg(Package, Wrapper):
                     else:
                         self.merge(p, received_params[p],
                                    received_info=received_info, group=group)
-        self.task_info_list.append(received_info)
+        self.task_info_buffer.append(received_info)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
         raise NotImplementedError
@@ -356,7 +345,8 @@ class AverageAgg(Agg):
 
     def __init__(self,
                  params,
-                 other_keys: Union[str, List[str]] = None,
+                 other_keys: List[str] = None,
+                 keep_keys: List[str] = None,
                  legacy: bool = True):
         """
         Args:
@@ -378,6 +368,7 @@ class AverageAgg(Agg):
             defaults,
             info_keys=info_keys,
             pipe_keys=pipe_keys,
+            keep_keys=keep_keys,
             legacy=legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
@@ -448,6 +439,7 @@ class ElasticAgg(Agg):
 
     def __init__(self, params,
                  other_keys: Union[str, List[str]] = None,
+                 keep_keys: List[str] = None,
                  quantile: float = 0.5,
                  legacy: bool = True):
 
@@ -472,6 +464,7 @@ class ElasticAgg(Agg):
             defaults,
             info_keys=info_keys,
             pipe_keys=pipe_keys,
+            keep_keys=keep_keys,
             legacy=legacy)
 
     def merge(self,
@@ -575,6 +568,7 @@ class NaiveAgg(Agg):
     def __init__(self,
                  params,
                  other_keys: Union[str, List[str]] = None,
+                 keep_keys: List[str] = None,
                  legacy: bool = True):
         other_keys = [] if other_keys is None else convert_to_list(other_keys)
 
@@ -592,6 +586,7 @@ class NaiveAgg(Agg):
             defaults,
             info_keys=info_keys,
             pipe_keys=pipe_keys,
+            keep_keys=keep_keys,
             legacy=legacy)
 
     def merge(self,
