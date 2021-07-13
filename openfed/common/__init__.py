@@ -4,7 +4,7 @@ from .base import *
 from .clone import *
 from .constants import *
 from .hook import *
-from .logging import logger
+from .logging import *
 from .package import *
 from .parser import parser
 from .task_info import *

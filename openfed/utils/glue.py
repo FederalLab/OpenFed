@@ -1,7 +1,5 @@
 from typing import List
 
-from openfed.common import logger
-
 
 def glue(inst_a, inst_b, parall_func_list: List[str] = None):
     """Glue inst_a of TypeA with inst_b of TypeB, return a new inst_c of TypeC.
@@ -57,6 +55,6 @@ def glue(inst_a, inst_b, parall_func_list: List[str] = None):
         else:
             inst_c.__dict__[k] = v
     if len(skip_keys):
-        logger.info(
+        print(
             f"The following variables in {inst_b} have been written: {skip_keys}")
     return inst_c

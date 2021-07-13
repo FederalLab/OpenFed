@@ -37,8 +37,7 @@ from random_words import RandomWords
 from torch import Tensor
 from torch._C._distributed_c10d import Work
 
-from collector import Collector, GPUInfo, Register, SystemInfo
-
+from .collector import Collector, GPUInfo, Register, SystemInfo
 from .cypher import Cypher, FormatCheck
 from .federated.functional import gather_object
 from .space import Country, ProcessGroup, Store, World

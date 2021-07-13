@@ -23,7 +23,6 @@
 
 from openfed.common import logger
 
-from ..delivery import Delivery
 from ..space import ProcessGroup, World
 from ..utils.register import register
 
@@ -75,7 +74,7 @@ class Destroy(object):
                 cls.destroy_all_in_a_world(world)
 
     @classmethod
-    def destroy_delivery(cls, delivery: Delivery) -> bool:
+    def destroy_delivery(cls, delivery) -> bool:
         try:
             cls.destroy(delivery.pg, delivery.world)
             del delivery
