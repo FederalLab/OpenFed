@@ -32,16 +32,7 @@ from openfed.common import TaskInfo
 class Reducer(object):
     """The base class of different reducers.
     """
-    task_info_buffer: List[TaskInfo]
-
-    def __init__(self):
-        self.task_info_buffer = []
+    task_info_buffer: List[TaskInfo] # assigned from aggregator
 
     def reduce(self) -> TaskInfo:
         raise NotImplementedError
-
-    def step(self, task_info: TaskInfo):
-        self.task_info_buffer.append(task_info)
-
-    def clear_buffer(self):
-        self.task_info_buffer = []

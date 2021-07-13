@@ -29,17 +29,28 @@ from openfed.utils import convert_to_list
 class Wrapper(object):
     """Provide some methods to wrap a class with support of Package.
     """
-    pack_key_list  : List[str]
-    unpack_key_list: List[str]
+    _pack_key_list  : List[str]
+    _unpack_key_list: List[str]
 
-    def __init__(self):
-        self.pack_key_list   = list()
-        self.unpack_key_list = list()
+    @property
+    def pack_key_list(self):
+        if hasattr(self, '_pack_key_list'):
+            return self._pack_key_list
+        else:
+            self._pack_key_list = list()
+            return self._pack_key_list
+    
+
+    @property
+    def unpack_key_list(self):
+        if hasattr(self, '_unpack_key_list'):
+            return self._unpack_key_list
+        else:
+            self._unpack_key_list = list()
+            return self._unpack_key_list
 
     def add_pack_key(self, key: Union[str, List[str]]) -> None:
         key = convert_to_list(key)
-        if self.pack_key_list is None:
-            self.pack_key_list = []
         for k in key:
             if k in self.pack_key_list:
                 raise KeyError(f"{k} is already registered.")
@@ -47,8 +58,6 @@ class Wrapper(object):
 
     def add_unpack_key(self, key: Union[str, List[str]]) -> None:
         key = convert_to_list(key)
-        if self.unpack_key_list is None:
-            self.unpack_key_list = []
         for k in key:
             if k in self.unpack_key_list:
                 raise KeyError(f"{k} is already registered.")

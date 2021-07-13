@@ -1,2 +1,0 @@
-class Penalizer(object):
-    pass

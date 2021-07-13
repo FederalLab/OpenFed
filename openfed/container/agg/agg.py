@@ -46,27 +46,26 @@ required = _RequiredParameter()
 class Agg(Package, Wrapper):
     r"""Base class for Agg.
     """
-    _received_infos: List[TaskInfo]
+    task_info_list: List[TaskInfo]
 
     def __init__(self,
                  params,
-                 defaults : Dict,
+                 defaults: Dict,
                  info_keys: List[str],
                  pipe_keys: List[str],
-                 legacy   : bool = False): 
+                 legacy: bool = False):
         """
         Args:
             info_keys: necessary keys saved in returned info dict.
             pipe_keys: other tensor that needed to saved.
             legacy: if True, just stack received data, otherwise will merge them.
         """
-        Wrapper.__init__(self)
         self.legacy = legacy
 
         # add info_keys to defaults
         defaults['info_keys'] = info_keys
         defaults['pipe_keys'] = pipe_keys
-        defaults['legacy']    = legacy
+        defaults['legacy'] = legacy
 
         self.defaults = defaults
 
@@ -75,7 +74,7 @@ class Agg(Package, Wrapper):
                             "an iterable of Tensors or dicts, but got " +
                             torch.typename(params))
 
-        self.state        = defaultdict(dict)
+        self.state = defaultdict(dict)
         self.param_groups = []
 
         param_groups = list(params)
@@ -87,7 +86,7 @@ class Agg(Package, Wrapper):
         for param_group in param_groups:
             self.add_param_group(param_group)
 
-        self._received_infos = []
+        self.task_info_list = []
 
     def __getstate__(self):
         return {
@@ -121,7 +120,7 @@ class Agg(Package, Wrapper):
         """
         # Save order indices instead of Tensors
         param_mappings = {}
-        start_index    = 0
+        start_index = 0
 
         def pack_group(group):
             nonlocal start_index
@@ -150,7 +149,7 @@ class Agg(Package, Wrapper):
         # deepcopy, to be consistent with module API
         state_dict = deepcopy(state_dict)
         # Validate the state_dict
-        groups       = self.param_groups
+        groups = self.param_groups
         saved_groups = state_dict['param_groups']
 
         if len(groups) != len(saved_groups):
@@ -232,7 +231,7 @@ class Agg(Package, Wrapper):
         r"""clear cached data.
         """
         # Clear buffers
-        self._received_infos = []
+        self.task_info_list = []
 
         for group in self.param_groups:
             for p in group['params']:
@@ -329,7 +328,7 @@ class Agg(Package, Wrapper):
                     else:
                         self.merge(p, received_params[p],
                                    received_info=received_info, group=group)
-        self._received_infos.append(received_info)
+        self.task_info_list.append(received_info)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
         raise NotImplementedError

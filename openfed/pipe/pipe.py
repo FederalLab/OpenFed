@@ -1,5 +1,5 @@
 from .optim import Optimizer
-from .pena import Penalizer
+from .penal import Penalizer
 from openfed.utils import glue
 
 
@@ -12,4 +12,5 @@ class Pipe(Optimizer, Penalizer):
 
 def build_pipe(optimizer: Optimizer, penalizer: Penalizer = None) -> Pipe:
     penalizer = Penalizer() if penalizer is None else penalizer
-    return glue(optimizer, penalizer)
+    parall_func_list = ['step']
+    return glue(optimizer, penalizer, parall_func_list)

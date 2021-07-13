@@ -21,16 +21,19 @@
 # SOFTWARE.
 
 
+from typing import List
+
 import torch
+from openfed.utils import convert_to_list
 
-from .pipe import Pipe
+from .penal import Penalizer
 
 
-class ScaffoldPipe(Pipe):
+class ScaffoldPenalizer(Penalizer):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
 
-    def __init__(self, params, lr: float = None):
+    def __init__(self, ft: bool, lr: float = None, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
         """Scaffold need to run on both ft and backend.
         If lr is given, we will use the second way provided in the paper to update c.
         Otherwise, we will use the first way provided in the paper.
@@ -74,20 +77,38 @@ class ScaffoldPipe(Pipe):
             >>> optim.step()
             >>> deliver.pack(scaffold)
         """
+        pack_key_list = convert_to_list(pack_key_list)
+        unpack_key_list = convert_to_list(unpack_key_list)
+        if pack_key_list is not None:
+            pack_key_list.append('c_para')
+        else:
+            pack_key_list = ['c_para']
 
-        defaults = dict(lr=lr)
-        super().__init__(params, defaults)
+        if unpack_key_list is not None:
+            unpack_key_list.append('c_para')
+        else:
+            unpack_key_list = ['c_para']
+        super().__init__(ft, pack_key_list, unpack_key_list)
 
-        self.add_pack_key('c_para')
-        self.add_unpack_key('c_para')
+        self.lr = lr
 
-        # Set initial c_para_i
+    def acg_step(self):
         for group in self.param_groups:
-            for p in group["params"]:
-                if p.requires_grad:
-                    self.state[p]["c_para"] = torch.zeros_like(p)
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+                state = self.state[p]
 
-    def _ft_step(self, closure=None, acg: bool = False):
+                if "init_p_g" not in state:
+                    state["init_p_g"] = p.grad.clone().detach()
+                    state["init_p_g_cnt"] = 1
+                else:
+                    g = (state["init_p_g"] * state["init_p_g_cnt"] +
+                         p.grad) / (state["init_p_g_cnt"] + 1)
+                    state["init_p_g"].copy_(g)
+                    state['init_p_g_cnt'] += 1
+
+    def _ft_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
@@ -106,16 +127,6 @@ class ScaffoldPipe(Pipe):
                 if p.grad is None:
                     continue
                 state = self.state[p]
-                if acg:
-                    if "init_p_g" not in state:
-                        state["init_p_g"] = p.grad.clone().detach()
-                        state["init_p_g_cnt"] = 1
-                    else:
-                        g = (state["init_p_g"] * state["init_p_g_cnt"] +
-                             p.grad) / (state["init_p_g_cnt"] + 1)
-                        state["init_p_g"].copy_(g)
-                        state['init_p_g_cnt'] += 1
-                    continue
 
                 if "init_p" not in state:
                     state["init_p"] = p.clone().detach()
@@ -152,8 +163,9 @@ class ScaffoldPipe(Pipe):
                 if p.grad is None:
                     continue
                 state = self.state[p]
-
                 # Update backend
+                if 'c_para' not in state:
+                    state['c_para'] = torch.zeros_like(p)
                 c_para = state["c_para"]
                 if "c_para_i" not in state:
                     c_para_i = state["c_para_i"] = torch.zeros_like(p)
@@ -188,7 +200,10 @@ class ScaffoldPipe(Pipe):
                     # Use the second way to update c_para
                     c_para_i.copy_(
                         c_para_i - state["c_para"] + 1 / (state["step"] * lr) * (state["init_p"] - p))
-                state["c_para"].copy_(c_para_i - state["c_para"])
+                if 'c_para' not in state:
+                    state["c_para"] = c_para_i
+                else:
+                    state["c_para"].copy_(c_para_i - state["c_para"])
 
     def _bk_round(self):
         """Scaffold do a special round operation.
@@ -201,21 +216,9 @@ class ScaffoldPipe(Pipe):
                     continue
                 state = self.state[p]
                 c_para_i = state["c_para_i"]
+                if 'c_para' not in state:
+                    state['c_para'] = torch.zeros_like(p)
                 state["c_para"].copy_(c_para_i - state["c_para"])
 
     def clear_buffer(self):
-        for group in self.param_groups:
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                state = self.state[p]
-
-                # delete init_p and step
-                if 'init_p' in state:
-                    del state["init_p"]
-                if 'step' in state:
-                    del state["step"]
-                if 'init_p_g' in state:
-                    del state["init_p_g"]
-                if 'init_p_g_cnt' in state:
-                    del state["init_p_g_cnt"]
+        super().clear_buffer(keep_keys=['c_para_i'])

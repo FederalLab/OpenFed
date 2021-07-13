@@ -21,12 +21,15 @@
 # SOFTWARE.
 
 
+from typing import List
+
 import torch
+from openfed.utils import convert_to_list
 
-from .pipe import Pipe
+from .penal import Penalizer
 
 
-class ElasticPipe(Pipe):
+class ElasticPenalizer(Penalizer):
     r"""Paired with ElasticAgg.
 
     Example:
@@ -39,44 +42,36 @@ class ElasticPipe(Pipe):
 
     """
 
-    def __init__(self, params, momentum: float = 0.9):
+    def __init__(self,
+                 ft: bool,
+                 momentum: float = 0.9,
+                 pack_key_list: List[str] = None,
+                 unpack_key_list: List[str] = None):
+        pack_key_list = convert_to_list(pack_key_list)
+        unpack_key_list = convert_to_list(unpack_key_list)
+        if pack_key_list is None:
+            pack_key_list = ['importance']
+        else:
+            pack_key_list.append('importance')
+
         if not 0.0 <= momentum <= 1.0:
             raise ValueError(f"Invalid momentum value: {momentum}")
 
-        defaults = dict(momentum=momentum)
-        super().__init__(params, defaults)
+        self.momentum = momentum
 
-        self.add_pack_key('importance')
+        super().__init__(ft, pack_key_list, unpack_key_list)
 
-    def _ft_step(self, closure=None, acg: bool = False):
-        """Performs a single optimization step.
-
-        Args:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
+    def acg_step(self):
+        """Performs a single accumulate gradient step.
         """
-        if not acg:
-            return 
-
-        loss = None
-        if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
-
         for group in self.param_groups:
-            momentum = group['momentum']
+            momentum = self.momentum
             for p in group['params']:
                 if p.grad is None:
                     continue
-
                 grad = p.grad.abs()
-
                 state = self.state[p]
-
                 if 'importance' not in state:
                     state["importance"] = torch.zeros_like(
                         p, memory_format=torch.preserve_format)
-
                 state["importance"].mul_(momentum).add_(grad, alpha=1-momentum)
-
-        return loss

@@ -23,19 +23,20 @@
 
 import torch
 
-from .pipe import Pipe
+from .penal import Penalizer
+from typing import List
 
 
-class ProxPipe(Pipe):
+class ProxPenalizer(Penalizer):
     """https://arxiv.org/pdf/1812.06127.pdf
     """
 
-    def __init__(self, params, mu: float = 0.9):
+    def __init__(self, ft: bool, mu: float = 0.9, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
         if not 0.0 < mu < 1.0:
             raise ValueError(f"Invalid mu value: {mu}")
 
-        defaults = dict(mu=mu)
-        super().__init__(params, defaults)
+        super().__init__(ft, pack_key_list, unpack_key_list)
+        self.mu = mu
 
     def _ft_step(self, closure=None):
         """Performs a single optimization step.
