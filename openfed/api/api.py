@@ -28,23 +28,20 @@ from typing import Any, Dict, List, Union
 import openfed
 from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
-from openfed.common.base.peeper import peeper
-from openfed.container import Agg, Reducer
-from openfed.core import (Collector, Cypher, Destroy, Maintainer, Delivery, World,
-                          openfed_lock)
-from openfed.core.utils import DeviceOffline
-from openfed.core.utils.lock import del_maintainer_lock
+from openfed.common.base import DeviceOffline, peeper
+from openfed.container import Agg, Container
+from openfed.core import (Collector, Cypher, Delivery, Destroy, Maintainer,
+                          World, del_maintainer_lock, openfed_lock)
 from openfed.pipe import Pipe
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
 from torch import Tensor
-from torch.optim import Optimizer
 
-from .functional import download_callback
-from .step import (Step, after_destroy, after_download, after_upload,
-                   at_failed, at_first, at_invalid_state, at_last,
-                   at_new_episode, at_zombie, before_destroy, before_download,
-                   before_upload)
+from .hooks import (Step, after_destroy, after_download, after_upload,
+                    at_failed, at_first, at_invalid_state, at_last,
+                    at_new_episode, at_zombie, before_destroy, before_download,
+                    before_upload)
+from .utils import download_callback
 
 peeper.api_lock = Lock()
 
@@ -58,25 +55,23 @@ def _device_offline_care(func):
             return False
     return device_offline_care
 
+
 class API(SafeThread, Hook):
     """Provide a unified api for backend and frontend.
     """
 
     # Communication related
-    maintainer  : Maintainer
-    delivery       : Delivery
+    maintainer: Maintainer
+    delivery: Delivery
     current_step: str
 
     def __init__(self,
-                 frontend    : bool,
-                 state_dict  : Dict[str, Tensor],
-                 ft_optimizer: Union[Optimizer, List[Optimizer]],
-                 aggregator  : Union[Agg, List[Agg]],
-                 bk_optimizer: Union[Optimizer, List[Optimizer]] = None,
-                 pipe         : Union[Pipe, List[Pipe]]          = None,
-                 reducer      : Union[Reducer, List[Reducer]]    = None,
-                 dal          : bool                             = True,
-                 async_op     : bool                             = True)                         :
+                 frontend: bool,
+                 state_dict: Dict[str, Tensor],
+                 container: Container,
+                 pipe: Pipe,
+                 dal: bool = True,
+                 async_op: bool = True):
         """Whether act as a frontend.
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
@@ -85,7 +80,7 @@ class API(SafeThread, Hook):
         SafeThread.__init__(self, daemon=True)
         Hook.__init__(self)
 
-        self.dal     : bool = dal
+        self.dal: bool = dal
         self.frontend: bool = frontend
 
         # Set a flag for backend.
@@ -98,26 +93,19 @@ class API(SafeThread, Hook):
         # Set default value
         self.version: int = 0
 
-        self._hooks_del: List[Cypher]    = []
-        self._hooks_inf: List[Collector] = []
+        self._hooks_cypher: List[Cypher] = []
+        self._hooks_collector: List[Collector] = []
 
-        self.stopped            : bool           = False
-        self.received_numbers   : int            = 0
-        self.last_aggregate_time: float          = time.time()
-        self.delivery_task_info    : TaskInfo       = TaskInfo()
-        self.task_info_list     : List[TaskInfo] = []
+        self.stopped: bool = False
+        self.received_numbers: int = 0
+        self.last_aggregate_time: float = time.time()
+        self.delivery_task_info: TaskInfo = TaskInfo()
+        self.task_info_list: List[TaskInfo] = []
 
         # Data handle
         self.state_dict: Dict[str, Tensor] = state_dict
-        self.aggregator: List[Agg]         = convert_to_list(aggregator)
-        if bk_optimizer is None:
-            bk_optimizer = ft_optimizer
-        self.pipe        : List[Pipe]      = convert_to_list(pipe)
-        self.bk_optimizer: List[Optimizer] = convert_to_list(bk_optimizer)
-        self.ft_optimizer: List[Optimizer] = convert_to_list(ft_optimizer)
-        self.reducer     : List[Reducer]   = convert_to_list(reducer)
-
-        assert len(self.aggregator) == len(self.bk_optimizer) == len(self.ft_optimizer)
+        self.container: List[Container] = convert_to_list(container)
+        self.pipe: List[Pipe] = convert_to_list(pipe)
 
         # how many times for backend waiting for connections.
         self.max_try_times: int = 5
@@ -136,9 +124,9 @@ class API(SafeThread, Hook):
                 else:
                     self.register_hook(f"{name}.{cnt+1}", step)
         elif isinstance(hook, Collector):
-            self._hooks_inf.append(hook)
+            self._hooks_collector.append(hook)
         elif isinstance(hook, Cypher):
-            self._hooks_del.append(hook)
+            self._hooks_cypher.append(hook)
         else:
             raise NotImplementedError(
                 f'Hook type is not supported: {type(hook)}.')
@@ -148,12 +136,12 @@ class API(SafeThread, Hook):
         # informer hook may contain some inner variable, which is not allowed
         # to share with each other.
         [self.delivery.register_collector(hook.clone(
-        )) for hook in self._hooks_inf if hook.bounding_name not in self.delivery._hook_dict]
+        )) for hook in self._hooks_collector if hook.bounding_name not in self.delivery._hook_dict]
         # register the hook directly.
         # deliver hook is not allowed to have inner parameters.
         # it can be used among all delivery.
         [self.delivery.register_cypher(
-            hook) for hook in self._hooks_del if hook not in self.delivery._hook_list]
+            hook) for hook in self._hooks_cypher if hook not in self.delivery._hook_list]
 
     def build_connection(self, world: World = None, address: Union[Address_, List[Address_]] = None, address_file: str = None):
         world = world if world is not None else World(leader=self.backend)
@@ -169,7 +157,7 @@ class API(SafeThread, Hook):
             # otherwise, it may interrupt the process and cause error before you go into loop()
             openfed_lock.acquire()
         self.maintainer = Maintainer(
-            world, address=address, address_file=address_file) # type: ignore
+            world, address=address, address_file=address_file)  # type: ignore
 
         if self.frontend:
             self.delivery = Delivery.default_delivery()
@@ -206,10 +194,6 @@ class API(SafeThread, Hook):
                 self.delivery.set_task_info(self.delivery_task_info)
 
             # 4. Pack state
-            if self.frontend:
-                [self.pack_state(ft_opt) for ft_opt in self.ft_optimizer]
-            elif self.backend:
-                [self.pack_state(bk_opt) for bk_opt in self.bk_optimizer]
             if self.pipe is not None:
                 [self.pack_state(pipe) for pipe in self.pipe]
 
@@ -281,7 +265,7 @@ class API(SafeThread, Hook):
         while not self.stopped:
             with self.maintainer.mt_lock:
                 step(at_new_episode)
-                rg  = Delivery.delivery_generator()
+                rg = Delivery.delivery_generator()
                 cnt = 0
                 for delivery in rg:
                     if self.stopped or delivery is None:
@@ -311,7 +295,7 @@ class API(SafeThread, Hook):
                             before_download) else step(at_failed)]
                     elif delivery.is_pulling:
                         # Client want to pull data from server, we need to upload
-                        [step(after_upload,self.transfer(to=True)) if step(
+                        [step(after_upload, self.transfer(to=True)) if step(
                             before_upload) else step(at_failed)]
                     else:
                         step(at_invalid_state)
@@ -359,8 +343,8 @@ class API(SafeThread, Hook):
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name  = "OpenFedAPI",
-            description = f"{'Frontend' if self.frontend else 'Backend'}."
+            class_name="OpenFedAPI",
+            description=f"{'Frontend' if self.frontend else 'Backend'}."
         )
 
     def __enter__(self):
@@ -374,7 +358,6 @@ class API(SafeThread, Hook):
         peeper.api_lock.acquire()
         peeper.api = self
 
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         # restore state
         dal, async_op = self.original_state
@@ -383,4 +366,3 @@ class API(SafeThread, Hook):
         openfed.ASYNC_OP.set(async_op)
         peeper.api = None
         peeper.api_lock.release()
-

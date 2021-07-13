@@ -19,16 +19,25 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
- 
- 
+
+
+"""This file provides some useful functions fpr auto-reduce operation among received task infos.
+"""
+
 from collections import defaultdict
 from typing import List, Union
 
 from openfed.common import TaskInfo
 from openfed.utils import convert_to_list
 
-from .reducer import Reducer
 
+class Reducer(object):
+    """The base class of different reducers.
+    """
+    task_info_buffer: List[TaskInfo]  # assigned from aggregator
+
+    def reduce(self) -> TaskInfo:
+        return TaskInfo()
 
 class AutoReducer(Reducer):
     """Auto reducer based on specified keys.

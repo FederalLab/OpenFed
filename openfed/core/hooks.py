@@ -1,45 +1,79 @@
-# MIT License
-
-# Copyright (c) 2021 FederalLab
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-
 import json
 import platform
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Type
+from typing import Any, Callable, Dict, Type, Union
 
 import torch
 from openfed.common import Clone, logger, peeper
 from openfed.utils import openfed_class_fmt, tablist
+from torch import Tensor
 from torch.optim.lr_scheduler import _LRScheduler
 
 
-class Register(object):
-    provided_collector_dict: Dict[str, Any]             = dict()
-    collector_pool         : Dict[Any, Dict[Type, Any]] = defaultdict(dict)
+class Cypher(Clone):
+    r"""Cypher: encrypt/decrypt data in pairs.
+    The encrypt and decrypt functions will be called in two ends respectively.
+    You can store the inner operation in the returned dictionary directly, but not 
+    specify then as self.xxx=yyy.
+    """
+
+    def __init__(self):
+        super().__init__()
+        if peeper.api is not None:
+            peeper.api.register_everything(self)
+
+    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+        """<key, value> pair in the package before transfer to the other end.
+        """
+        raise NotImplementedError(
+            "You must implement the encrypt function for Cypher.")
+
+    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+        """<key, value> pair in the package received from the other end.
+        """
+        raise NotImplementedError(
+            "You must implement the decrypt function for Cypher.")
+
+
+class FormatCheck(Cypher):
+    """Format Check.
+    1. Convert `value` to {'param': value} if value is a Tensor.
+    2. Align all other tensor in value to `param`'s device. 
+    """
+
+    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+        assert isinstance(key, Tensor)
+        # Convert to dict
+        if isinstance(value, Tensor):
+            value = dict(param=value)
+        assert isinstance(value, dict)
+
+        # Align device
+        for k, v in value.items():
+            value[k] = v.cpu()
+        return value
+
+    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+        assert isinstance(key, Tensor)
+        # Convert to dict
+        if isinstance(value, Tensor):
+            value = dict(param=value)
+        assert isinstance(value, dict)
+
+        # Align device
+        for k, v in value.items():
+            value[k] = v.to(key.device)
+        return value
+
+
+class Recoder(object):
+    provided_collector_dict: Dict[str, Any] = dict()
+    collector_pool: Dict[Any, Dict[Type, Any]] = defaultdict(dict)
 
     def __init__(self, obj: str, informer: Any):
         assert isinstance(obj, str)
-        self.obj      = obj
+        self.obj = obj
         self.informer = informer
 
     def __call__(self, *args, **kwargs):
@@ -64,20 +98,20 @@ class Register(object):
     def register(cls, obj: Any):
         if obj.bounding_name not in cls.provided_collector_dict:
             assert obj.bounding_name.startswith("Collector")
-            logger.debug("Register collector %s" % obj.bounding_name)
+            logger.debug("Recoder collector %s" % obj.bounding_name)
             cls.provided_collector_dict[obj.bounding_name] = obj
         return obj
 
     @classmethod
     def add_to_pool(cls, func: Callable):
         def _add_to_pool(self, collector):
-            # Register collector to collector pool
+            # Recoder collector to collector pool
             cls.collector_pool[self][collector.bounding_name] = collector
             return func(self, collector)
         return _add_to_pool
 
 
-@Register.register
+@Recoder.register
 class Collector(Clone):
     """Some useful utilities to collect message.
     What's more, Collector also provide necessary function to better 
@@ -95,7 +129,7 @@ class Collector(Clone):
     leader_scatter: bool = True
     # If True, scatter self message in follower
     follower_scatter: bool = True
-    
+
     def __init__(self, once_only: bool = False):
         # If True, this collector will only be called once.
         # Otherwise, it will be called everytime when the ends
@@ -131,8 +165,8 @@ class Collector(Clone):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name  = self.bounding_name,
-            description = self.better_read()
+            class_name=self.bounding_name,
+            description=self.better_read()
         )
 
 
@@ -143,7 +177,7 @@ class Collector(Clone):
 Collector()
 
 
-@Register.register
+@Recoder.register
 class SystemInfo(Collector):
     """Collect some basic system info.
     """
@@ -151,10 +185,10 @@ class SystemInfo(Collector):
 
     message: Any = None
 
-    leader_collector  : bool = True
+    leader_collector: bool = True
     follower_collector: bool = False
 
-    leader_scatter  : bool = False
+    leader_scatter: bool = False
     follower_scatter: bool = True
 
     def __init__(self) -> None:
@@ -164,13 +198,13 @@ class SystemInfo(Collector):
         if self.scattered is False:
             self.scattered = True
             self.my_message = dict(
-                system       = platform.system(),
-                platform     = platform.system(),
-                version      = platform.version(),
-                architecture = platform.architecture(),
-                machine      = platform.machine(),
-                node         = platform.node(),
-                processor    = platform.processor(),
+                system=platform.system(),
+                platform=platform.system(),
+                version=platform.version(),
+                architecture=platform.architecture(),
+                machine=platform.machine(),
+                node=platform.node(),
+                processor=platform.processor(),
             )
         return self.my_message
 
@@ -197,17 +231,17 @@ class SystemInfo(Collector):
 SystemInfo()
 
 
-@Register.register
+@Recoder.register
 class GPUInfo(Collector):
     """Collect some basic GPU information if GPU is available.
     """
     bounding_name: str = "Collector.GPUInfo"
 
-    message           : Any  = None
-    leader_collector  : bool = True
+    message: Any = None
+    leader_collector: bool = True
     follower_collector: bool = False
 
-    leader_scatter  : bool = False
+    leader_scatter: bool = False
     follower_scatter: bool = True
 
     def __init__(self) -> None:
@@ -216,12 +250,12 @@ class GPUInfo(Collector):
     def collect(self) -> Any:
         if self.scattered is False:
             if torch.cuda.is_available():
-                self.my_message =  dict(
-                    device_count      = torch.cuda.device_count(),
-                    arch_list         = torch.cuda.get_arch_list(),
-                    device_capability = torch.cuda.get_device_capability(),
-                    device_name       = torch.cuda.get_device_name(),
-                    current_device = torch.cuda.current_device(),
+                self.my_message = dict(
+                    device_count=torch.cuda.device_count(),
+                    arch_list=torch.cuda.get_arch_list(),
+                    device_capability=torch.cuda.get_device_capability(),
+                    device_name=torch.cuda.get_device_name(),
+                    current_device=torch.cuda.current_device(),
                 )
             else:
                 self.my_message = None
@@ -247,15 +281,15 @@ class GPUInfo(Collector):
 GPUInfo()
 
 
-@Register.register
+@Recoder.register
 class LRTracker(Collector):
     """Keep tack of learning rate during training.
     """
-    bounding_name     : str  = "Collector.LRTracker"
-    leader_collector  : bool = False
+    bounding_name: str = "Collector.LRTracker"
+    leader_collector: bool = False
     follower_collector: bool = True
 
-    leader_scatter  : bool = True
+    leader_scatter: bool = True
     follower_scatter: bool = False
 
     def __init__(self, lr_scheduler: _LRScheduler):

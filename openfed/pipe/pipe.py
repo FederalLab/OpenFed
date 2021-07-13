@@ -1,6 +1,7 @@
-from .optim import Optimizer
-from .penal import Penalizer
 from openfed.utils import glue
+from torch.optim import Optimizer
+
+from .penal import Penalizer
 
 
 class Pipe(Optimizer, Penalizer):

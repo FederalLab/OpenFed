@@ -45,10 +45,13 @@ class TaskInfo(object):
         return self
 
     def __str__(self) -> str:
-        return openfed_class_fmt.format(
-            class_name  = "TaskInfo",
-            description = tablist(
-                head = list(self.info_dict.keys()),
-                data = list(self.info_dict.values())
+        if len(self.info_dict) == 0:
+            return ''
+        else:
+            return openfed_class_fmt.format(
+                class_name  = "TaskInfo",
+                description = tablist(
+                    head = list(self.info_dict.keys()),
+                    data = list(self.info_dict.values())
+                )
             )
-        )

@@ -24,9 +24,154 @@
 from typing import List
 
 import torch
+from openfed.common import Wrapper
 from openfed.utils import convert_to_list
+from typing_extensions import final
 
-from .penal import Penalizer
+
+class Penalizer(Wrapper):
+    """The basic class for federated pipe.
+
+    Most federated optimizer just rectify the gradients according to
+    some regulation, but not necessarily rewrite all the updating process.
+    So, we device this Pipe class to do this.
+    """
+
+    param_groups: dict  # assigned from optimizer
+    state: dict  # assigned from optimizer
+
+    def __init__(self,
+                 ft: bool = True,
+                 pack_key_list: List[str] = None,
+                 unpack_key_list: List[str] = None):
+        self.ft = ft
+        if pack_key_list is not None:
+            self.add_pack_key(pack_key_list)
+        if unpack_key_list is not None:
+            self.add_unpack_key(unpack_key_list)
+
+    @torch.no_grad()
+    @final
+    def step(self, closure):
+        return self._ft_step(closure) if self.ft else self._bk_step(closure)
+
+    def _ft_step(self, closure):
+        ...
+
+    def _bk_step(self, closure):
+        ...
+
+    @torch.no_grad()
+    @final
+    def round(self):
+        return self._ft_round() if self.ft else self._bk_round()
+
+    def _ft_round(self):
+        ...
+
+    def _bk_round(self):
+        ...
+
+    def clear_buffer(self, keep_keys: List[str] = None):
+        """Clear state buffers.
+        Args:
+            keep_keys: if not specified, we will directly remove all buffers.
+                Otherwise, the key in keep_keys will be kept.
+        """
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p in self.state[p]:
+                    if keep_keys is None:
+                        del self.state[p]
+                    else:
+                        for k in self.state[p].keys():
+                            if k not in keep_keys:
+                                del self.state[p][k]
+
+
+class ElasticPenalizer(Penalizer):
+    r"""Paired with ElasticAgg.
+
+    Example:
+        >>> elastic_pipe = ElasticPipe(net.parameters(), momentum=0.9)
+        >>> while:
+        >>>     elastic_pipe.zero_grad()
+        >>>     MSE(net(input), zeros).backward()
+        >>>     elastic_pipe.step()
+        >>> elastic_pipe.clear_state()
+
+    """
+
+    def __init__(self,
+                 ft: bool,
+                 momentum: float = 0.9,
+                 pack_key_list: List[str] = None,
+                 unpack_key_list: List[str] = None):
+        pack_key_list = convert_to_list(pack_key_list)
+        unpack_key_list = convert_to_list(unpack_key_list)
+        if pack_key_list is None:
+            pack_key_list = ['importance']
+        else:
+            pack_key_list.append('importance')
+
+        if not 0.0 <= momentum <= 1.0:
+            raise ValueError(f"Invalid momentum value: {momentum}")
+
+        self.momentum = momentum
+
+        super().__init__(ft, pack_key_list, unpack_key_list)
+
+    def acg_step(self):
+        """Performs a single accumulate gradient step.
+        """
+        for group in self.param_groups:
+            momentum = self.momentum
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+                grad = p.grad.abs()
+                state = self.state[p]
+                if 'importance' not in state:
+                    state["importance"] = torch.zeros_like(
+                        p, memory_format=torch.preserve_format)
+                state["importance"].mul_(momentum).add_(grad, alpha=1-momentum)
+
+
+class ProxPenalizer(Penalizer):
+    """https://arxiv.org/pdf/1812.06127.pdf
+    """
+
+    def __init__(self, ft: bool, mu: float = 0.9, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
+        if not 0.0 < mu < 1.0:
+            raise ValueError(f"Invalid mu value: {mu}")
+
+        super().__init__(ft, pack_key_list, unpack_key_list)
+        self.mu = mu
+
+    def _ft_step(self, closure=None):
+        """Performs a single optimization step.
+
+        Args:
+            closure (callable, optional): A closure that reevaluates the model
+                and returns the loss.
+        """
+        loss = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            mu = group['mu']
+            for p in group['params']:
+                if p.grad is not None:
+                    state = self.state[p]
+                    if "init_p" not in state:
+                        init_p = state["init_p"] = p.clone().detach()
+                    else:
+                        init_p = state["init_p"]
+                    p.grad.add_(p-init_p, alpha=mu)
+
+        return loss
 
 
 class ScaffoldPenalizer(Penalizer):

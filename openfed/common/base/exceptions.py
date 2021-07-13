@@ -21,8 +21,10 @@
 # SOFTWARE.
 
 
+from typing import Any, Union
+
 from openfed.utils import openfed_class_fmt
-from typing import Union, Any
+
 
 class OpenFedException(Exception):
     """A base class for exceptions.
@@ -32,13 +34,13 @@ class OpenFedException(Exception):
                  exception_name: str = 'OpenFedException',
                  msg: Union[str,  Any] = ''):
         super().__init__()
-        self.msg            = msg
+        self.msg = msg
         self.exception_name = exception_name
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name  = self.exception_name,
-            description = self.msg
+            class_name=self.exception_name,
+            description=self.msg
         )
 
 
@@ -64,3 +66,62 @@ class InvalidAddress(OpenFedException):
 
     def __init__(self, msg: Union[str,  Any] = ''):
         super().__init__("InvalidAddress", msg=msg)
+
+
+class ConnectTimeout(OpenFedException):
+    """Timeout while building a new connection.
+    """
+
+    def __init__(self, msg: Union[str, Any] = ""):
+        super().__init__("ConnectTimeout", msg=msg)
+
+
+class InvalidStoreReading(OpenFedException):
+    """Read an invalid store value.
+    It mainly because the too many request for the single
+    key value store at the same time.
+    By default, we will return the cached one instead to 
+    avoid this Error.
+    """
+
+    def __init__(self, msg: Union[str, Any] = ""):
+        super().__init__("InvalidStoreReading", msg=msg)
+
+
+class InvalidStoreWriting(OpenFedException):
+    """Write store failed.
+    It mainly because the too many request for the single
+    key value store at the same time.
+    By default, we will return the cached one instead to 
+    avoid this Error.
+    """
+
+    def __init__(self, msg: Union[str, Any] = ""):
+        super().__init__("InvalidStoreWriting", msg=msg)
+
+
+class BuilddeliveryFailed(OpenFedException):
+    """This Error is raised when we failed to other ends data at
+    the initialization of Delivery.
+
+    You can try to rebuild this delivery or just to discard this delivery.
+    """
+
+    def __init__(self, msg: Union[str, Any] = ""):
+        super().__init__("BuilddeliveryFailed", msg=msg)
+
+
+class DeviceOffline(OpenFedException):
+    """This error is raised when client/server is offline.
+    """
+
+    def __init__(self, msg: Union[str, Any] = ""):
+        super().__init__("DeviceOffline", msg=msg)
+
+
+class WrongState(OpenFedException):
+    """This error is raised when client in an unexpected state.
+    """
+
+    def __init__(self, msg: Union[str, Any] = ""):
+        super().__init__("WrongState", msg=msg)

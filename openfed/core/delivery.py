@@ -26,47 +26,381 @@ import time
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum, unique
+from threading import Lock
 from typing import Any, Callable, Dict, Tuple, Union
 
 import openfed
 import openfed.utils as utils
 from bidict import bidict
-from openfed.common import ASYNC_OP, Hook, Package, TaskInfo, logger
-from openfed.utils import openfed_class_fmt, tablist
+from openfed.common import (ASYNC_OP, Address_, Array, Hook, Package,
+                            SafeThread, TaskInfo, load_address_from_file,
+                            logger, remove_address_from_pool)
+from openfed.common.base import (BuilddeliveryFailed, ConnectTimeout,
+                                 DeviceOffline, InvalidStoreReading,
+                                 InvalidStoreWriting, WrongState)
+from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 from random_words import RandomWords
 from torch import Tensor
 from torch._C._distributed_c10d import Work
 
-from .collector import Collector, GPUInfo, Register, SystemInfo
-from .cypher import Cypher, FormatCheck
-from .federated.functional import gather_object
-from .space import Country, ProcessGroup, Store, World
-from .utils.exceptions import (BuilddeliveryFailed, ConnectTimeout,
-                               DeviceOffline, InvalidStoreReading,
-                               InvalidStoreWriting, WrongState)
-from .utils.register import register
+from .functional import gather_object
+from .hooks import Collector, Cypher, FormatCheck, GPUInfo, Recoder, SystemInfo
+from .space import Country, ProcessGroup, Store, World, add_mt_lock, register
 
 rw = RandomWords()
 
 
+class Destroy(object):
+    """Automatically destroy a process group along with its world.
+    """
+    @classmethod
+    def destroy(cls, pg: ProcessGroup, world: World = None) -> None:
+        if world is None:
+            world = register.default_world
+
+        if pg == world._current_pg:
+            world._current_pg = world._NULL_GP
+
+        delivery = world._pg_mapping[pg]
+        delivery.offline()
+        del world._pg_mapping[pg]
+
+        country = delivery.country
+        country.destroy_process_group(pg)
+
+        if not country.is_initialized() or country._group_count == 1:
+            logger.debug(f"Destroy {country}")
+            register.deleted_country(country)
+        else:
+            ...
+
+    @classmethod
+    def destroy_current(cls, world: World = None) -> None:
+        if world is None:
+            world = register.default_world
+        cls.destroy(world._current_pg, world)
+
+    @classmethod
+    def destroy_all_in_a_world(cls, world: World = None) -> None:
+        if world is None:
+            world = register.default_world
+        for pg, _ in world:
+            if pg is not None:
+                cls.destroy(pg, world)
+
+    @classmethod
+    def destroy_all_in_all_world(cls) -> None:
+        """A safe way to destroy all country which has been registered.
+        """
+        for _, world in register:
+            if world is not None:
+                cls.destroy_all_in_a_world(world)
+
+    @classmethod
+    def destroy_delivery(cls, delivery) -> bool:
+        try:
+            cls.destroy(delivery.pg, delivery.world)
+            del delivery
+            return True
+        except Exception as e:
+            logger.debug(e)
+            return False
+
+
+class Joint(SafeThread):
+    """A thread to build connection among specified ends.
+    """
+
+    # Indicates whether the connection is established correctly.
+    build_success: bool
+
+    def __init__(self, address: Address_, world: World, auto_start: bool = True) -> None:
+        if address.rank == -1:
+            if address.world_size == 2:
+                address.rank = 1 if world.follower else 0  # type: ignore
+            else:
+                msg = "Please specify the correct rank when world size is not 2"
+                logger.error(msg)
+                raise RuntimeError(msg)
+
+        self.address = address
+        self.build_success = False
+        self.world = world
+
+        SafeThread.__init__(self)
+        # start this thread
+        if auto_start:
+            self.start()
+
+            if self.world.follower:
+                # if follower, wait until thread quit
+                self.join()
+                if not self.build_success:
+                    raise RuntimeError(f"Connect to {self.address} failed.")
+
+    def safe_run(self) -> str:
+        logger.debug(f"Waiting ...")
+
+        # create a country
+        country = Country(self.world)
+
+        # build the connection between the country
+        try:
+            country.init_process_group(**self.address.address)
+        except ConnectTimeout as cte:
+            del country
+            logger.debug(cte)
+            return f"Timeout {self.address}"
+
+        # register the world
+        with self.world.joint_lock:
+            register.register_country(country, self.world)
+
+        world_size = self.address.world_size
+        if world_size > 2:
+            if world_size > 10 and self.address.init_method.startswith("tcp"):
+                msg = ("TCP Overload\n"
+                       "There are too many node in tcp mode, which is not allowed.\n"
+                       f"Make the world size smaller than 10 ({world_size} is given.) to run stablely.\n"
+                       "Or use a share file system to initialize.\n"
+                       "For example: ```--init_method file:///tmp/openfed.sharefile```.\n")
+                raise RuntimeError(msg)
+
+            # rank is always set to 0 for that we want to build a
+            # point2point connection between the master and each nodes.
+            sub_pg_list = country.build_point2point_group(rank=0)
+
+            self.build_success = False
+            # bound pg with the country
+            for sub_pg in sub_pg_list:
+                try:
+                    delivery = Delivery(country.get_store(
+                        sub_pg), sub_pg, country, self.world)
+                    # it may failed to create connection sometimes between same subprocess.
+                    # if any is success, we take it okay.
+                    self.build_success = True
+                except BuilddeliveryFailed as e:
+                    logger.debug(e)
+                    continue
+                with self.world.joint_lock:
+                    self.world._pg_mapping[sub_pg] = delivery
+
+                # python(5766,0x70000fe24000) malloc: can't allocate region
+                # :*** mach_vm_map(size=5639989190273028096, flags: 100) failed (error code=3)
+                # python(5766,0x70000fe24000) malloc: *** set a breakpoint in malloc_error_break to debug
+                # The following will make openfed more stable under tcp mode.
+                time.sleep(0.1)
+        else:
+            # add the world group as delivery if it is already a point to point connection.
+            pg = country._get_default_group()
+            store = country._get_default_store()
+            try:
+                delivery = Delivery(store, pg, country, self.world)
+                with self.world.joint_lock:
+                    self.world._pg_mapping[pg] = delivery
+                self.build_success = True
+            except BuilddeliveryFailed as e:
+                logger.debug(e)
+                self.build_success = False
+
+        if self.build_success:
+            logger.debug(f"Connected\n{str(self.address)}")
+        return f"Success! {self.address}" if self.build_success else f"Failed! {self.address}"
+
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="Joint",
+            description=self.address,
+        )
+
+
+class Maintainer(Array, SafeThread):
+    """
+    Dynamic build the connection.
+    """
+    # unfinished address
+    # Address_ -> [create time, try times]
+    pending_queue: Dict[Address_, Tuple[float, int]]
+
+    # finished address
+    # Address_ -> [connection time, try times]
+    finished_queue: Dict[Address_, Tuple[float, int]]
+
+    # discard address
+    # Address_ -> [discarded time, try times]
+    discard_queue: Dict[Address_, Tuple[float, int]]
+
+    mt_lock: Lock
+    # The shared information among all country in this maintainer.
+    world: World
+
+    abnormal_exited: bool
+
+    def __init__(self,
+                 world: World,
+                 address: Address_ = None,
+                 address_file: str = None,
+                 max_try_times: int = 5,
+                 interval_seconds: float = 10) -> None:
+        """
+            Only a single valid address is allowed in client.
+        """
+        self.address_file = address_file
+
+        address_list = convert_to_list(address)
+        self.pending_queue = {address: (time.time(), 0)
+                              for address in address_list} if address_list is not None else {}
+        self.finished_queue = dict()
+        self.discard_queue = dict()
+        self.abnormal_exited = False
+
+        self.max_try_times = max_try_times
+        self.interval_seconds = interval_seconds
+
+        Array.__init__(self, self.pending_queue)
+
+        self.mt_lock = Lock()
+        add_mt_lock(self, self.mt_lock)
+
+        self.world = world
+
+        self.read_address_from_file()
+        # call here
+        SafeThread.__init__(self)
+
+        if self.world.leader:
+            self.start()
+            if not openfed.DAL.is_dal:
+                self.join()
+                if self.abnormal_exited:
+                    # Raise RuntimeError in the main thread.
+                    raise RuntimeError(
+                        "Errors occurred while building connection to new address.")
+        else:
+            assert len(self) == 1, "Only single address is allowed."
+            address, (create_time, try_times) = self[0]
+            Joint(address, self.world)
+            del self.pending_queue[address]
+            self.finished_queue[address] = (time.time(), try_times+1)
+
+    def read_address_from_file(self) -> None:
+        address_list = load_address_from_file(self.address_file)
+
+        for address in address_list:
+            if address in self.pending_queue:
+                # Already in pending queue.
+                ...
+            elif address in self.finished_queue:
+                # Already in finished_queue.
+                ...
+            elif address in self.discard_queue:
+                logger.info(f"Invalid address: {address}.\nDiscarded!")
+                # Remove this invalid address from address_pool
+                remove_address_from_pool(address)
+            else:
+                # add address to pending queue
+                self.pending_queue[address] = (time.time(), 0)
+
+    def safe_run(self) -> str:
+        while not self.stopped and self.world.ALIVE:
+            # update pending list
+            self.read_address_from_file()
+
+            def try_now(last_time, try_times) -> bool:
+                return False if (time.time() - last_time < self.interval_seconds) or try_times >= self.max_try_times else True
+
+            for address, (last_time, try_times) in self:
+                if try_now(last_time, try_times):
+                    joint = Joint(address, self.world)
+                    joint.join()
+                    if joint.build_success:
+                        self.finished_queue[address] = (
+                            time.time(), try_times + 1)
+                        del self.pending_queue[address]
+                    else:
+                        try_times += 1
+                        if try_times > self.max_try_times:
+                            # Move to discard queue
+                            self.discard_queue[address] = (
+                                time.time(), try_times)
+                            del self.pending_queue[address]
+                            break
+                        else:
+                            self.pending_queue[address] = (
+                                time.time(), try_times)
+
+            if len(self) == 0:
+                if openfed.DAL.is_dal:
+                    time.sleep(self.interval_seconds)
+                    pass
+                else:
+                    break
+            else:
+                if not openfed.DAL.is_dal:
+                    if len(self.discard_queue) != 0:
+                        self.abnormal_exited = True
+                        break
+                else:
+                    time.sleep(self.interval_seconds)
+                    pass
+
+        return f"Build connection to {len(self.finished_queue)} addresses."
+
+    def kill_world(self) -> None:
+        self.world.killed()
+
+    def manual_stop(self, kill_world: bool = True) -> None:
+        if kill_world:
+            self.kill_world()
+        super().manual_stop()
+
+    def manual_joint(self, address: Address_) -> None:
+        if not openfed.DAL.is_dal and self.world.leader:
+            raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
+
+        if self.world.leader:
+            self.pending_queue[address] = (time.time(), 0)
+        else:
+            Joint(address, self.world)
+
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="Maintainer",
+            description=tablist(
+                head=["Pending", "Finished", "Discard"],
+                data=[len(self.pending_queue),
+                      len(self.finished_queue),
+                      len(self.discard_queue)],
+                force_in_one_row=True,
+            )
+        )
+
+    def clear_queue(self) -> None:
+        """Clear all address in queue.
+        """
+        self.finished_queue.clear()
+        self.discard_queue.clear()
+        self.pending_queue.clear()
+
+
 OPENFED_IDENTIFY = "OPENFED_IDENTIFY"
-OPENFED_STATUS   = "OPENFED_STATUS"
+OPENFED_STATUS = "OPENFED_STATUS"
 
 OPENFED_TASK_INFO = "OPENFED_TASK_INFO"
-NICK_NAME         = "NICK_NAME"
+NICK_NAME = "NICK_NAME"
 
 
 @unique
 class STATUS(Enum):
-    PUSH    = "PUSH"  # push data to the other end.
-    PULL    = "PULL"  # pull data from the other end.
-    ZOMBIE  = "ZOMBIE"  # when there is no request.
+    PUSH = "PUSH"  # push data to the other end.
+    PULL = "PULL"  # pull data from the other end.
+    ZOMBIE = "ZOMBIE"  # when there is no request.
     OFFLINE = "OFFLINE"  # offline.
 
 
-push    = STATUS.PUSH.value
-pull    = STATUS.PULL.value
-zombie  = STATUS.ZOMBIE.value
+push = STATUS.PUSH.value
+pull = STATUS.PULL.value
+zombie = STATUS.ZOMBIE.value
 offline = STATUS.OFFLINE.value
 
 
@@ -109,17 +443,17 @@ def _must_fresh_read(func):
 class Delivery(Hook, Package):
     """Contains all communication functions in Delivery.
     """
-    store  : Store
-    pg     : ProcessGroup
-    world  : World
+    store: Store
+    pg: ProcessGroup
+    world: World
     country: Country
 
     # handler, step function, timestamp
     _download_hang_up: Tuple[Work, Callable, int]
-    _upload_hang_up  : Tuple[Work, Callable, int]
+    _upload_hang_up: Tuple[Work, Callable, int]
 
     download_hang_up: bool
-    upload_hang_up  : bool
+    upload_hang_up: bool
 
     # Sometimes, the read operation will be failed for unknown reasons.
     # Essentially when we do simulation experiments on a single node.
@@ -134,23 +468,23 @@ class Delivery(Hook, Package):
     fresh_read: bool
 
     # do not set this manually!
-    _nick_name       : Union[None, str]
+    _nick_name: Union[None, str]
     key_tensor_bidict: bidict
-    packages         : Dict[str, Dict[str, Tensor]]
+    packages: Dict[str, Dict[str, Tensor]]
 
-    leader_rank  : int = 0
+    leader_rank: int = 0
     follower_rank: int = 1
 
     def __init__(self,
-                 store  : Store,
-                 pg     : ProcessGroup,
+                 store: Store,
+                 pg: ProcessGroup,
                  country: Country,
-                 world  : World,
+                 world: World,
                  ) -> None:
-        self.pg             = pg
-        self.store          = store
-        self.country        = country
-        self.world          = world
+        self.pg = pg
+        self.store = store
+        self.country = country
+        self.world = world
         self._i_backup_info = {}
 
         # set nick name first!
@@ -178,14 +512,14 @@ class Delivery(Hook, Package):
         self.collect()
         self.fresh_read = True
         # make a copy
-        self._nick_name        = None
-        self._nick_name        = self.nick_name
+        self._nick_name = None
+        self._nick_name = self.nick_name
         self.key_tensor_bidict = bidict()
-        self.packages          = defaultdict(dict)
+        self.packages = defaultdict(dict)
         self.register_cypher(FormatCheck())
 
         self.download_hang_up: bool = False
-        self.upload_hang_up  : bool = False
+        self.upload_hang_up: bool = False
 
     @property
     def upload_version(self) -> int:
@@ -202,10 +536,10 @@ class Delivery(Hook, Package):
             return -1
 
     def transfer(self,
-                 to       : bool,
-                 handler  : Any = None,
-                 tic      : float = None,
-                 step_func: Callable = None) -> bool: 
+                 to: bool,
+                 handler: Any = None,
+                 tic: float = None,
+                 step_func: Callable = None) -> bool:
         """
         Args:
             to: it true, transfer data to other side.
@@ -301,8 +635,9 @@ class Delivery(Hook, Package):
         if ASYNC_OP.is_async_op:
             handle, step_func = self.push()
             # store the necessary message, and hang up begining time.
-            self._upload_hang_up = (handle, step_func, time.time()) # type: ignore
-            self.upload_hang_up  = True
+            self._upload_hang_up = (# type: ignore
+                handle, step_func, time.time())  
+            self.upload_hang_up = True
             return False
         else:
             return self.transfer(to=True)
@@ -316,7 +651,8 @@ class Delivery(Hook, Package):
 
         if ASYNC_OP.is_async_op:
             handle, step_func = self.pull()
-            self._download_hang_up = (handle, step_func, time.time()) # type: ignore
+            self._download_hang_up = (# type: ignore
+                handle, step_func, time.time())  
             self.download_hang_up = True
             return False
         else:
@@ -324,7 +660,7 @@ class Delivery(Hook, Package):
 
     @classmethod
     def delivery_generator(cls):
-        """Return a generator to iterate over all deliverys.
+        """Return a generator to iterate over all delivery.
         """
         for _, world in register:
             if world is None and not world.ALIVE:
@@ -471,7 +807,7 @@ class Delivery(Hook, Package):
     def is_offline(self) -> bool:
         return self.world.ALIVE and self._get_state() == offline
 
-    @Register.add_to_pool
+    @Recoder.add_to_pool
     def register_collector(self, collector: Collector):
         """Use collector to add new information is strongely recommended.
         """
@@ -486,7 +822,7 @@ class Delivery(Hook, Package):
         for key, value in info.items():
             if key.startswith("Collector"):
                 # don't forget () operation.
-                obj: Collector = Register(key, self)()
+                obj: Collector = Recoder(key, self)()
                 if obj is not None and self.world.leader and obj.leader_collector or \
                         self.world.follower and obj.follower_collector:
                     if not obj.once_only or not obj.collected:
@@ -505,7 +841,7 @@ class Delivery(Hook, Package):
         self._update(cdict)
 
     def register_cypher(self, cypher: Cypher) -> None:
-        """Register a cypher to encrypt/decrypt the Tensor.
+        """Recoder a cypher to encrypt/decrypt the Tensor.
         """
         self.register_hook(cypher)
 
@@ -587,7 +923,7 @@ class Delivery(Hook, Package):
         other_rank = self.follower_rank if self.world.leader else self.leader_rank
 
         def _op_after_gather(*args):
-            r_packages: Dict = received[other_rank] # type: ignore
+            r_packages: Dict = received[other_rank]  # type: ignore
 
             # NOTE: decrypt data in the reverse order.
             for hook in self.hook_list[::-1]:
@@ -611,7 +947,7 @@ class Delivery(Hook, Package):
             global_rank=False)
 
         if ASYNC_OP.is_async_op:
-            handler, step_func = returns # type: ignore
+            handler, step_func = returns  # type: ignore
             # lambda: before go into this layer's function, call step_func first.
             return handler, lambda: _op_after_gather(step_func())
         else:

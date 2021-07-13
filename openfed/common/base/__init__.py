@@ -1,2 +1,2 @@
-from .peeper import Peeper, peeper
+from .peeper import peeper
 from .exceptions import *

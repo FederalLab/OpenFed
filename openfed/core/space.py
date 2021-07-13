@@ -20,15 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# type: ignore
+
+# type: ignore[call-overload]
 import logging
+import threading
 import time
 import warnings
+from collections import OrderedDict
 from datetime import timedelta
+from enum import Enum, unique
+from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from openfed.common import (DEFAULT_PG_LONG_TIMEOUT, DEFAULT_PG_SHORT_TIMEOUT,
-                            DEFAULT_PG_TIMEOUT, logger)
+                            DEFAULT_PG_TIMEOUT, Array, logger)
+from openfed.common.base import ConnectTimeout, peeper
 from openfed.utils import openfed_class_fmt
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)
@@ -36,10 +42,6 @@ from torch.distributed.distributed_c10d import (Backend, P2POp,
                                                 is_mpi_available,
                                                 is_nccl_available)
 from torch.distributed.rendezvous import rendezvous
-
-from ..utils.exceptions import ConnectTimeout
-from ..utils.lock import acquire_all, release_all
-from .world import World
 
 try:
     from torch.distributed.distributed_c10d import ProcessGroupGloo
@@ -55,6 +57,101 @@ try:
     from torch.distributed.distributed_c10d import ProcessGroupNCCL
 except ImportError as e:
     ProcessGroupNCCL = None
+
+
+@unique
+class _ROLE(Enum):
+    LEADER = True
+    FOLLOWER = False
+
+
+peeper.world_list = list()
+
+
+class World(Array):
+    """Relation map between World, Country and Delivery:
+        World: n master, varied roles
+        ├── Country-a: singe master, n client
+        │   └── Delivery-1: single master, single client.
+        └── Country-b
+            ├── Delivery-1
+            └── Delivery-2
+    """
+    # If you want to exist current World, set it False
+    ALIVE: bool
+
+    # Your role in this World.
+    # You can have different roles in different Worlds.
+    ROLE: _ROLE
+
+    _pg_mapping: Dict[ProcessGroup, Any]
+
+    # Use them to track processes group.
+    _NULL_GP: Any = None
+    _current_pg: ProcessGroup
+
+    # avoid the conflict while joint many new Countries to current World at the some time
+    joint_lock = threading.Lock()
+
+    def __init__(self, leader: bool = False) -> None:
+        """
+        Args: 
+            leader: if True, set the world as leader. Once the role is specified, you cannot change it again.
+        """
+        peeper.world_list.append(self)
+
+        self.ALIVE = True
+        self.ROLE = _ROLE.FOLLOWER if not leader else _ROLE.LEADER
+        self._pg_mapping = OrderedDict()
+        self._current_pg = self._NULL_GP
+
+        super().__init__(self._pg_mapping, self.joint_lock)
+
+    @classmethod
+    def clear_world(cls) -> None:
+        """Kill all world in _world_list with force.
+        It is not safe to call this, but it can make you exit OpenFed env as soon as possible.
+        """
+        for world in peeper.world_list:
+            world.killed()
+
+    def killed(self) -> None:
+        """Shout down this world with force. 
+        If any delivery still uses, make them offline directly.
+        """
+        for _, delivery in self:
+            delivery.offline()
+        else:
+            self.ALIVE = False
+
+    @property
+    def leader(self) -> bool:
+        return self.ROLE == _ROLE.LEADER
+
+    @property
+    def follower(self) -> bool:
+        return self.ROLE == _ROLE.FOLLOWER
+
+    @property
+    def default_delivery(self) -> Any:
+        return self.default_value
+
+    @property
+    def default_pg(self) -> ProcessGroup:
+        pg = self.default_key
+        return pg if pg is not None else self._NULL_GP
+
+    def is_valid_process_group(self, pg: ProcessGroup) -> bool:
+        return pg is not self._NULL_GP and pg in self._pg_mapping
+
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="World",
+            description=(
+                f"ROLE: {self.ROLE.value}\n"
+                f"{len(self)} process groups are alive.\n"
+            )
+        )
 
 
 class Country(object):
@@ -112,8 +209,8 @@ class Country(object):
         # the store implementations. Once, we completely migrate away from these
         # legacy stores, we can use 'get' here instead.
         worker_count = store.add(store_key, 0)
-        start        = time.time()
-        log_time     = time.time()
+        start = time.time()
+        log_time = time.time()
         while worker_count != world_size:
             time.sleep(0.01)
             worker_count = store.add(store_key, 0)
@@ -210,7 +307,7 @@ class Country(object):
         if not self.is_initialized():
             raise RuntimeError("Default process group has not been initialized, "
                                "please make sure to call init_process_group.")
-        return self.WORLD # type: ignore
+        return self.WORLD  # type: ignore
 
     def _get_default_store(self) -> Store:
         """
@@ -221,7 +318,7 @@ class Country(object):
                                "please make sure to call init_process_group.")
         default_pg = self._get_default_group()
         _, default_store = self._pg_map[default_pg]
-        return default_store # type: ignore
+        return default_store  # type: ignore
 
     def _update_default_pg(self, pg: ProcessGroup) -> None:
         self.WORLD = pg
@@ -247,7 +344,7 @@ class Country(object):
             raise RuntimeError("Invalid process group specified")
         pg_store = self._pg_map.get(pg, None)
         assert pg_store is not None
-        return pg_store[0] # type: ignore
+        return pg_store[0]  # type: ignore
 
     def get_store(self, group: ProcessGroup = None) -> Store:
         """
@@ -269,16 +366,16 @@ class Country(object):
             raise RuntimeError("Invalid process group specified")
         pg_store = self._pg_map.get(pg, None)
         assert pg_store is not None
-        return pg_store[1] # type: ignore
+        return pg_store[1]  # type: ignore
 
     def init_process_group(self,
-                           backend    : Union[str, Backend],
+                           backend: Union[str, Backend],
                            init_method: str = None,
-                           timeout    : timedelta = DEFAULT_PG_TIMEOUT,
-                           world_size : int = -1,
-                           rank       : int = -1,
-                           store      : Store = None,
-                           group_name : str = '') -> None             : 
+                           timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                           world_size: int = -1,
+                           rank: int = -1,
+                           store: Store = None,
+                           group_name: str = '') -> None:
         """
         Initializes the default distributed process group, and this will also
         initialize the distributed package.
@@ -405,8 +502,8 @@ class Country(object):
                     [],
                     Backend.MPI,
                     None,
-                    group_name = group_name,
-                    timeout    = timeout))
+                    group_name=group_name,
+                    timeout=timeout))
             else:
                 self._update_default_pg(self._new_process_group_helper(
                     world_size,
@@ -414,8 +511,8 @@ class Country(object):
                     [],
                     backend,
                     store,
-                    group_name = group_name,
-                    timeout    = timeout))
+                    group_name=group_name,
+                    timeout=timeout))
 
         init_backend(timeout)
 
@@ -435,13 +532,13 @@ class Country(object):
             self._store_based_barrier(rank, store, timeout)
 
     def _new_process_group_helper(self,
-                                  world_size : int,
-                                  rank       : int,
+                                  world_size: int,
+                                  rank: int,
                                   group_ranks: int,
-                                  backend    : Union[str, Backend],
-                                  store      : Store,
-                                  group_name : str       = None,
-                                  timeout    : timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup:
+                                  backend: Union[str, Backend],
+                                  store: Store,
+                                  group_name: str = None,
+                                  timeout: timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup:
         """
         Create a new distributed process group.
 
@@ -644,9 +741,9 @@ class Country(object):
             )
 
     def barrier(self,
-                group     : ProcessGroup = None,
-                async_op  : bool         = False,
-                device_ids: int          = None):
+                group: ProcessGroup = None,
+                async_op: bool = False,
+                device_ids: int = None):
         """
         Synchronizes all processes.
 
@@ -682,7 +779,7 @@ class Country(object):
 
         if group is None:
             default_pg = self._get_default_group()
-            work       = default_pg.barrier(opts=opts)
+            work = default_pg.barrier(opts=opts)
         else:
             work = group.barrier(opts=opts)
 
@@ -692,10 +789,10 @@ class Country(object):
             work.wait()
 
     def new_group(self,
-                  ranks     : int                 = None,
-                  timeout   : timedelta           = DEFAULT_PG_TIMEOUT,
-                  backend   : Union[str, Backend] = None,
-                  group_name: str                 = None) -> ProcessGroup:
+                  ranks: int = None,
+                  timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                  backend: Union[str, Backend] = None,
+                  group_name: str = None) -> ProcessGroup:
         """
         Creates a new distributed group.
 
@@ -734,7 +831,7 @@ class Country(object):
 
         default_pg = self._get_default_group()
         default_backend, default_store = self._pg_map[default_pg]
-        global_rank       = default_pg.rank()
+        global_rank = default_pg.rank()
         global_world_size = default_pg.size()
 
         # Default to the same backend as the global process group
@@ -744,7 +841,7 @@ class Country(object):
 
         # checks the input ranks
         if ranks is not None:
-            ranks            = sorted(ranks)
+            ranks = sorted(ranks)
             group_world_size = len(ranks)
             if group_world_size > global_world_size:
                 raise RuntimeError("the new group's world size should be less or "
@@ -760,9 +857,9 @@ class Country(object):
             else:
                 group_rank = None
         else:
-            ranks            = list(range(global_world_size))
+            ranks = list(range(global_world_size))
             group_world_size = global_world_size
-            group_rank       = global_rank
+            group_rank = global_rank
 
         backend = Backend(backend)
         pg = self._new_process_group_helper(group_world_size,
@@ -770,8 +867,8 @@ class Country(object):
                                             ranks,
                                             backend,
                                             default_store,
-                                            timeout    = timeout,
-                                            group_name = group_name, )
+                                            timeout=timeout,
+                                            group_name=group_name, )
 
         # Create the global rank to group rank mapping
         self._pg_group_ranks[pg] = {
@@ -793,8 +890,8 @@ class Country(object):
         return pg
 
     def build_point2point_group(self,
-                                rank   : int                 = 0,
-                                timeout: timedelta           = DEFAULT_PG_TIMEOUT,
+                                rank: int = 0,
+                                timeout: timedelta = DEFAULT_PG_TIMEOUT,
                                 backend: Union[str, Backend] = None) -> List[ProcessGroup]:
         """Build point2point group, :param:rank will be regarded as new rank=0 and connect to other rank in this world.
 
@@ -809,10 +906,10 @@ class Country(object):
                 continue
             else:
                 pg = self.new_group(
-                    ranks      = [rank, other],
-                    timeout    = timeout,
-                    backend    = backend,
-                    group_name = f"point2point-{rank}-{other}", )
+                    ranks=[rank, other],
+                    timeout=timeout,
+                    backend=backend,
+                    group_name=f"point2point-{rank}-{other}", )
                 # backup
                 if pg is not self.NON_GROUP_MEMBER:
                     self._point2point_groups[pg] = self._pg_map[pg]
@@ -821,6 +918,83 @@ class Country(object):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name  = "Country",
-            description = f"Belongs to {self.world}"
+            class_name="Country",
+            description=f"Belongs to {self.world}"
         )
+
+
+peeper.mt_locks = dict()
+openfed_lock = Lock()
+
+
+def add_mt_lock(maintainer, lock: Lock):
+    peeper.mt_locks[maintainer] = lock
+
+
+def del_maintainer_lock(maintainer):
+    if maintainer in peeper.mt_locks:
+        del peeper.mt_locks[maintainer]
+
+
+def acquire_all():
+    for mt_lock in peeper.mt_locks.values():
+        mt_lock.acquire()
+    openfed_lock.acquire()
+
+
+def release_all():
+    for mt_lock in peeper.mt_locks.values():
+        mt_lock.release()
+    openfed_lock.release()
+
+
+# At most case, you are not allowed to modifed this list manually.
+peeper.countries = dict()
+
+
+class _Register(Array):
+
+    def __init__(self):
+        super(_Register, self).__init__(peeper.countries)
+
+    @classmethod
+    def register_country(cls, country, world):
+        if country in peeper.countries:
+            raise KeyError("Already registered.")
+        else:
+            peeper.countries[country] = world
+
+    @classmethod
+    def deleted_country(cls, country):
+        if country in peeper.countries:
+            if country.is_initialized():
+                country.destroy_process_group(
+                    group=country.WORLD)
+
+            del peeper.countries[country]
+            del country
+
+    @classmethod
+    def is_registered(cls, country) -> bool:
+        return country in peeper.countries
+
+    @property
+    def default_country(self):
+        """ If not exists, return None
+        """
+        return self.default_key
+
+    @property
+    def default_world(self):
+        """If not exists, return None
+        """
+        return self.default_value
+
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="Register",
+            description=f"Contains {len(self)} countries."
+        )
+
+
+register = _Register()
