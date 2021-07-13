@@ -1,3 +1,4 @@
+from .glue import glue
 from .keyboard import keyboard_interrupt_handle
-from .table import tablist, process_bar
+from .table import process_bar, tablist
 from .utils import *
