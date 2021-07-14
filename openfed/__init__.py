@@ -6,6 +6,7 @@ import openfed.core as core
 import openfed.data as data
 import openfed.pipe as pipe
 import openfed.topo as topo
+import openfed.hooks as hooks
 
 from .api import *
 from .common import *

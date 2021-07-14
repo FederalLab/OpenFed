@@ -28,14 +28,13 @@ from enum import Enum, unique
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
+from openfed.api.utils import download_callback
 from openfed.common import Clone, TaskInfo, logger
 from openfed.common.base import peeper
 from openfed.common.logging import logger
 from openfed.utils import (convert_to_list, openfed_class_fmt, process_bar,
                            tablist)
 from torch.optim.lr_scheduler import _LRScheduler
-
-from .utils import download_callback
 
 
 @unique
@@ -488,3 +487,8 @@ class Upload(BeforeUpload):
             return False
 
         return True
+
+
+steps = [
+    Aggregate, Dispatch, Download, Terminate, Upload
+]

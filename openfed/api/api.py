@@ -30,17 +30,20 @@ from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.common.base import DeviceOffline, peeper
 from openfed.container import Container
-from openfed.core import (Collector, Cypher, Delivery, Destroy, Maintainer,
-                          World, del_maintainer_lock, openfed_lock)
+from openfed.core import (Delivery, Destroy, Maintainer, World,
+                          del_maintainer_lock, openfed_lock)
+from openfed.hooks.collector import Collector
+from openfed.hooks.cypher import Cypher
+from openfed.hooks.step import (Step, after_destroy, after_download,
+                                after_upload, at_failed, at_first,
+                                at_invalid_state, at_last, at_new_episode,
+                                at_zombie, before_destroy, before_download,
+                                before_upload)
 from openfed.pipe import Pipe
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
 from torch import Tensor
 
-from .hooks import (Step, after_destroy, after_download, after_upload,
-                    at_failed, at_first, at_invalid_state, at_last,
-                    at_new_episode, at_zombie, before_destroy, before_download,
-                    before_upload)
 from .utils import download_callback
 
 peeper.api_lock = Lock()
