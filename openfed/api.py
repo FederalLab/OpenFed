@@ -25,6 +25,8 @@ import time
 from threading import Lock
 from typing import Any, Dict, List, Union
 
+from torch import Tensor
+
 import openfed
 from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
@@ -39,12 +41,10 @@ from openfed.hooks.step import (Step, after_destroy, after_download,
                                 at_invalid_state, at_last, at_new_episode,
                                 at_zombie, before_destroy, before_download,
                                 before_upload)
+from openfed.hooks.utils import download_callback
 from openfed.pipe import Pipe
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
-from torch import Tensor
-
-from .utils import download_callback
 
 peeper.api_lock = Lock()
 

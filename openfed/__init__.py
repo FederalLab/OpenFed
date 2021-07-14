@@ -8,6 +8,6 @@ import openfed.pipe as pipe
 import openfed.topo as topo
 import openfed.hooks as hooks
 
-from .api import *
+from .api import API
 from .common import *
 from .utils import *
