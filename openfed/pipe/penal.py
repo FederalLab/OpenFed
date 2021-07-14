@@ -359,3 +359,8 @@ class ScaffoldPenalizer(Penalizer):
 
     def clear_buffer(self):
         super().clear_buffer(keep_keys=['c_para_i', 'c_para'])
+
+
+penalizers = [
+    Penalizer, ElasticPenalizer, ProxPenalizer, ScaffoldPenalizer
+]

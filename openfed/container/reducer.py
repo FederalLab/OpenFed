@@ -99,3 +99,6 @@ class AutoReducer(Reducer):
         self.task_info_buffer = []
 
         return r_task_info.load_dict(rdict)
+
+
+reducers = [Reducer, AutoReducer]

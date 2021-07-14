@@ -666,3 +666,8 @@ class NaiveAgg(Agg):
                         p.copy_(new_p)
                 else:
                     state[key] = new_p
+
+
+aggregators = [
+    Agg, ElasticAgg, AverageAgg, NaiveAgg
+]
