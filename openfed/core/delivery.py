@@ -38,7 +38,7 @@ from openfed.common import (ASYNC_OP, Address_, Array, Hook, Package,
 from openfed.common.base import (BuilddeliveryFailed, ConnectTimeout,
                                  DeviceOffline, InvalidStoreReading,
                                  InvalidStoreWriting, WrongState)
-from openfed.hooks.collector import Collector, GPUInfo, Recoder, SystemInfo
+from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
 from openfed.hooks.cypher import Cypher, FormatCheck
 from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 from random_words import RandomWords
@@ -636,8 +636,8 @@ class Delivery(Hook, Package):
         if ASYNC_OP.is_async_op:
             handle, step_func = self.push()
             # store the necessary message, and hang up begining time.
-            self._upload_hang_up = (# type: ignore
-                handle, step_func, time.time())  
+            self._upload_hang_up = (  # type: ignore
+                handle, step_func, time.time())
             self.upload_hang_up = True
             return False
         else:
@@ -652,8 +652,8 @@ class Delivery(Hook, Package):
 
         if ASYNC_OP.is_async_op:
             handle, step_func = self.pull()
-            self._download_hang_up = (# type: ignore
-                handle, step_func, time.time())  
+            self._download_hang_up = (  # type: ignore
+                handle, step_func, time.time())
             self.download_hang_up = True
             return False
         else:
@@ -808,7 +808,7 @@ class Delivery(Hook, Package):
     def is_offline(self) -> bool:
         return self.world.ALIVE and self._get_state() == offline
 
-    @Recoder.add_to_pool
+    @Recorder.add_to_pool
     def register_collector(self, collector: Collector):
         """Use collector to add new information is strongely recommended.
         """
@@ -823,7 +823,7 @@ class Delivery(Hook, Package):
         for key, value in info.items():
             if key.startswith("Collector"):
                 # don't forget () operation.
-                obj: Collector = Recoder(key, self)()
+                obj: Collector = Recorder(key, self)()
                 if obj is not None and self.world.leader and obj.leader_collector or \
                         self.world.follower and obj.follower_collector:
                     if not obj.once_only or not obj.collected:
@@ -842,7 +842,7 @@ class Delivery(Hook, Package):
         self._update(cdict)
 
     def register_cypher(self, cypher: Cypher) -> None:
-        """Recoder a cypher to encrypt/decrypt the Tensor.
+        """Recorder a cypher to encrypt/decrypt the Tensor.
         """
         self.register_hook(cypher)
 
