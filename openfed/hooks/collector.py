@@ -10,7 +10,9 @@ from openfed.utils import openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
 
 
-class Recoder(object):
+class Recorder(object):
+    """Recorder makes sure that some collectors can only be created once. 
+    """
     provided_collector_dict: Dict[str, Any] = dict()
     collector_pool: Dict[Any, Dict[Type, Any]] = defaultdict(dict)
 
@@ -41,20 +43,20 @@ class Recoder(object):
     def register(cls, obj: Any):
         if obj.bounding_name not in cls.provided_collector_dict:
             assert obj.bounding_name.startswith("Collector")
-            logger.debug("Recoder collector %s" % obj.bounding_name)
+            logger.debug("Recorder collector %s" % obj.bounding_name)
             cls.provided_collector_dict[obj.bounding_name] = obj
         return obj
 
     @classmethod
     def add_to_pool(cls, func: Callable):
         def _add_to_pool(self, collector):
-            # Recoder collector to collector pool
+            # Recorder collector to collector pool
             cls.collector_pool[self][collector.bounding_name] = collector
             return func(self, collector)
         return _add_to_pool
 
 
-@Recoder.register
+@Recorder.register
 class Collector(Clone):
     """Some useful utilities to collect message.
     What's more, Collector also provide necessary function to better 
@@ -120,7 +122,7 @@ class Collector(Clone):
 Collector()
 
 
-@Recoder.register
+@Recorder.register
 class SystemInfo(Collector):
     """Collect some basic system info.
     """
@@ -174,7 +176,7 @@ class SystemInfo(Collector):
 SystemInfo()
 
 
-@Recoder.register
+@Recorder.register
 class GPUInfo(Collector):
     """Collect some basic GPU information if GPU is available.
     """
@@ -224,7 +226,7 @@ class GPUInfo(Collector):
 GPUInfo()
 
 
-@Recoder.register
+@Recorder.register
 class LRTracker(Collector):
     """Keep tack of learning rate during training.
     """
