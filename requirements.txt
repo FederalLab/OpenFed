@@ -1,14 +1,7 @@
 bidict==0.21.2
-h5py==3.2.1
 loguru==0.5.3
-numpy==1.20.2
 prettytable==2.1.0
 psutil==5.8.0
-tensorboard==2.4.1
-tensorboard-plugin-wit==1.8.0
-tensorboardX==2.2
-torch==1.9.0
-torchaudio==0.9.0
-torchmetrics==0.2.0
-torchvision==0.10.0
 RandomWords==0.3.0
+torch>=1.8.0
+h5py==3.2.1

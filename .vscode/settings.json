@@ -2,7 +2,7 @@
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none",
     },
-    "python.pythonPath": "/home/tiger/anaconda3/bin/python",
+    "python.pythonPath": "/home/tiger/anaconda3/envs/openfed/bin/python",
     "cSpell.words": [
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
         "AEIMQUY",
