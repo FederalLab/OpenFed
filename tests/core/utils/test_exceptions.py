@@ -18,8 +18,8 @@ def test_exception():
         print(e)
 
     try:
-        raise BuilddeliveryFailed()
-    except BuilddeliveryFailed as e:
+        raise BuildDeliveryFailed()
+    except BuildDeliveryFailed as e:
         print(e)
 
     try:

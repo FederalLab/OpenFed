@@ -32,8 +32,8 @@ from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.common.base import DeviceOffline, peeper
 from openfed.container import Container
-from openfed.core import (Delivery, Destroy, Maintainer, World,
-                          del_maintainer_lock, openfed_lock)
+from openfed.core import (ROLE, Delivery, Destroy, Maintainer, World, follower,
+                          leader, openfed_lock)
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,
@@ -41,7 +41,6 @@ from openfed.hooks.step import (Step, after_destroy, after_download,
                                 at_invalid_state, at_last, at_new_episode,
                                 at_zombie, before_destroy, before_download,
                                 before_upload)
-from openfed.hooks.utils import download_callback
 from openfed.pipe import Pipe
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
@@ -49,18 +48,18 @@ from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
 peeper.api_lock = Lock()
 
 
-def _device_offline_care(func):
-    def device_offline_care(self, *args, **kwargs):
+def device_offline_care(func):
+    def _device_offline_care(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
         except DeviceOffline as e:
-            logger.error("Device offline.")
+            logger.error(e)
             return False
-    return device_offline_care
+    return _device_offline_care
 
 
 class API(SafeThread, Hook):
-    """Provide a unified api for backend and frontend.
+    """Provide a unified api for backend and role.
     """
 
     # Communication related
@@ -69,13 +68,14 @@ class API(SafeThread, Hook):
     current_step: str
 
     def __init__(self,
-                 frontend: bool,
+                 role: ROLE,
                  state_dict: Dict[str, Tensor],
                  pipe: Pipe,
                  container: Container = None,
                  dal: bool = True,
-                 async_op: bool = True):
-        """Whether act as a frontend.
+                 async_op: bool = True,
+                 max_try_times: int = 5):
+        """Whether act as a role.
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
         """
@@ -83,15 +83,16 @@ class API(SafeThread, Hook):
         SafeThread.__init__(self, daemon=True)
         Hook.__init__(self)
 
-        self.dal: bool = dal
-        self.frontend: bool = frontend
+        # how many times for backend waiting for connections.
+        self.max_try_times: int = max_try_times
 
-        # Set a flag for backend.
-        self.backend: bool = not self.frontend
+        self.dal: bool = dal
+        self.role: ROLE = role
+
         keyboard_interrupt_handle()
 
         # Enable async_op if this is backend.
-        self.async_op: bool = async_op if self.backend else True
+        self.async_op: bool = async_op if self.role == follower else True
 
         # Set default value
         self.version: int = 0
@@ -109,9 +110,6 @@ class API(SafeThread, Hook):
         self.state_dict: Dict[str, Tensor] = state_dict
         self.container: List[Container] = convert_to_list(container)
         self.pipe: List[Pipe] = convert_to_list(pipe)
-
-        # how many times for backend waiting for connections.
-        self.max_try_times: int = 5
 
     def register_everything(self, hook: Any):
         """register hook to the corresponding class based on different hook types.
@@ -147,22 +145,21 @@ class API(SafeThread, Hook):
             hook) for hook in self._hooks_cypher if hook not in self.delivery._hook_list]
 
     def build_connection(self, world: World = None, address: Union[Address_, List[Address_]] = None, address_file: str = None):
-        world = world if world is not None else World(leader=self.backend)
-        # Check identity
-        assert world.leader == self.backend
-        assert world.follower == self.frontend
+        world = world if world is not None else World(role=self.role)
+
+        assert world.role == self.role
 
         if address is None and address_file is None:
             address = default_address
 
-        if self.backend and openfed.DAL.is_dal:
+        if self.role == leader and openfed.DAL.is_dal:
             # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
             # otherwise, it may interrupt the process and cause error before you go into loop()
             openfed_lock.acquire()
         self.maintainer = Maintainer(
             world, address=address, address_file=address_file)  # type: ignore
 
-        if self.frontend:
+        if self.role == follower:
             self.delivery = Delivery.default_delivery()
             self._add_hook_to_delivery()
 
@@ -171,7 +168,7 @@ class API(SafeThread, Hook):
         """
         self.version = version if version is not None else self.version + 1
 
-    @_device_offline_care
+    @device_offline_care
     def transfer(self, to: bool = False, task_info: TaskInfo = None) -> bool:
         r"""Transfer inner state to other ends.
         Args:
@@ -190,11 +187,8 @@ class API(SafeThread, Hook):
 
         if to:
             # 3. set task info
-            if task_info is not None:
-                self.delivery.set_task_info(task_info)
-                self.delivery_task_info = task_info
-            else:
-                self.delivery.set_task_info(self.delivery_task_info)
+            self.delivery_task_info = TaskInfo() if task_info is None else task_info
+            self.delivery.set_task_info(self.delivery_task_info)
 
             # 4. Pack state
             if self.pipe is not None:
@@ -207,7 +201,16 @@ class API(SafeThread, Hook):
 
         def callback():
             if not to:
-                download_callback(self)
+                self.delivery_task_info = self.delivery.task_info
+                if self.role == follower:
+                    [self.unpack_state(pipe) for pipe in self.pipe]
+                elif self.role == leader:
+                    # Increase the total number of received models
+                    self.received_numbers += 1
+                    packages = self.tensor_indexed_packages
+                    [container.step(packages, self.delivery_task_info)
+                     for container in self.container]
+
                 if task_info is not None:
                     task_info.load_dict(self.delivery_task_info.info_dict)
 
@@ -216,7 +219,7 @@ class API(SafeThread, Hook):
             callback()
             return True
         else:
-            if self.backend:
+            if self.role == leader:
                 # return directly.
                 return flag
             else:
@@ -237,6 +240,12 @@ class API(SafeThread, Hook):
             Use self.run() to start this loop in the main thread.
             Use self.start() to start this loop in the thread.
         """
+        # NOTE: release openfed_lock here.
+        if openfed.DAL.is_dal:
+            openfed_lock.release()
+
+        if self.role is follower:
+            return None
 
         def step(step_name: str, *args, **kwargs) -> Union[None, bool]:
             """
@@ -258,20 +267,13 @@ class API(SafeThread, Hook):
             else:
                 return True
 
-        if self.frontend:
-            return None
-        # NOTE: release openfed_lock here.
-        if openfed.DAL.is_dal:
-            openfed_lock.release()
-
         try_times = 0
         while not self.stopped:
-            with self.maintainer.mt_lock:
+            with self.maintainer:
                 step(at_new_episode)
-                rg = Delivery.delivery_generator()
                 cnt = 0
-                for delivery in rg:
-                    if self.stopped or delivery is None:
+                for delivery in Delivery.delivery_generator():
+                    if self.stopped:
                         break
                     # assign delivery to self first.
                     self.delivery = delivery
@@ -322,15 +324,17 @@ class API(SafeThread, Hook):
     def backend_loop(self) -> bool:
         """If go into run() func, will return True, otherwise False.
         """
-        return self.run() if self.backend else False
+        return self.run() if self.role == leader else False
 
     def finish(self, auto_exit: bool = False):
         if self.maintainer:
-            Destroy.destroy_all_in_a_world(self.maintainer.world)
             self.maintainer.manual_stop()
-            del_maintainer_lock(self.maintainer)
+            world = self.maintainer.world
+            for delivery in Delivery.delivery_generator():
+                if delivery.world == world:
+                    Destroy.destroy_delivery(delivery)
 
-        if auto_exit and self.backend:
+        if auto_exit and self.role == leader:
             exit(15)
 
     def __getattribute__(self, name: str) -> Any:
@@ -347,7 +351,7 @@ class API(SafeThread, Hook):
     def __str__(self):
         return openfed_class_fmt.format(
             class_name="OpenFedAPI",
-            description=f"{'Frontend' if self.frontend else 'Backend'}."
+            description=f"ROLE: {self.role}"
         )
 
     def __enter__(self):

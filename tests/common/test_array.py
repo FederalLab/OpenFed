@@ -5,7 +5,7 @@ from threading import Lock
 def test_array():
     # Create an array.
     default_mapping = dict()
-    array = Array(default_mapping, Lock())
+    array = Array(default_mapping)
 
     assert len(array) == 0
 

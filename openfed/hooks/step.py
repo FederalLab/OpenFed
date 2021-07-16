@@ -35,8 +35,6 @@ from openfed.utils import (convert_to_list, openfed_class_fmt, process_bar,
                            tablist)
 from torch.optim.lr_scheduler import _LRScheduler
 
-from .utils import download_callback
-
 
 @unique
 class StepName(Enum):
@@ -444,7 +442,13 @@ class Download(AfterDownload):
                     f"Excepted @{backend.version}, received @{backend.upload_version}, discard.")
                 return
 
-            download_callback(backend)
+            backend.delivery_task_info = backend.delivery.task_info
+
+            # Increase the total number of received models
+            backend.received_numbers += 1
+            packages = backend.tensor_indexed_packages
+            [container.step(packages, backend.delivery_task_info)
+             for container in backend.container]
 
             logger.info(
                 f"{backend.received_numbers} at v.{backend.version} from {backend.nick_name}.")

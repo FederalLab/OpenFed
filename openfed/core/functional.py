@@ -37,9 +37,6 @@ from torch.distributed.distributed_c10d import (Backend, _batch_p2p_manager,
                                                 _tensor_to_object,
                                                 supports_complex)
 
-from .space import register
-
-
 def isend(tensor,
           dst,
           group=None,
@@ -62,8 +59,8 @@ def isend(tensor,
         None, if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
+
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
         return
@@ -100,8 +97,7 @@ def irecv(tensor,
         None, if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
         return
@@ -141,8 +137,7 @@ def send(tensor,
         tag (int, optional): Tag to match send with remote recv
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
         return
@@ -179,8 +174,7 @@ def recv(tensor,
         -1, if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
         return -1
@@ -246,8 +240,7 @@ def broadcast_multigpu(tensor_list,
         None, if not async_op or if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -294,8 +287,7 @@ def broadcast(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
         return
@@ -356,8 +348,7 @@ def all_reduce_multigpu(tensor_list,
         None, if not async_op or if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -429,8 +420,7 @@ def all_reduce(tensor,
         tensor([4.+4.j, 6.+6.j]) # Rank 1
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
         return
@@ -492,8 +482,7 @@ def all_reduce_coalesced(tensors,
         None, if not async_op or if not part of the group.
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_tensor_list(tensors, "tensor")
     if country._rank_not_in_group(group):
         return
@@ -557,8 +546,7 @@ def reduce_multigpu(tensor_list,
         None, otherwise
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -610,8 +598,7 @@ def reduce(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
         return
@@ -682,8 +669,7 @@ def all_gather_multigpu(output_tensor_lists,
         None, if not async_op or if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -750,8 +736,7 @@ def all_gather_object(object_list, obj, group=None, country=None):
         >>> output
         ['foo', 12, {1: 2}]
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -847,8 +832,7 @@ def gather_object(obj,
         >>> output
         ['foo', 12, {1: 2}]
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -972,8 +956,7 @@ def broadcast_object_list(object_list, src=0, group=None, country=None):
         >>> broadcast_objects
         ['foo', 12, {1: 2}]
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -1081,8 +1064,7 @@ def scatter_object_list(scatter_object_output_list,
         >>> output_list
         [{1: 2}]
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -1193,8 +1175,7 @@ def all_gather(tensor_list,
         [tensor([1.+1.j, 2.+2.j]), tensor([3.+3.j, 4.+4.j])] # Rank 1
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_tensor_list(tensor_list, "tensor_list")
     _check_single_tensor(tensor, "tensor")
     if country._rank_not_in_group(group):
@@ -1264,8 +1245,7 @@ def all_gather_coalesced(output_tensor_lists,
     performance improvements but users of this function should take extra care
     to ensure that each node passes in tensors whose shapes match across nodes.
     """
-    if country is None:
-        country = register.default_country
+    assert country
     # We only check basic compatibility with C++ params here, C++ code will
     # do shape and type checking.
     if country._rank_not_in_group(group):
@@ -1321,8 +1301,7 @@ def gather(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
 
     # Parameter ``gather_list`` may be left unspecified on non-dst ranks.
@@ -1390,8 +1369,7 @@ def scatter(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(tensor, "tensor")
 
     # Parameter ``scatter_list`` may be left unspecified on non-src ranks.
@@ -1486,8 +1464,7 @@ def reduce_scatter_multigpu(output_tensor_list,
         None, if not async_op or if not part of the group.
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -1535,8 +1512,7 @@ def reduce_scatter(output,
         None, if not async_op or if not part of the group.
 
     """
-    if country is None:
-        country = register.default_country
+    assert country
     _check_single_tensor(output, "output")
     _check_tensor_list(input_list, "input_list")
     if country._rank_not_in_group(group):
@@ -1634,8 +1610,7 @@ def all_to_all_single(output,
         tensor([ 4, 15, 16, 23, 34, 35])                                 # Rank 2
         tensor([ 5, 17, 18, 24, 36])                                     # Rank 3
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -1734,8 +1709,7 @@ def all_to_all(output_tensor_list,
         [tensor([4]), tensor([15, 16]), tensor([23]), tensor([34, 35])]              # Rank 2
         [tensor([5]), tensor([17, 18]), tensor([24]), tensor([36])]                  # Rank 3
     """
-    if country is None:
-        country = register.default_country
+    assert country
     if country._rank_not_in_group(group):
         return
 
@@ -1789,8 +1763,7 @@ def batch_isend_irecv(p2p_op_list,
         the current GPU device with `torch.cuda.set_device`, otherwise it will
         lead to unexpected hang issues.
     """
-    if country is None:
-        country = register.default_country
+    assert country
     country._check_p2p_op_list(p2p_op_list)
     backend = country.get_backend(p2p_op_list[0].group)
     reqs = []

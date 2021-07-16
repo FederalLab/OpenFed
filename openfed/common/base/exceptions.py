@@ -45,7 +45,7 @@ class OpenFedException(Exception):
 
 
 class AccessError(OpenFedException):
-    """If backend/frontend cross refer to each other functions, raised.
+    """If backend/role cross refer to each other functions, raised.
     """
 
     def __init__(self, msg: Union[str,  Any] = ''):
@@ -100,7 +100,7 @@ class InvalidStoreWriting(OpenFedException):
         super().__init__("InvalidStoreWriting", msg=msg)
 
 
-class BuilddeliveryFailed(OpenFedException):
+class BuildDeliveryFailed(OpenFedException):
     """This Error is raised when we failed to other ends data at
     the initialization of Delivery.
 
@@ -108,7 +108,7 @@ class BuilddeliveryFailed(OpenFedException):
     """
 
     def __init__(self, msg: Union[str, Any] = ""):
-        super().__init__("BuilddeliveryFailed", msg=msg)
+        super().__init__("BuildDeliveryFailed", msg=msg)
 
 
 class DeviceOffline(OpenFedException):

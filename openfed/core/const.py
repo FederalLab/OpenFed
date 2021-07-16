@@ -20,9 +20,47 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 from datetime import timedelta
+from enum import Enum, unique
 
 # communication
-DEFAULT_PG_TIMEOUT       = timedelta(minutes=30)
-DEFAULT_PG_LONG_TIMEOUT  = timedelta(minutes=30)
-DEFAULT_PG_SHORT_TIMEOUT = timedelta(seconds=1.0)
+DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
+NULL_PG            = None
+
+@unique
+class ROLE(Enum):
+    LEADER   = 'openfed_leader'
+    FOLLOWER = 'openfed_follower'
+
+leader   = ROLE.LEADER.value
+follower = ROLE.FOLLOWER.value
+
+@unique
+class STATUS(Enum):
+    PUSH    = "PUSH"  # push data to the other end.
+    PULL    = "PULL"  # pull data from the other end.
+    ZOMBIE  = "ZOMBIE"  # when there is no request.
+    OFFLINE = "OFFLINE"  # offline.
+
+
+push    = STATUS.PUSH.value
+pull    = STATUS.PULL.value
+zombie  = STATUS.ZOMBIE.value
+offline = STATUS.OFFLINE.value
+
+@unique
+class CONST(Enum):
+    OPENFED_IDENTIFY  = "OPENFED_IDENTIFY"
+    OPENFED_STATUS    = "OPENFED_STATUS"
+    OPENFED_TASK_INFO = 'OPENFED_TASK_INFO'
+    NICK_NAME         = 'NICK_NAME'
+    LEADER_RANK       = 'LEADER_RANK'
+    FOLLOWER_RANK     = 'FOLLOWER_RANK'
+
+openfed_identity  = CONST.OPENFED_IDENTIFY.value
+openfed_status    = CONST.OPENFED_STATUS.value
+openfed_task_info = CONST.OPENFED_TASK_INFO.value
+nick_name         = CONST.NICK_NAME.value
+leader_rank       = CONST.LEADER_RANK.value
+follower_rank     = CONST.FOLLOWER_RANK.value

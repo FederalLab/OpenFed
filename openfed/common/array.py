@@ -22,42 +22,29 @@
 
 
 from threading import Lock
-from typing import Any, List, Mapping, Tuple, Union
-
-
-def _check_initialized_called(func):
-    def check_initialized_called(self, *args, **kwargs):
-        assert self._default_mapping is not None,\
-            "Array is not initialized!"
-        return func(self, *args, **kwargs)
-    return check_initialized_called
-
-def _acquire_lock(func):
-    def acquire_lock(self, *args, **kwargs):
-        if self._lock_on_mapping:
-            with self._lock_on_mapping:
-                output = func(self, *args, **kwargs)
-        else:
-            output = func(self, *args, **kwargs)
-        return output
-    return acquire_lock
+from typing import Any, List, Mapping, Tuple
 
 class Array(object):
     """Make the class enable to iterate over a dict like list, 
     even though the dict has been motified while iteration.
     """
 
-    # Array will never modify the _default_mapping.
-    _default_mapping: Mapping[Any, Any]
-    _lock_on_mapping: Union[Lock, None]             
+    # Array never modifies the _mapping.
+    _mapping: Mapping[Any, Any]
 
-    def __init__(self, default_mapping: Mapping[Any, Any], lock_on_mapping: Union[Lock, None] = None):
+    def __init__(self, mapping: Mapping[Any, Any]):
         assert isinstance(
-            default_mapping, dict), "default_mapping must be a dict."
-        self._default_mapping = default_mapping
-        self._lock_on_mapping = lock_on_mapping
+            mapping, dict), "mapping must be a dict."
+        self._mapping = mapping
+        # Add a lock to make sure the list will not be modified during operation.
+        self.lock = Lock()
 
         self.index = -1
+
+    @property
+    def mapping(self):
+        assert self._mapping, f"{self} is not initialized by `Array.__init__`."
+        return self._mapping
 
     @property
     def default_key(self) -> Any:
@@ -65,29 +52,27 @@ class Array(object):
 
     @property
     def keys(self) -> List[Any]:
-        return list(self._default_mapping.keys())
-
-    @property
-    def values(self) -> List[Any]:
-        return list(self._default_mapping.values())
+        return list(self.mapping.keys())
 
     @property
     def default_value(self) -> Any:
         return self[0][1]
 
-    @_check_initialized_called
+    @property
+    def values(self) -> List[Any]:
+        return list(self.mapping.values())
+
     def __len__(self):
-        return len(self._default_mapping)
+        return len(self.mapping)
 
-    @_check_initialized_called
-    @_acquire_lock  # Lock Here is Enough. DO NOT ADD IN OTHER FUNC! OTHERWISE WILL CAUSE DEAD LOCK!
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
-        index = len(self) - 1 if len(self) < index else index
+        # Rectify index
+        index = len(self) - 1 if index > len(self) else index
 
-        if index < 0:
-            return None, None
-        else:
-            return self.keys[index], self.values[index]
+        self.current_keys = self.keys[index] if index > 0 else None
+        self.current_values = self.values[index] if index > 0 else None
+
+        return self.current_keys, self.current_values
 
     def __iter__(self):
         return self
@@ -99,3 +84,9 @@ class Array(object):
             raise StopIteration
         else:
             return self[self.index]
+
+    def __enter__(self):
+        self.lock.acquire()
+
+    def __exit__(self, exc_type, exc_value, trace):
+        self.lock.release()

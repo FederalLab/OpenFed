@@ -53,7 +53,7 @@ def main(args):
 
         # >>> If openfed_api is a backend, call `run()` will go into the loop ring.
         # >>> Call `start()` will run it as a thread.
-        # >>> If openfed_api is a frontend, call `run()` will directly skip this function automatically.
+        # >>> If openfed_api is a role, call `run()` will directly skip this function automatically.
         if not openfed_api.backend_loop():
             # Do simulation random times at [10, 70].
             for i in range(1, random.randint(10, 70)):

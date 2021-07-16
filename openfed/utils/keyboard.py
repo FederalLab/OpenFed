@@ -38,6 +38,6 @@ def keyboard_interrupt_handle():
         else:
             logger.debug("Keyboard Interrupt")
             logger.warning("Force Quit!")
-            Destroy.destroy_all_in_all_world()
+            Destroy.destroy_all_deliveries()
             old_excepthook(type, value, traceback)
     sys.excepthook = keyboard_interrupt_hook
