@@ -326,7 +326,8 @@ class Dispatch(MultiStep):
                  samples: int,
                  parts_list: Union[int, List[Any]],
                  test_samples: int = None,
-                 test_parts_list: Union[int, List[Any]] = None
+                 test_parts_list: Union[int, List[Any]] = None, 
+                 timeout: float = 10.0
                  ):
         """
         Args:
@@ -341,6 +342,7 @@ class Dispatch(MultiStep):
         self.test_samples = test_samples
         self.test_parts_list = list(range(test_parts_list)) if isinstance(
             test_parts_list, int) else test_parts_list
+        self.timeout = timeout
 
         # Count the finished parts
         # If finished all parts in this round, reset inner part buffer.
@@ -413,6 +415,18 @@ class Dispatch(MultiStep):
             return True
 
         elif len(self.running_queue) > 0:
+            timeout_parts = []
+            for part_id, (nick_name, assign_time) in self.running_queue.items():
+                if time.time() - assign_time > self.timeout:
+                    # resign this task
+                    self.pending_queue.append(part_id)
+                    timeout_parts.append((part_id, nick_name, assign_time))
+            for part, _, _ in timeout_parts:
+                del self.running_queue[part]
+
+            if len(timeout_parts) > 0:
+                logger.error(f"Timeout task: {timeout_parts}")
+
             # waiting other client to be finished.
             logger.debug(
                 f"Waiting following client to submit there tasks: {list(self.running_queue.values())}.")

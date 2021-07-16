@@ -306,6 +306,9 @@ class API(SafeThread, Hook):
                         step(at_invalid_state)
                     # update regularly.
                     step(at_last)
+                    # sleep a short time is very import!
+                    # otherwise, some states may be rewrite.
+                    # time.sleep(0.1)
 
             try_times = 0 if cnt else try_times + 1
 
