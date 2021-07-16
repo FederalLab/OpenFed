@@ -32,7 +32,7 @@ class Array(object):
     # Array never modifies the _mapping.
     _mapping: Mapping[Any, Any]
 
-    def __init__(self, mapping: Mapping[Any, Any]):
+    def __init__(self, mapping: Mapping[Any, Any] = None):
         assert isinstance(
             mapping, dict), "mapping must be a dict."
         self._mapping = mapping
@@ -43,7 +43,7 @@ class Array(object):
 
     @property
     def mapping(self):
-        assert self._mapping, f"{self} is not initialized by `Array.__init__`."
+        assert self._mapping is not None, f"{self} is not initialized by `Array.__init__`."
         return self._mapping
 
     @property
@@ -69,8 +69,8 @@ class Array(object):
         # Rectify index
         index = len(self) - 1 if index > len(self) else index
 
-        self.current_keys = self.keys[index] if index > 0 else None
-        self.current_values = self.values[index] if index > 0 else None
+        self.current_keys = self.keys[index] if index >= 0 else None
+        self.current_values = self.values[index] if index >= 0 else None
 
         return self.current_keys, self.current_values
 

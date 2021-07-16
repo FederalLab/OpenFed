@@ -50,7 +50,7 @@ def _tablist(head: List[Any], data: List[Any]) -> str:
 
 def tablist(head: List[Any], 
             data: List[Any],
-            items_per_row   : int = 4,
+            items_per_row   : int = 8,
             force_in_one_row: bool = False) -> str: 
     """
         If len(head) > items_per_row, we will split into multi-tables.

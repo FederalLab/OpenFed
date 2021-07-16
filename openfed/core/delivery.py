@@ -142,16 +142,16 @@ class Delivery(Hook, Package):
                        value={openfed_status: zombie,
                               openfed_task_info: TaskInfo().info_dict})
 
+        # Fetch data at last
+        # try to read _u_key from the other end to make sure it is online.
+        self._i_backup_info = safe_store_get(self.store, self._i_key)
+        self._u_backup_info = safe_store_get(self.store, self._u_key)
+
         # register a default collector
         self.register_collector(SystemInfo())
         self.register_collector(GPUInfo())
 
         self.scatter()
-
-        # Fetch data at last
-        # try to read _u_key from the other end to make sure it is online.
-        self._i_backup_info = safe_store_get(self.store, self._i_key)
-        self._u_backup_info = safe_store_get(self.store, self._u_key)
 
         # Run at the initialize state.
         self.collect()
@@ -555,12 +555,13 @@ class Delivery(Hook, Package):
         rank = follower_rank if self.world.leader else leader_rank
 
         # encrypt data
+        packages = self.packages
         for hook in self.hook_list:
-            self.packages = {k: hook.encrypt(self.key_tensor(k), v)
-                             for k, v in self.packages.items()}
+            packages = {k: hook.encrypt(self.key_tensor(k), v)
+                             for k, v in packages.items()}
 
         return gather_object(
-            self.packages, None,
+            packages, None,
             dst=rank,
             group=self.pg,
             async_op=ASYNC_OP.is_async_op,
@@ -640,7 +641,7 @@ class Joint(SafeThread):
         handler = country.init_process_group(**self.address.address)
 
         while not handler():
-            time.sleep(2.0)
+            time.sleep(0.01)
 
         world_size = self.address.world_size
         if world_size > 10 and self.address.init_method.startswith("tcp"):
@@ -747,7 +748,7 @@ class Maintainer(Array, SafeThread):
                     self.pending_queue[address] = (time.time(), 0)
 
     def safe_run(self) -> str:
-        joint_map = dict()
+        joint_map = dict() # address -> joint
         while not self.stopped and self.world.ALIVE:
             # update pending list
             self.read_address_from_file()
@@ -759,6 +760,7 @@ class Maintainer(Array, SafeThread):
             def try_now(last_time, try_times) -> bool:
                 return False if (time.time() - last_time < self.interval_seconds) or try_times >= self.max_try_times else True
 
+            rm_address = []
             for address, joint in joint_map.items():
                 last_time, try_times = self.pending_queue[address]
                 if try_now(last_time, try_times):
@@ -767,12 +769,13 @@ class Maintainer(Array, SafeThread):
                             time.time(), try_times + 1)
                         with self:
                             del self.pending_queue[address]
+                        rm_address.append((address))
                     else:
                         try_times += 1
                         if try_times > self.max_try_times:
                             # Stop and delete the joint
                             joint._stop()
-                            del joint_map[joint]
+                            rm_address.append(address)
                             # Move to discard_queue
                             self.discard_queue[address] = (
                                 time.time(), try_times)
@@ -783,6 +786,8 @@ class Maintainer(Array, SafeThread):
                             with self:
                                 self.pending_queue[address] = (
                                     time.time(), try_times)
+            for address in rm_address:
+                del joint_map[address]
 
             if openfed.DAL.is_dal:
                 time.sleep(self.interval_seconds)

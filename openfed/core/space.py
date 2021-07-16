@@ -487,8 +487,8 @@ class Country(object):
         def handler() -> bool:
             # whatever the backend is, we need a store to exchange information.
             try:
-                callback(init_store(rank, world_size))
-            except Exception as e:
+                callback(*init_store(rank, world_size))
+            except TimeoutError as e:
                 return False
             return True
 
@@ -533,14 +533,15 @@ class Country(object):
         # a single store can be reused by multiple groups.
         prefix_store = PrefixStore(group_name, store)
 
-        acquire_all()
         if backend == Backend.MPI:
             if not is_mpi_available():
                 raise RuntimeError(
                     "Distributed package doesn't have MPI built in."
                     " MPI is only included if you build PyTorch from"
                     " source on a host that has MPI installed.")
+            acquire_all()
             pg = ProcessGroupMPI.create(group_ranks)
+            release_all()
             if not pg:
                 return self.NON_GROUP_MEMBER
             self._pg_map[pg] = (Backend.MPI, prefix_store)
@@ -554,34 +555,39 @@ class Country(object):
                     return self.NON_GROUP_MEMBER
 
             if backend == Backend.GLOO:
+                acquire_all()
                 pg = ProcessGroupGloo(
                     prefix_store,
                     rank,
                     world_size,
                     timeout=timeout)
+                release_all()
                 self._pg_map[pg] = (Backend.GLOO, prefix_store)
                 self._pg_names[pg] = group_name
             elif backend == Backend.NCCL:
                 if not is_nccl_available():
                     raise RuntimeError("Distributed package doesn't have NCCL "
                                        "built in")
+                acquire_all()
                 pg = ProcessGroupNCCL(
                     prefix_store,
                     rank,
                     world_size,
                     timeout)
+                release_all()
                 self._pg_map[pg] = (Backend.NCCL, prefix_store)
                 self._pg_names[pg] = group_name
             else:
+                acquire_all()
                 pg = getattr(Backend, backend.upper())(
                     prefix_store,
                     rank,
                     world_size,
                     timeout)
+                release_all()
                 self._pg_map[pg] = (backend, prefix_store)
                 self._pg_names[pg] = group_name
 
-        release_all()
         return pg
 
     def destroy_process_group(self, group: ProcessGroup = None) -> None:
@@ -849,7 +855,7 @@ class Country(object):
         """
 
         if self.get_world_size() == 2:
-            return self._get_default_group()
+            return [self._get_default_group()]
 
         assert 0 <= rank < self.get_world_size()
         pg_list = []
@@ -888,11 +894,11 @@ def del_mt_lock(maintainer):
 
 def acquire_all():
     for mt_lock in peeper.mt_locks:
-        mt_lock.acquire()
+        mt_lock.lock.acquire()
     openfed_lock.acquire()
 
 
 def release_all():
     for mt_lock in peeper.mt_locks:
-        mt_lock.release()
+        mt_lock.lock.release()
     openfed_lock.release()

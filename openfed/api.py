@@ -187,7 +187,7 @@ class API(SafeThread, Hook):
 
         if to:
             # 3. set task info
-            self.delivery_task_info = TaskInfo() if task_info is None else task_info
+            self.delivery_task_info = self.delivery_task_info if task_info is None else task_info
             self.delivery.set_task_info(self.delivery_task_info)
 
             # 4. Pack state

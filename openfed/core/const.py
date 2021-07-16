@@ -55,8 +55,8 @@ class CONST(Enum):
     OPENFED_STATUS    = "OPENFED_STATUS"
     OPENFED_TASK_INFO = 'OPENFED_TASK_INFO'
     NICK_NAME         = 'NICK_NAME'
-    LEADER_RANK       = 'LEADER_RANK'
-    FOLLOWER_RANK     = 'FOLLOWER_RANK'
+    LEADER_RANK       = 0
+    FOLLOWER_RANK     = 1
 
 openfed_identity  = CONST.OPENFED_IDENTIFY.value
 openfed_status    = CONST.OPENFED_STATUS.value
