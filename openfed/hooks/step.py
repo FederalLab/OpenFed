@@ -378,6 +378,9 @@ class Dispatch(MultiStep):
             part_id = task_info.part_id
 
             # pop from running queue
+            if part_id not in self.running_queue:
+                logger.error(f"Invalid part id: {part_id}")
+                return
             nick_name, tic = self.running_queue.pop(part_id)
             toc = time.time()
 
