@@ -327,7 +327,7 @@ class Dispatch(MultiStep):
                  parts_list: Union[int, List[Any]],
                  test_samples: int = None,
                  test_parts_list: Union[int, List[Any]] = None, 
-                 timeout: float = 10.0
+                 timeout: float = -1,
                  ):
         """
         Args:
@@ -415,12 +415,12 @@ class Dispatch(MultiStep):
             return True
 
         elif len(self.running_queue) > 0:
-            timeout_parts = []
+            timeout_parts = [] # [part_id, nick_name, duration]
             for part_id, (nick_name, assign_time) in self.running_queue.items():
-                if time.time() - assign_time > self.timeout:
+                if self.timeout > 0 and time.time() - assign_time > self.timeout:
                     # resign this task
                     self.pending_queue.append(part_id)
-                    timeout_parts.append((part_id, nick_name, assign_time))
+                    timeout_parts.append((part_id, nick_name, time.time() - assign_time))
             for part, _, _ in timeout_parts:
                 del self.running_queue[part]
 
