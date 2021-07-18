@@ -68,7 +68,7 @@ class API(SafeThread, Hook):
     current_step: str
 
     def __init__(self,
-                 role: ROLE,
+                 role: Union[ROLE, str],
                  state_dict: Dict[str, Tensor],
                  pipe: Pipe,
                  container: Container = None,
