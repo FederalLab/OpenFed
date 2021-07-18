@@ -77,14 +77,14 @@ class Step(Clone):
     step_name: str
 
     def __init__(self):
-        # automatically register step hooks to backend
+        # automatically register step hooks to leader
         if peeper.api is not None:
             peeper.api.register_everything(self)
 
-    def __call__(self, backend, *args, **kwargs) -> Union[None, bool]:
-        return self.step(backend, *args, **kwargs)
+    def __call__(self, leader, *args, **kwargs) -> Union[None, bool]:
+        return self.step(leader, *args, **kwargs)
 
-    def step(self, backend, *args, **kwargs) -> Union[None, bool]:
+    def step(self, leader, *args, **kwargs) -> Union[None, bool]:
         raise NotImplementedError("Not implemented!")
 
 
@@ -143,83 +143,83 @@ class MultiStep(Step):
         """Call this if necessary at subclass init process."""
         self.step_name.append(after_destroy)
 
-    def after_destroy(self, backend, *args, **kwargs):
+    def after_destroy(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _after_download(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(after_download)
 
-    def after_download(self, backend, *args, **kwargs):
+    def after_download(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _after_upload(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append('after_upload')
 
-    def after_upload(self, backend, *args, **kwargs):
+    def after_upload(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _at_failed(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_failed)
 
-    def at_failed(self, backend, *args, **kwargs):
+    def at_failed(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _at_invalid_state(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_invalid_state)
 
-    def at_invalid_state(self, backend, *args, **kwargs):
+    def at_invalid_state(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _at_last(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_last)
 
-    def at_last(self, backend, *args, **kwargs):
+    def at_last(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _at_new_episode(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_new_episode)
 
-    def at_new_episode(self, backend, *args, **kwargs):
+    def at_new_episode(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _at_zombie(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(at_zombie)
 
-    def at_zombie(self, backend, *args, **kwargs):
+    def at_zombie(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _before_destroy(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(before_destroy)
 
-    def before_destroy(self, backend, *args, **kwargs):
+    def before_destroy(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _before_download(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(before_download)
 
-    def before_download(self, backend, *args, **kwargs):
+    def before_download(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
     def _before_upload(self):
         """Call this if necessary at subclass init process."""
         self.step_name.append(before_upload)
 
-    def before_upload(self, backend, *args, **kwargs):
+    def before_upload(self, leader, *args, **kwargs):
         raise NotImplementedError("Not implemented!")
 
-    def __call__(self, backend, *args, **kwargs):
-        if backend.current_step in self.step_name:
-            func = getattr(self, backend.current_step.lower())
-            return func(backend, *args, **kwargs)
+    def __call__(self, leader, *args, **kwargs):
+        if leader.current_step in self.step_name:
+            func = getattr(self, leader.current_step.lower())
+            return func(leader, *args, **kwargs)
         else:
             return None
 
@@ -250,11 +250,11 @@ class Aggregate(AtLast):
         self.lr_scheduler = convert_to_list(lr_scheduler)
         self.last_received_numbers = 0
 
-    def aggregate(self, backend, *args, **kwargs):
+    def aggregate(self, leader, *args, **kwargs):
         """Aggregate received models.
         """
         task_info_list = []
-        for container, pipe in zip(backend.container, backend.pipe):
+        for container, pipe in zip(leader.container, leader.pipe):
             # Zero grad first
             pipe.zero_grad()
 
@@ -274,7 +274,7 @@ class Aggregate(AtLast):
 
             pipe.round()
 
-        backend.task_info_list = task_info_list
+        leader.task_info_list = task_info_list
 
         for task_info in task_info_list:
             logger.success(task_info)
@@ -284,33 +284,33 @@ class Aggregate(AtLast):
             [lr_sch.step() for lr_sch in self.lr_scheduler if lr_sch is not None]
 
         # Reset same flags
-        backend.received_numbers = 0
+        leader.received_numbers = 0
 
         if self.checkpoint:
-            path = f"{self.checkpoint}.{backend.version}"
-            torch.save(backend.state_dict, path)
+            path = f"{self.checkpoint}.{leader.version}"
+            torch.save(leader.state_dict, path)
             logger.info(f"Save to {path}.")
 
-    def step(self, backend, *args, **kwargs) -> None:
+    def step(self, leader, *args, **kwargs) -> None:
         cnt = self.count[self.idx]
-        if self.last_received_numbers != backend.received_numbers:
-            self.last_received_numbers = backend.received_numbers
+        if self.last_received_numbers != leader.received_numbers:
+            self.last_received_numbers = leader.received_numbers
             logger.success('\n' +
                            process_bar(
                                self.last_received_numbers /
                                self.count[self.idx],
-                               prefix=f"@{backend.version}",
+                               prefix=f"@{leader.version}",
                            ))
 
-        if cnt > 0 and backend.received_numbers >= cnt:
-            self.aggregate(backend, *args, **kwargs)
+        if cnt > 0 and leader.received_numbers >= cnt:
+            self.aggregate(leader, *args, **kwargs)
             self.idx += 1
             if self.idx >= len(self.count):
                 self.idx = 0
-                backend.version += 1
+                leader.version += 1
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
-            self.aggregate(backend, *args, **kwargs)
+            self.aggregate(leader, *args, **kwargs)
             # Update tic times.
             self.tic = time.time()
 
@@ -372,9 +372,9 @@ class Dispatch(MultiStep):
                 self.running_queue = dict()
                 self.finished_queue = dict()
 
-    def after_download(self, backend, flag: bool):
+    def after_download(self, leader, flag: bool):
         if flag:
-            task_info = backend.delivery_task_info
+            task_info = leader.delivery_task_info
             part_id = task_info.part_id
 
             # pop from running queue
@@ -388,7 +388,7 @@ class Dispatch(MultiStep):
             self.finished_queue[part_id] = (nick_name, toc-tic)
 
             logger.debug(
-                f"Received: from {backend.nick_name}, duration: {toc-tic:.2f} seconds.\n{task_info}")
+                f"Received: from {leader.nick_name}, duration: {toc-tic:.2f} seconds.\n{task_info}")
 
             # All finished
             if len(self.running_queue) == 0 and len(self.pending_queue) == 0:
@@ -398,22 +398,22 @@ class Dispatch(MultiStep):
             else:
                 logger.debug(self)
 
-    def before_upload(self, backend, *args, **kwargs) -> bool:
+    def before_upload(self, leader, *args, **kwargs) -> bool:
         # version is not used in dispatch mode
         if len(self.pending_queue) > 0:
             # assign a new part id
             part_id = self.pending_queue.pop(-1)
-            self.running_queue[part_id] = (backend.nick_name, time.time())
+            self.running_queue[part_id] = (leader.nick_name, time.time())
 
             # generate task_info
             task_info = TaskInfo()
             task_info.part_id = part_id  # type: ignore
-            task_info.version = backend.version  # type: ignore
+            task_info.version = leader.version  # type: ignore
             # opside with self.train
             task_info.train = self.train  # type: ignore
 
             # set task_info
-            backend.delivery_task_info = task_info
+            leader.delivery_task_info = task_info
 
             return True
 
@@ -451,27 +451,27 @@ class Dispatch(MultiStep):
 
 class Download(AfterDownload):
 
-    def step(self, backend, flag: bool) -> None:
+    def step(self, leader, flag: bool) -> None:
         if flag:  # Download success
             # download is to check others upload version
-            if backend.upload_version <= backend.version:
+            if leader.upload_version <= leader.version:
                 logger.warning(
-                    f"Excepted @{backend.version}, received @{backend.upload_version}, discard.")
+                    f"Excepted @{leader.version}, received @{leader.upload_version}, discard.")
                 return
 
-            backend.delivery_task_info = backend.delivery.task_info
+            leader.delivery_task_info = leader.delivery.task_info
 
             # Increase the total number of received models
-            backend.received_numbers += 1
-            packages = backend.tensor_indexed_packages
-            [container.step(packages, backend.delivery_task_info)
-             for container in backend.container]
+            leader.received_numbers += 1
+            packages = leader.tensor_indexed_packages
+            [container.step(packages, leader.delivery_task_info)
+             for container in leader.container]
 
             logger.info(
-                f"{backend.received_numbers} at v.{backend.version} from {backend.nick_name}.")
+                f"{leader.received_numbers} at v.{leader.version} from {leader.nick_name}.")
         else:
             logger.debug(
-                f"Try to download {backend.received_numbers+1} failed.")
+                f"Try to download {leader.received_numbers+1} failed.")
 
 
 class Terminate(AtLast):
@@ -488,23 +488,23 @@ class Terminate(AtLast):
         self.max_loop_times = max_loop_times
         self.max_version = max_version
 
-    def step(self, backend, *args, **kwargs) -> None:
-        if self.max_version != -1 and backend.version >= self.max_version:
+    def step(self, leader, *args, **kwargs) -> None:
+        if self.max_version != -1 and leader.version >= self.max_version:
             logger.info("Terminate! Max version achieves.")
-            backend.manual_stop()
-        if self.max_loop_times != -1 and backend.loop_times >= self.max_loop_times:
+            leader.manual_stop()
+        if self.max_loop_times != -1 and leader.loop_times >= self.max_loop_times:
             logger.info("Terminate! Max loop times achieves.")
-            backend.manual_stop()
+            leader.manual_stop()
 
 
 class Upload(BeforeUpload):
-    def step(self, backend, *args, **kwargs) -> bool:
+    def step(self, leader, *args, **kwargs) -> bool:
 
         # Check version requirements
         # upload is to check other download version.
-        if backend.download_version > backend.version:
+        if leader.download_version > leader.version:
             logger.warning(
-                f"Version not aligned. (request @{backend.download_version}, but @{backend.version}).")
+                f"Version not aligned. (request @{leader.download_version}, but @{leader.version}).")
             # Version is not satisfied.
             return False
 

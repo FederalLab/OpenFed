@@ -59,7 +59,7 @@ def device_offline_care(func):
 
 
 class API(SafeThread, Hook):
-    """Provide a unified api for backend and role.
+    """Provide a unified api for leader and role.
     """
 
     # Communication related
@@ -83,7 +83,7 @@ class API(SafeThread, Hook):
         SafeThread.__init__(self, daemon=True)
         Hook.__init__(self)
 
-        # how many times for backend waiting for connections.
+        # how many times for leader waiting for connections.
         self.max_try_times: int = max_try_times
 
         self.dal: bool = dal
@@ -91,7 +91,7 @@ class API(SafeThread, Hook):
 
         keyboard_interrupt_handle()
 
-        # Enable async_op if this is backend.
+        # Enable async_op if this is leader.
         self.async_op: bool = async_op if self.role == follower else True
 
         # Set default value

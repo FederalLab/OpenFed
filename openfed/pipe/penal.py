@@ -24,7 +24,8 @@
 from typing import List
 
 import torch
-from openfed.common import Wrapper, Buffer
+from openfed.core import ROLE, follower, leader
+from openfed.common import Buffer, Wrapper
 from openfed.utils import convert_to_list
 from typing_extensions import final
 
@@ -41,10 +42,10 @@ class Penalizer(Wrapper, Buffer):
     state: dict  # assigned from optimizer
 
     def __init__(self,
-                 ft: bool = True,
+                 role = follower,
                  pack_key_list: List[str] = None,
                  unpack_key_list: List[str] = None):
-        self.ft = ft
+        self.role = role
         if pack_key_list is not None:
             self.add_pack_key(pack_key_list)
         if unpack_key_list is not None:
@@ -53,23 +54,23 @@ class Penalizer(Wrapper, Buffer):
     @torch.no_grad()
     @final
     def step(self, closure=None):
-        return self._ft_step(closure) if self.ft else self._bk_step(closure)
+        return self._follower_step(closure) if self.role == follower else self._leader_step(closure)
 
-    def _ft_step(self, closure):
+    def _follower_step(self, closure):
         ...
 
-    def _bk_step(self, closure):
+    def _leader_step(self, closure):
         ...
 
     @torch.no_grad()
     @final
     def round(self):
-        return self._ft_round() if self.ft else self._bk_round()
+        return self._follower_round() if self.role == follower else self._leader_round()
 
-    def _ft_round(self):
+    def _follower_round(self):
         ...
 
-    def _bk_round(self):
+    def _leader_round(self):
         ...
 
 
@@ -87,7 +88,7 @@ class ElasticPenalizer(Penalizer):
     """
 
     def __init__(self,
-                 ft: bool,
+                 role: ROLE,
                  momentum: float = 0.9,
                  pack_key_list: List[str] = None,
                  unpack_key_list: List[str] = None):
@@ -103,7 +104,7 @@ class ElasticPenalizer(Penalizer):
 
         self.momentum = momentum
 
-        super().__init__(ft, pack_key_list, unpack_key_list)
+        super().__init__(role, pack_key_list, unpack_key_list)
 
     def acg_step(self):
         """Performs a single accumulate gradient step.
@@ -125,14 +126,14 @@ class ProxPenalizer(Penalizer):
     """https://arxiv.org/pdf/1812.06127.pdf
     """
 
-    def __init__(self, ft: bool, mu: float = 0.9, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
+    def __init__(self, role: ROLE, mu: float = 0.9, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
         if not 0.0 < mu < 1.0:
             raise ValueError(f"Invalid mu value: {mu}")
 
-        super().__init__(ft, pack_key_list, unpack_key_list)
+        super().__init__(role, pack_key_list, unpack_key_list)
         self.mu = mu
 
-    def _ft_step(self, closure=None):
+    def _follower_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
@@ -162,15 +163,15 @@ class ScaffoldPenalizer(Penalizer):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
 
-    def __init__(self, ft: bool, lr: float = None, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
-        """Scaffold need to run on both ft and backend.
+    def __init__(self, role: ROLE, lr: float = None, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
+        """Scaffold need to run on both leader and follower.
         If lr is given, we will use the second way provided in the paper to update c.
         Otherwise, we will use the first way provided in the paper.
         If lr is not given, accumulate_gradient is needed.
 
         .. Example::
             >>> # lr is given.
-            >>> scaffold = Scaffold(net.parameters(), lr=0.1, ft=True)
+            >>> scaffold = Scaffold(net.parameters(), lr=0.1, role=follower)
             >>> openfed_api.unpack(scaffold)
             >>> for data in dataloader:
             >>>     optim.zero_grad()
@@ -182,7 +183,7 @@ class ScaffoldPenalizer(Penalizer):
             >>> openfed_api.pack(scaffold)
 
             >>> # lr not given
-            >>> scaffold = Scaffold(net.parameters(), ft=True)
+            >>> scaffold = Scaffold(net.parameters(), role=follower)
             >>> openfed_api.unpack(scaffold)
             >>> # Accumulate Gradient Stage
             >>> for data in dataloader:
@@ -199,7 +200,7 @@ class ScaffoldPenalizer(Penalizer):
             >>> openfed_api.pack(scaffold)
 
             >>> # Backend
-            >>> scaffold = Scaffold(net.parameters(), ft=False)
+            >>> scaffold = Scaffold(net.parameters(), role=leader)
             >>> agg = Agg(net.parameters(), pipe_keys=scaffold.pack_key_list)
             >>> agg.agg()
             >>> scaffold.step()
@@ -217,7 +218,7 @@ class ScaffoldPenalizer(Penalizer):
             unpack_key_list.append('c_para')
         else:
             unpack_key_list = ['c_para']
-        super().__init__(ft, pack_key_list, unpack_key_list)
+        super().__init__(role, pack_key_list, unpack_key_list)
 
         self.lr = lr
 
@@ -245,7 +246,7 @@ class ScaffoldPenalizer(Penalizer):
                     state["init_p_g"].copy_(g)
                     state['init_p_g_cnt'] += 1
 
-    def _ft_step(self, closure=None):
+    def _follower_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
@@ -283,7 +284,7 @@ class ScaffoldPenalizer(Penalizer):
 
         return loss
 
-    def _bk_step(self, closure=None):
+    def _leader_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
@@ -300,7 +301,7 @@ class ScaffoldPenalizer(Penalizer):
                 if p.grad is None:
                     continue
                 state = self.state[p]
-                # Update backend
+                # Update leader
                 if 'c_para' not in state:
                     state['c_para'] = torch.zeros_like(p)
                 c_para = state["c_para"]
@@ -316,7 +317,7 @@ class ScaffoldPenalizer(Penalizer):
 
         return loss
 
-    def _ft_round(self):
+    def _follower_round(self):
         """Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
         """
@@ -328,7 +329,7 @@ class ScaffoldPenalizer(Penalizer):
                     continue
                 state = self.state[p]
                 c_para_i = state["c_para_i"]
-                # Update ft
+                # Update follower
                 if lr is None:
                     # Use the first way to update c_para
                     assert "init_p_g" in state, "You should accumulate init_p_g first!"
@@ -342,7 +343,7 @@ class ScaffoldPenalizer(Penalizer):
                 else:
                     state["c_para"].copy_(c_para_i - state["c_para"])
 
-    def _bk_round(self):
+    def _leader_round(self):
         """Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
         """

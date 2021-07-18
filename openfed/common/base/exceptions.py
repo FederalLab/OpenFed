@@ -45,7 +45,7 @@ class OpenFedException(Exception):
 
 
 class AccessError(OpenFedException):
-    """If backend/role cross refer to each other functions, raised.
+    """If leader/follower cross refer to each other functions, raised.
     """
 
     def __init__(self, msg: Union[str,  Any] = ''):
