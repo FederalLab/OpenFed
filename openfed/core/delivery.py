@@ -50,7 +50,7 @@ from .space import Country, ProcessGroup, Store, World, add_mt_lock, del_mt_lock
 rw = RandomWords()
 
 peeper.delivery_dict = dict()
-
+delivery_array = Array(peeper.delivery_dict)
 
 def safe_store_set(store: Store, key: str, value: Dict) -> bool:
     jsonstr = json.dumps(value)
@@ -285,9 +285,10 @@ class Delivery(Hook, Package):
     def delivery_generator(cls):
         """Return a generator to iterate over all delivery.
         """
-        for delivery in peeper.delivery_dict:
-            yield delivery
-            delivery.world.current_pg = delivery.pg
+        for delivery, _ in delivery_array:
+            yield [] if delivery is None else delivery
+            if delivery is not None:
+                delivery.world.current_pg = delivery.pg
         else:
             return []
 
@@ -295,7 +296,7 @@ class Delivery(Hook, Package):
     def default_delivery(cls) -> Any:
         """Return the only delivery. If more then one, raise warning.
         """
-        for delivery in peeper.delivery_dict:
+        for delivery, _ in delivery_array:
             return delivery
 
     @property
