@@ -510,13 +510,17 @@ class Delivery(Hook, Package):
         assert self.country._get_group_size(
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
-        received = [None, None]
+        received = [None for _ in range(self.country.get_world_size())]
 
         rank = leader_rank if self.world.leader else follower_rank
         other_rank = follower_rank if self.world.leader else leader_rank
 
+        rank = self.country._get_global_rank(self.pg, rank)
+        other_rank = self.country._get_global_rank(self.pg, other_rank)
+
         def _op_after_gather(*args):
-            r_packages: Dict = received[other_rank]  # type: ignore
+            r_packages = [r for r in received if r is not None][0]
+            assert r_packages is not None
 
             # NOTE: decrypt data in the reverse order.
             for hook in self.hook_list[::-1]:
@@ -532,12 +536,12 @@ class Delivery(Hook, Package):
             return r_packages
 
         returns = gather_object(
-            None, received,
+            None, 
+            received,
             dst=rank,
             group=self.pg,
             async_op=ASYNC_OP.is_async_op,
-            country=self.country,
-            global_rank=False)
+            country=self.country)
 
         if ASYNC_OP.is_async_op:
             handler, step_func = returns  # type: ignore
@@ -553,20 +557,21 @@ class Delivery(Hook, Package):
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         rank = follower_rank if self.world.leader else leader_rank
+        rank = self.country._get_global_rank(self.pg, rank)
 
         # encrypt data
         packages = self.packages
         for hook in self.hook_list:
             packages = {k: hook.encrypt(self.key_tensor(k), v)
-                             for k, v in packages.items()}
+                        for k, v in packages.items()}
 
         return gather_object(
-            packages, None,
+            packages, 
+            None,
             dst=rank,
             group=self.pg,
             async_op=ASYNC_OP.is_async_op,
-            country=self.country,
-            global_rank=False)
+            country=self.country)
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
@@ -748,7 +753,7 @@ class Maintainer(Array, SafeThread):
                     self.pending_queue[address] = (time.time(), 0)
 
     def safe_run(self) -> str:
-        joint_map = dict() # address -> joint
+        joint_map = dict()  # address -> joint
         while not self.stopped and self.world.ALIVE:
             # update pending list
             self.read_address_from_file()
