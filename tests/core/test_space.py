@@ -26,15 +26,59 @@ def test_country_leader():
     world = World(role=leader)
 
     country = Country(world)
+    assert not country.is_initialized()
     
-    country.init_process_group(
+    handler = country.init_process_group(
         backend='gloo',
-        init_method='tcp://', 
-        world_size=1,
-        rank=1, 
+        init_method='file:///tmp/openfed.sharefile.test_country', 
+        world_size=2,
+        rank=0, 
         store=None,
-        group_name='',
+        group_name='test_country',
     )
 
+    while not handler():
+        time.sleep(0.1)
+    else:
+        assert True
+
+    assert country.is_initialized()
+
+    assert country.get_rank() == 0
+    assert country.get_world_size() == 2
+
+    country.build_point2point_group(rank=0)
+
+    country.destroy_process_group()
+    assert not country.is_initialized()
+
+
 def test_country_follower():
-    pass
+    world = World(role=follower)
+
+    country = Country(world)
+    assert not country.is_initialized()
+    
+    handler = country.init_process_group(
+        backend='gloo',
+        init_method='file:///tmp/openfed.sharefile.test_country', 
+        world_size=2,
+        rank=1, 
+        store=None,
+        group_name='test_country',
+    )
+
+    while not handler():
+        time.sleep(0.1)
+    else:
+        assert True
+
+    assert country.is_initialized()
+
+    assert country.get_rank() == 1
+    assert country.get_world_size() == 2
+
+    country.build_point2point_group(rank=0)
+
+    country.destroy_process_group()
+    assert not country.is_initialized()
