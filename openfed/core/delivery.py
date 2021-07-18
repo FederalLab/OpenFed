@@ -799,7 +799,7 @@ class Maintainer(Array, SafeThread):
         return f"Build connection to {len(self.finished_queue)} addresses."
 
     def kill_world(self) -> None:
-        self.world.killed()
+        self.world.kill()
 
     def manual_stop(self, kill_world: bool = True) -> None:
         if kill_world:

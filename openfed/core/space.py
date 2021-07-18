@@ -73,7 +73,7 @@ class World(Array):
             └── Delivery-2
     """
 
-    def __init__(self, role: ROLE) -> None:
+    def __init__(self, role: str) -> None:
         """
         Args: 
             role:
@@ -86,15 +86,7 @@ class World(Array):
         self.current_pg = NULL_PG
         super().__init__(self._deliver_dict)
 
-    @classmethod
-    def clear_world(cls) -> None:
-        """Kill all world in world_list with force.
-        It is not safe to call this, but it can make you exit OpenFed env as soon as possible.
-        """
-        for world in peeper.world_dict:
-            world.killed()
-
-    def killed(self) -> None:
+    def kill(self) -> None:
         """Shout down this world with force. 
         If any delivery still uses, make them offline directly.
         """

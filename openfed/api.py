@@ -68,7 +68,7 @@ class API(SafeThread, Hook):
     current_step: str
 
     def __init__(self,
-                 role: Union[ROLE, str],
+                 role: str,
                  state_dict: Dict[str, Tensor],
                  pipe: Pipe,
                  container: Container = None,
@@ -86,8 +86,8 @@ class API(SafeThread, Hook):
         # how many times for leader waiting for connections.
         self.max_try_times: int = max_try_times
 
-        self.dal: bool = dal
-        self.role: ROLE = role
+        self.dal = dal
+        self.role = role
 
         keyboard_interrupt_handle()
 
