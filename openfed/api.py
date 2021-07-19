@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Union
 from torch import Tensor
 
 import openfed
-from openfed.common import (Address_, Hook, SafeThread, TaskInfo,
+from openfed.common import (Address, Hook, SafeThread, TaskInfo,
                             default_address, logger)
 from openfed.common.base import DeviceOffline, peeper
 from openfed.container import Container
@@ -144,7 +144,7 @@ class API(SafeThread, Hook):
         [self.delivery.register_cypher(
             hook) for hook in self._hooks_cypher if hook not in self.delivery._hook_list]
 
-    def build_connection(self, world: World = None, address: Union[Address_, List[Address_]] = None, address_file: str = None):
+    def build_connection(self, world: World = None, address: Union[Address, List[Address]] = None, address_file: str = None):
         world = world if world is not None else World(role=self.role)
 
         assert world.role == self.role

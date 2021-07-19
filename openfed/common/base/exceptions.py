@@ -44,22 +44,6 @@ class OpenFedException(Exception):
         )
 
 
-class AccessError(OpenFedException):
-    """If leader/follower cross refer to each other functions, raised.
-    """
-
-    def __init__(self, msg: Union[str,  Any] = ''):
-        super().__init__("AccessError", msg=msg)
-
-
-class ConnectionNotBuild(OpenFedException):
-    """Some operation only be available when the connection correctly built.
-    """
-
-    def __init__(self, msg: Union[str,  Any] = ''):
-        super().__init__('ConnectionNotBuild', msg=msg)
-
-
 class InvalidAddress(OpenFedException):
     """If not a valid address is given, raise it.
     """
@@ -100,28 +84,9 @@ class InvalidStoreWriting(OpenFedException):
         super().__init__("InvalidStoreWriting", msg=msg)
 
 
-class BuildDeliveryFailed(OpenFedException):
-    """This Error is raised when we failed to other ends data at
-    the initialization of Delivery.
-
-    You can try to rebuild this delivery or just to discard this delivery.
-    """
-
-    def __init__(self, msg: Union[str, Any] = ""):
-        super().__init__("BuildDeliveryFailed", msg=msg)
-
-
 class DeviceOffline(OpenFedException):
     """This error is raised when client/server is offline.
     """
 
     def __init__(self, msg: Union[str, Any] = ""):
         super().__init__("DeviceOffline", msg=msg)
-
-
-class WrongState(OpenFedException):
-    """This error is raised when client in an unexpected state.
-    """
-
-    def __init__(self, msg: Union[str, Any] = ""):
-        super().__init__("WrongState", msg=msg)

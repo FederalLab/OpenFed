@@ -27,6 +27,8 @@ from typing import Any, Dict
 
 from openfed.utils import openfed_class_fmt, tablist
 
+
+
 class TaskInfo(object):
     r"""Provide same methods for better management of task info.
     """

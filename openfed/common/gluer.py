@@ -2,8 +2,6 @@ from typing import List
 
 from openfed.utils import openfed_class_fmt, convert_to_list
 from typing import Dict, Callable
-from typing import overload
-
 
 class Gluer(object):
     def __init__(self):
@@ -71,6 +69,7 @@ def glue(inst_a,
 
     name = f"Gluer_{inst_a.__class__.__name__}_{inst_b.__class__.__name__}"
 
+    # Gluer make it enable to build the TypeC without any parameters.
     TypeC = type(name, (Gluer, TypeA, TypeB), func_dict)
     inst_c = TypeC()
 

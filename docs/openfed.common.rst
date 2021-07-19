@@ -99,10 +99,10 @@ openfed\.common\.vars module
     :undoc-members:
     :show-inheritance:
 
-openfed\.common\.wrapper module
+openfed\.common\.package module
 -------------------------------
 
-.. automodule:: openfed.common.wrapper
+.. automodule:: openfed.common.package
     :members:
     :undoc-members:
     :show-inheritance:

@@ -25,12 +25,12 @@ from typing import List
 
 import torch
 from openfed.core import ROLE, follower, leader
-from openfed.common import Buffer, Wrapper
+from openfed.common import Buffer, Package
 from openfed.utils import convert_to_list
 from typing_extensions import final
 
 
-class Penalizer(Wrapper, Buffer):
+class Penalizer(Package, Buffer):
     """The basic class for federated pipe.
 
     Most federated optimizer just rectify the gradients according to

@@ -30,9 +30,9 @@ from typing import Any, Callable, Dict, Tuple, Union
 
 import openfed
 from bidict import bidict
-from openfed.common import (ASYNC_OP, Address_, Array, Hook, Package,
+from openfed.common import (ASYNC_OP, Address, Array, Hook, Package,
                             SafeThread, TaskInfo, load_address_from_file,
-                            logger, peeper, remove_address_from_pool)
+                            logger, peeper)
 from openfed.common.base import (ConnectTimeout, DeviceOffline, InvalidAddress,
                                  InvalidStoreReading, InvalidStoreWriting)
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
@@ -643,12 +643,16 @@ class Joint(SafeThread):
     # Indicates whether the connection is established correctly.
     build_success: bool
 
-    def __init__(self, address: Address_, world: World) -> None:
+    def __init__(self, address: Address, world: World) -> None:
         super().__init__()
 
         if address.world_size == 2:
             # If this address is point to point access, set the correct rank for leader and follower.
-            address.rank = follower_rank if world.follower else leader_rank  # type: ignore
+            rank = follower_rank if world.follower else leader_rank
+            address = address._replace(rank=rank)
+        if address.world_size > 10 and address.init_method.startswith("tcp"):
+            raise InvalidAddress(
+                "Use `init_method=file:///tmp/openfed.sharefile` instead when `world_size > 10`.")
 
         self.address       = address
         self.build_success = False
@@ -664,15 +668,10 @@ class Joint(SafeThread):
         country = Country(self.world)
 
         # build the connection between the country
-        handler = country.init_process_group(**self.address.address)
+        handler = country.init_process_group(*self.address)
 
         while not handler():
             time.sleep(0.01)
-
-        world_size = self.address.world_size
-        if world_size > 10 and self.address.init_method.startswith("tcp"):
-            raise InvalidAddress(
-                "Use `init_method=file:///tmp/openfed.sharefile` instead when `world_size > 10`.")
 
         # rank is always set to 0 for that we want to build a
         # point2point connection between the master and each nodes.
@@ -699,16 +698,16 @@ class Maintainer(Array, SafeThread):
     Dynamic build the connection.
     """
     # unfinished address
-    # Address_ -> [create time, try times]
-    pending_queue: Dict[Address_, Tuple[float, int]]
+    # Address -> [create time, try times]
+    pending_queue: Dict[Address, Tuple[float, int]]
 
     # finished address
-    # Address_ -> [connection time, try times]
-    finished_queue: Dict[Address_, Tuple[float, int]]
+    # Address -> [connection time, try times]
+    finished_queue: Dict[Address, Tuple[float, int]]
 
     # discard address
-    # Address_ -> [discarded time, try times]
-    discard_queue: Dict[Address_, Tuple[float, int]]
+    # Address -> [discarded time, try times]
+    discard_queue: Dict[Address, Tuple[float, int]]
 
     mt_lock: Lock
     # The shared information among all country in this maintainer.
@@ -718,7 +717,7 @@ class Maintainer(Array, SafeThread):
 
     def __init__(self,
                  world           : World,
-                 address         : Address_ = None,
+                 address         : Address = None,
                  address_file    : str      = None,
                  max_try_times   : int      = 5,
                  interval_seconds: float    = 10) -> None: 
@@ -728,9 +727,7 @@ class Maintainer(Array, SafeThread):
         SafeThread.__init__(self)
         self.address_file = address_file
 
-        address_list = convert_to_list(address)
-        self.pending_queue = {address: (time.time(), 0)
-                              for address in address_list} if address_list is not None else {}
+        self.pending_queue = {address: (time.time(), 0)} if address is not None else {}
         Array.__init__(self, self.pending_queue)
 
         self.finished_queue  = dict()
@@ -770,8 +767,6 @@ class Maintainer(Array, SafeThread):
                 ...
             elif address in self.discard_queue:
                 logger.error(f"Discarded!\nInvalid address: {address}.")
-                # Remove this invalid address from address_pool
-                remove_address_from_pool(address)
             else:
                 # add address to pending queue
                 with self:
@@ -837,7 +832,7 @@ class Maintainer(Array, SafeThread):
         del_mt_lock(self)
         super().manual_stop()
 
-    def manual_joint(self, address: Address_) -> None:
+    def manual_joint(self, address: Address) -> None:
         if not openfed.DAL.is_dal and self.world.leader:
             raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
 

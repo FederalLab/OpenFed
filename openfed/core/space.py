@@ -338,11 +338,11 @@ class Country(object):
     def init_process_group(self,
                            backend    : Union[str, Backend],
                            init_method: str = None,
-                           timeout    : timedelta = DEFAULT_PG_TIMEOUT,
                            world_size : int = -1,
                            rank       : int = -1,
                            store      : Store = None,
-                           group_name : str = '') -> Callable         : 
+                           group_name : str = '',
+                           timeout    : timedelta = DEFAULT_PG_TIMEOUT) -> Callable         : 
         """
         Initializes the default distributed process group, and this will also
         initialize the distributed package.

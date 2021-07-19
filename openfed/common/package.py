@@ -73,3 +73,32 @@ class Package(object):
         """Implement it in subclass if needed.
         """
         raise NotImplementedError
+
+    _pack_key_list: List[str]
+    _unpack_key_list: List[str]
+
+    @property
+    def pack_key_list(self):
+        if not hasattr(self, '_pack_key_list'):
+            self._pack_key_list = list()
+        return self._pack_key_list
+
+    @property
+    def unpack_key_list(self):
+        if not hasattr(self, '_unpack_key_list'):
+            self._unpack_key_list = list()
+        return self._unpack_key_list
+
+    def add_pack_key(self, key: Union[str, List[str]]) -> None:
+        key = convert_to_list(key)
+        for k in key:
+            if k in self.pack_key_list:
+                raise KeyError(f"{k} is already registered.")
+            self.pack_key_list.append(k)
+
+    def add_unpack_key(self, key: Union[str, List[str]]) -> None:
+        key = convert_to_list(key)
+        for k in key:
+            if k in self.unpack_key_list:
+                raise KeyError(f"{k} is already registered.")
+            self.unpack_key_list.append(k)
