@@ -282,7 +282,7 @@ class Delivery(Hook, Package):
             return self.transfer(to=False)
 
     @classmethod
-    def delivery_generator(cls):
+    def delivery_generator(cls) -> Any:
         """Return a generator to iterate over all delivery.
         """
         for delivery, _ in delivery_array:
