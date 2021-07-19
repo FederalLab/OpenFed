@@ -18,7 +18,7 @@ class Gluer(object):
 
 def glue(inst_a,
          inst_b,
-         parall_func_list: List[str] = None,
+         parall_func_list: List[str]           = None,
          parall_func_dict: Dict[str, Callable] = None):
     """Glue inst_a of TypeA with inst_b of TypeB, return a new inst_c of TypeC.
     Args:
@@ -45,8 +45,8 @@ def glue(inst_a,
         parall_func_dict.update(
             {k: None for k in parall_func_list})  # type: ignore
 
-    TypeA = type(inst_a)
-    TypeB = type(inst_b)
+    TypeA     = type(inst_a)
+    TypeB     = type(inst_b)
     func_dict = dict()
     if parall_func_dict is not None:
         for func_name, func_impl in parall_func_dict.items():

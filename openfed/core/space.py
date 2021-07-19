@@ -80,10 +80,10 @@ class World(Array):
         """
         peeper.world_dict[self] = time_string()
         self.ALIVE = True
-        self.role = role
+        self.role  = role
 
         self._deliver_dict = dict()  # [Delivery -> Create Time]
-        self.current_pg = NULL_PG
+        self.current_pg    = NULL_PG
         super().__init__(self._deliver_dict)
 
     def kill(self) -> None:
@@ -336,13 +336,13 @@ class Country(object):
         return pg_store[1]  # type: ignore
 
     def init_process_group(self,
-                           backend: Union[str, Backend],
+                           backend    : Union[str, Backend],
                            init_method: str = None,
-                           timeout: timedelta = DEFAULT_PG_TIMEOUT,
-                           world_size: int = -1,
-                           rank: int = -1,
-                           store: Store = None,
-                           group_name: str = '') -> Callable:
+                           timeout    : timedelta = DEFAULT_PG_TIMEOUT,
+                           world_size : int = -1,
+                           rank       : int = -1,
+                           store      : Store = None,
+                           group_name : str = '') -> Callable         : 
         """
         Initializes the default distributed process group, and this will also
         initialize the distributed package.
@@ -487,13 +487,13 @@ class Country(object):
         return handler
 
     def _new_process_group_helper(self,
-                                  world_size: int,
-                                  rank: int,
+                                  world_size : int,
+                                  rank       : int,
                                   group_ranks: int,
-                                  backend: Union[str, Backend],
-                                  store: Store,
-                                  group_name: str = None,
-                                  timeout: timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup:
+                                  backend    : Union[str, Backend],
+                                  store      : Store,
+                                  group_name : str = None,
+                                  timeout    : timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup: 
         """
         Create a new distributed process group.
 
@@ -688,9 +688,9 @@ class Country(object):
             )
 
     def barrier(self,
-                group: ProcessGroup = None,
-                async_op: bool = False,
-                device_ids: int = None):
+                group     : ProcessGroup = None,
+                async_op  : bool         = False,
+                device_ids: int          = None):
         """
         Synchronizes all processes.
 
@@ -736,10 +736,10 @@ class Country(object):
             work.wait()
 
     def new_group(self,
-                  ranks: int = None,
-                  timeout: timedelta = DEFAULT_PG_TIMEOUT,
-                  backend: Union[str, Backend] = None,
-                  group_name: str = None) -> ProcessGroup:
+                  ranks     : int                 = None,
+                  timeout   : timedelta           = DEFAULT_PG_TIMEOUT,
+                  backend   : Union[str, Backend] = None,
+                  group_name: str                 = None) -> ProcessGroup:
         """
         Creates a new distributed group.
 
@@ -837,8 +837,8 @@ class Country(object):
         return pg
 
     def build_point2point_group(self,
-                                rank: int = 0,
-                                timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                                rank   : int                 = 0,
+                                timeout: timedelta           = DEFAULT_PG_TIMEOUT,
                                 backend: Union[str, Backend] = None) -> List[ProcessGroup]:
         """Build point2point group, :param:rank will be regarded as new rank=leader_rank and connect to other rank in this world.
 
@@ -882,8 +882,10 @@ openfed_lock = Lock()
 def add_mt_lock(maintainer):
     peeper.mt_locks[maintainer] = maintainer.lock
 
+
 def del_mt_lock(maintainer):
     del peeper.mt_locks[maintainer]
+
 
 def acquire_all():
     for mt_lock in peeper.mt_locks:

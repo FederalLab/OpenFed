@@ -69,7 +69,7 @@ class Array(object):
         # Rectify index
         index = len(self) - 1 if index > len(self) else index
 
-        self.current_keys = self.keys[index] if index < len(self) else None
+        self.current_keys   = self.keys[index] if index < len(self) else None
         self.current_values = self.values[index] if index < len(self) else None
 
         return self.current_keys, self.current_values

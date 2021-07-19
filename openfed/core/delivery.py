@@ -45,12 +45,14 @@ from torch._C._distributed_c10d import Work
 
 from .const import *
 from .functional import gather_object
-from .space import Country, ProcessGroup, Store, World, add_mt_lock, del_mt_lock
+from .space import (Country, ProcessGroup, Store, World, add_mt_lock,
+                    del_mt_lock)
 
 rw = RandomWords()
 
 peeper.delivery_dict = dict()
-delivery_array = Array(peeper.delivery_dict)
+delivery_array       = Array(peeper.delivery_dict)
+
 
 def safe_store_set(store: Store, key: str, value: Dict) -> bool:
     jsonstr = json.dumps(value)
@@ -90,17 +92,17 @@ def fresh_read(func):
 class Delivery(Hook, Package):
     """Contains all communication functions in Delivery.
     """
-    world: World
+    world  : World
     country: Country
-    pg: ProcessGroup
-    store: Store
+    pg     : ProcessGroup
+    store  : Store
 
     # handler, step function, timestamp
     _download_hang_up: Tuple[Work, Callable, int]
-    _upload_hang_up: Tuple[Work, Callable, int]
+    _upload_hang_up  : Tuple[Work, Callable, int]
 
     download_hang_up: bool
-    upload_hang_up: bool
+    upload_hang_up  : bool
 
     # Sometimes, the read operation will be failed for unknown reasons.
     # Essentially when we do simulation experiments on a single node.
@@ -115,32 +117,41 @@ class Delivery(Hook, Package):
     fresh_read: bool
 
     # do not set this manually!
-    _nick_name: str
+    _nick_name       : str
     key_tensor_bidict: bidict
-    packages: Dict[str, Dict[str, Tensor]]
+    packages         : Dict[str, Dict[str, Tensor]]
 
     def __init__(self,
-                 store: Store,
-                 pg: ProcessGroup,
+                 store  : Store,
+                 pg     : ProcessGroup,
                  country: Country,
                  ) -> None:
-        self.pg = pg
-        self.store = store
+        self.pg      = pg
+        self.store   = store
         self.country = country
-        self.world = country.world
+        self.world   = country.world
 
         # set nick name first!
         if self.world.leader:
-            safe_store_set(store=self.store,
-                           key=nick_name,
-                           value=rw.random_word())
-        self.nick_name = safe_store_get(store=self.store, key=nick_name)
+            safe_store_set(
+                store = self.store,
+                key   = nick_name,
+                value = rw.random_word()
+            )
+        self.nick_name = safe_store_get(
+            store = self.store,
+            key   = nick_name
+        )
 
         # write self._i_key to initialize the key value store.
-        safe_store_set(store=self.store,
-                       key=self._i_key,
-                       value={openfed_status: zombie,
-                              openfed_task_info: TaskInfo().info_dict})
+        safe_store_set(
+            store = self.store,
+            key   = self._i_key,
+            value = {
+                openfed_status   : zombie,
+                openfed_task_info: TaskInfo().info_dict
+            }
+        )
 
         # Fetch data at last
         # try to read _u_key from the other end to make sure it is online.
@@ -155,14 +166,15 @@ class Delivery(Hook, Package):
 
         # Run at the initialize state.
         self.collect()
-        self.fresh_read = True
 
+        self.fresh_read        = True
         self.key_tensor_bidict = bidict()
-        self.packages = defaultdict(dict)
+        self.packages          = defaultdict(dict)
+        
         self.register_cypher(FormatCheck())
 
         self.download_hang_up: bool = False
-        self.upload_hang_up: bool = False
+        self.upload_hang_up  : bool = False
 
         peeper.delivery_dict[self] = time_string()
 
@@ -175,10 +187,10 @@ class Delivery(Hook, Package):
         return self.get("download_version")
 
     def transfer(self,
-                 to: bool,
-                 handler: Any = None,
-                 tic: float = None,
-                 step_func: Callable = None) -> bool:
+                 to       : bool,
+                 handler  : Any = None,
+                 tic      : float = None,
+                 step_func: Callable = None) -> bool: 
         """
         Args:
             to: it true, transfer data to other side.
@@ -233,8 +245,11 @@ class Delivery(Hook, Package):
         else:
             return False
 
-        if not self.transfer(to=to, handler=handler,
-                             tic=tic, step_func=step_func):
+        if not self.transfer(
+            to        = to,
+            handler   = handler,
+            tic       = tic,
+            step_func = step_func):
             return False
 
         if handler.is_completed():
@@ -325,7 +340,7 @@ class Delivery(Hook, Package):
         """
         try:
             self._u_backup_info = safe_store_get(self.store, self._u_key)
-            self.fresh_read = True
+            self.fresh_read     = True
         except InvalidStoreReading as e:
             logger.debug(e)
             # use the cached one instead.
@@ -493,7 +508,7 @@ class Delivery(Hook, Package):
             key = self.key_name(key)
 
         package = self.packages[key]
-        rdict = {k: package[k] for k in rdict}
+        rdict   = {k: package[k] for k in rdict}
 
         return rdict
 
@@ -503,7 +518,8 @@ class Delivery(Hook, Package):
         """
         return {self.key_tensor(k): v for k, v in self.packages.items()}
 
-    def pull(self, auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Work, Callable]]:
+    def pull(self, 
+        auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Work, Callable]]:
         """Pull data from the other end. 
         After received data, Follower will load `param` to Tensor by an in-place operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
@@ -513,10 +529,10 @@ class Delivery(Hook, Package):
 
         received = [None for _ in range(self.country.get_world_size())]
 
-        rank = leader_rank if self.world.leader else follower_rank
+        rank       = leader_rank if self.world.leader else follower_rank
         other_rank = follower_rank if self.world.leader else leader_rank
 
-        rank = self.country._get_global_rank(self.pg, rank)
+        rank       = self.country._get_global_rank(self.pg, rank)
         other_rank = self.country._get_global_rank(self.pg, other_rank)
 
         def _op_after_gather(*args):
@@ -537,12 +553,12 @@ class Delivery(Hook, Package):
             return r_packages
 
         returns = gather_object(
-            None, 
+            None,
             received,
-            dst=rank,
-            group=self.pg,
-            async_op=ASYNC_OP.is_async_op,
-            country=self.country)
+            dst      = rank,
+            group    = self.pg,
+            async_op = ASYNC_OP.is_async_op,
+            country  = self.country)
 
         if ASYNC_OP.is_async_op:
             handler, step_func = returns  # type: ignore
@@ -567,21 +583,25 @@ class Delivery(Hook, Package):
                         for k, v in packages.items()}
 
         return gather_object(
-            packages, 
+            packages,
             None,
-            dst=rank,
-            group=self.pg,
-            async_op=ASYNC_OP.is_async_op,
-            country=self.country)
+            dst      = rank,
+            group    = self.pg,
+            async_op = ASYNC_OP.is_async_op,
+            country  = self.country)
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="Delivery",
             description=tablist(
-                head=["Nick Name", "Upload Version",
-                      "Download Version", "Status"],
-                data=[self.nick_name, self.upload_version,
-                      self.download_version, self._get_state()],
+                head=["Nick Name", 
+                      "Upload Version",
+                      "Download Version", 
+                      "Status"],
+                data=[self.nick_name, 
+                      self.upload_version,
+                      self.download_version, 
+                      self._get_state()],
             )
         )
 
@@ -591,8 +611,8 @@ class Destroy(object):
     """
     @classmethod
     def destroy_delivery(cls, delivery: Delivery):
-        world = delivery.world
-        pg = delivery.pg
+        world   = delivery.world
+        pg      = delivery.pg
         country = delivery.country
 
         if pg == world.current_pg:
@@ -630,9 +650,9 @@ class Joint(SafeThread):
             # If this address is point to point access, set the correct rank for leader and follower.
             address.rank = follower_rank if world.follower else leader_rank  # type: ignore
 
-        self.address = address
+        self.address       = address
         self.build_success = False
-        self.world = world
+        self.world         = world
 
         self.start()
 
@@ -659,14 +679,15 @@ class Joint(SafeThread):
         # If the address is a point2point one, we should use the leader rank.
         # If the address is a shared multi-node one, we take the rank 0 as the leader rank.
         # And the re-arranged rank will be set to the ideal rank order in function call.
-        sub_pg_list = country.build_point2point_group(rank=leader_rank if country.get_world_size() == 2 else 0)
+        sub_pg_list = country.build_point2point_group(
+            rank=leader_rank if country.get_world_size() == 2 else 0)
 
         # bound pg with the country
         for sub_pg in sub_pg_list:
             delivery = Delivery(
-                store=country.get_store(sub_pg),
-                pg=sub_pg,
-                country=country)
+                store   = country.get_store(sub_pg),
+                pg      = sub_pg,
+                country = country)
             with self.world:
                 self.world._deliver_dict[delivery] = time_string()
         self.build_success = True
@@ -696,11 +717,11 @@ class Maintainer(Array, SafeThread):
     abnormal_exited: bool
 
     def __init__(self,
-                 world: World,
-                 address: Address_ = None,
-                 address_file: str = None,
-                 max_try_times: int = 5,
-                 interval_seconds: float = 10) -> None:
+                 world           : World,
+                 address         : Address_ = None,
+                 address_file    : str      = None,
+                 max_try_times   : int      = 5,
+                 interval_seconds: float    = 10) -> None: 
         """
             Only a single valid address is allowed in client.
         """
@@ -712,11 +733,11 @@ class Maintainer(Array, SafeThread):
                               for address in address_list} if address_list is not None else {}
         Array.__init__(self, self.pending_queue)
 
-        self.finished_queue = dict()
-        self.discard_queue = dict()
+        self.finished_queue  = dict()
+        self.discard_queue   = dict()
         self.abnormal_exited = False
 
-        self.max_try_times = max_try_times
+        self.max_try_times    = max_try_times
         self.interval_seconds = interval_seconds
 
         add_mt_lock(self)
@@ -830,7 +851,9 @@ class Maintainer(Array, SafeThread):
         return openfed_class_fmt.format(
             class_name="Maintainer",
             description=tablist(
-                head=["Pending", "Finished", "Discard"],
+                head=["Pending", 
+                      "Finished", 
+                      "Discard"],
                 data=[len(self.pending_queue),
                       len(self.finished_queue),
                       len(self.discard_queue)],

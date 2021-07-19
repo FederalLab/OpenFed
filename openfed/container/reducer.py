@@ -44,8 +44,8 @@ class AutoReducer(Reducer):
     """
 
     def __init__(self,
-                 weight_key: str = None,
-                 reduce_keys: Union[str, List[str]] = None,
+                 weight_key     : str                   = None,
+                 reduce_keys    : Union[str, List[str]] = None,
                  additional_keys: Union[str, List[str]] = None):
         """
         Args:
@@ -56,14 +56,14 @@ class AutoReducer(Reducer):
                 we will keep these keys in the reduced task info.
         """
         super().__init__()
-        self.weight_key = weight_key
-        self.reduce_keys = convert_to_list(reduce_keys)
+        self.weight_key      = weight_key
+        self.reduce_keys     = convert_to_list(reduce_keys)
         self.additional_keys = convert_to_list(additional_keys)
 
     def reduce(self) -> TaskInfo:
         task_info_list = self.task_info_buffer
-        rdict = defaultdict(lambda: 0.0)
-        task_info = task_info_list[0].info_dict
+        rdict          = defaultdict(lambda: 0.0)
+        task_info      = task_info_list[0].info_dict
         if self.weight_key is not None:
             assert self.weight_key in task_info, "weight key is not contained in task info."
 

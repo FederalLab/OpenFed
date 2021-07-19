@@ -68,7 +68,7 @@ class Agg(Package, Wrapper, Buffer):
         # add info_keys to defaults
         defaults['info_keys'] = convert_to_list(info_keys)
         defaults['pipe_keys'] = convert_to_list(pipe_keys)
-        defaults['keep_keys']  = convert_to_list(keep_keys)
+        defaults['keep_keys'] = convert_to_list(keep_keys)
         defaults['legacy'] = legacy
 
         self.defaults = defaults

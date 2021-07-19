@@ -30,7 +30,7 @@ def test_country_leader():
     
     handler = country.init_process_group(
         backend='gloo',
-        init_method='file:///tmp/openfed.sharefile.test_country', 
+        init_method='tcp://localhost:1996', 
         world_size=2,
         rank=0, 
         store=None,
@@ -61,7 +61,7 @@ def test_country_follower():
     
     handler = country.init_process_group(
         backend='gloo',
-        init_method='file:///tmp/openfed.sharefile.test_country', 
+        init_method='tcp://localhost:1996', 
         world_size=2,
         rank=1, 
         store=None,

@@ -10,7 +10,7 @@ def test_functional_leader():
     
     handler = country.init_process_group(
         backend='gloo',
-        init_method='file:///tmp/openfed.sharefile.test_functional', 
+        init_method='tcp://localhost:1997', 
         world_size=2,
         rank=0, 
         store=None,
@@ -26,14 +26,12 @@ def test_functional_leader():
     handler = isend(
         tensor,
         dst=1,
-        tag=0,
         country=country,
-        global_rank=True,
     )
     handler.wait()
 
-    tensor = torch.zeros(0)
-    recv(tensor, src=1, country=country, global_rank=True)
+    tensor = torch.zeros(1)
+    recv(tensor, src=1, country=country)
     assert tensor.item() == 1
 
 def test_functional_follower():
@@ -41,10 +39,10 @@ def test_functional_follower():
 
     country = Country(world)
     assert not country.is_initialized()
-    
+
     handler = country.init_process_group(
         backend='gloo',
-        init_method='file:///tmp/openfed.sharefile.test_functional', 
+        init_method='tcp://localhost:1997', 
         world_size=2,
         rank=1, 
         store=None,
@@ -60,12 +58,10 @@ def test_functional_follower():
     handler = irecv(
         tensor,
         src=0,
-        tag=0,
         country=country,
-        global_rank=True,
     )
     handler.wait()
     assert tensor.item() == 0
 
     tensor = torch.ones(1)
-    send(tensor, dst=0, country=country, global_rank=True)
+    send(tensor, dst=0, country=country)
