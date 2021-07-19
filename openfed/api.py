@@ -212,7 +212,7 @@ class API(SafeThread, Hook):
                      for container in self.container]
 
                 if task_info is not None:
-                    task_info.load_dict(self.delivery_task_info.info_dict)
+                    task_info.update(self.delivery_task_info)
 
         # 7. hand on
         if flag:
@@ -269,7 +269,7 @@ class API(SafeThread, Hook):
 
         try_times = 0
         while not self.stopped:
-            with self.maintainer:
+            with self.maintainer.pending_queue:
                 step(at_new_episode)
                 cnt = 0
                 for delivery in Delivery.delivery_generator():

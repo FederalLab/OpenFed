@@ -406,12 +406,11 @@ class Dispatch(MultiStep):
             self.running_queue[part_id] = (leader.nick_name, time.time())
 
             # generate task_info
-            task_info = TaskInfo()
-            task_info.part_id = part_id  # type: ignore
-            task_info.version = leader.version  # type: ignore
-            # opside with self.train
-            task_info.train = self.train  # type: ignore
-
+            task_info = TaskInfo(
+                part_id=part_id,
+                version=leader.version,
+                train=self.train,
+            )
             # set task_info
             leader.delivery_task_info = task_info
 

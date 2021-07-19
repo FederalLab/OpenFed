@@ -32,7 +32,7 @@ from enum import Enum, unique
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from openfed.common import Array, logger
+from openfed.common import ArrayDict, logger
 from openfed.common.base import ConnectTimeout, peeper
 from openfed.utils import openfed_class_fmt, time_string
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
@@ -63,7 +63,7 @@ except ImportError as e:
 peeper.world_dict = dict()
 
 
-class World(Array):
+class World():
     """Relation map between World, Country and Delivery:
         World: n master, varied roles
         ├── Country-a: singe master, n client
@@ -82,15 +82,14 @@ class World(Array):
         self.ALIVE = True
         self.role  = role
 
-        self._deliver_dict = dict()  # [Delivery -> Create Time]
+        self._delivery_dict = ArrayDict()  # [Delivery -> Create Time]
         self.current_pg    = NULL_PG
-        super().__init__(self._deliver_dict)
 
     def kill(self) -> None:
         """Shout down this world with force. 
         If any delivery still uses, make them offline directly.
         """
-        for delivery in self._deliver_dict:
+        for delivery in self._delivery_dict:
             delivery.offline()
         else:
             self.ALIVE = False
@@ -105,7 +104,7 @@ class World(Array):
 
     @property
     def default_delivery(self):
-        return self.default_key
+        return self._delivery_dict.default_key
 
     @property
     def default_pg(self) -> ProcessGroup:
@@ -880,7 +879,7 @@ openfed_lock = Lock()
 
 
 def add_mt_lock(maintainer):
-    peeper.mt_locks[maintainer] = maintainer.lock
+    peeper.mt_locks[maintainer] = maintainer.pending_queue._lock
 
 
 def del_mt_lock(maintainer):
@@ -888,12 +887,12 @@ def del_mt_lock(maintainer):
 
 
 def acquire_all():
-    for mt_lock in peeper.mt_locks:
-        mt_lock.lock.acquire()
+    for mt_lock in peeper.mt_locks.values():
+        mt_lock.acquire()
     openfed_lock.acquire()
 
 
 def release_all():
-    for mt_lock in peeper.mt_locks:
-        mt_lock.lock.release()
+    for mt_lock in peeper.mt_locks.values():
+        mt_lock.release()
     openfed_lock.release()

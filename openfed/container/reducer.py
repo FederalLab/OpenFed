@@ -63,21 +63,20 @@ class AutoReducer(Reducer):
     def reduce(self) -> TaskInfo:
         task_info_list = self.task_info_buffer
         rdict          = defaultdict(lambda: 0.0)
-        task_info      = task_info_list[0].info_dict
+        task_info      = task_info_list[0]
         if self.weight_key is not None:
             assert self.weight_key in task_info, "weight key is not contained in task info."
 
-            demo = sum([ti.info_dict[self.weight_key]
+            demo = sum([ti[self.weight_key]
                        for ti in task_info_list])
             rdict[self.weight_key] = demo
-            weight = [ti.info_dict[self.weight_key] /
+            weight = [ti[self.weight_key] /
                       demo for ti in task_info_list]
         else:
             weight = [1.0/len(task_info_list)
                       for _ in range(len(task_info_list))]
 
         for w, ti in zip(weight, task_info_list):
-            ti = ti.info_dict
             for k, v in ti.items():
                 if k == self.weight_key:
                     # skip weight key
@@ -90,15 +89,15 @@ class AutoReducer(Reducer):
                 else:
                     pass
 
-        r_task_info = TaskInfo()
+        r_task_info = {}
         if self.additional_keys is not None:
             for k in self.additional_keys:
-                r_task_info.load_dict({k: task_info[k]})
+                r_task_info.update({k: task_info[k]})
 
         # Clear buffers
         self.task_info_buffer = []
 
-        return r_task_info.load_dict(rdict)
+        return TaskInfo(**r_task_info, **rdict)
 
 
 reducers = [Reducer, AutoReducer]

@@ -284,7 +284,7 @@ class Agg(Package, Buffer):
 
     def _check_defaults_keys(self, info_keys: List[str], received_info: TaskInfo):
         for key in info_keys:
-            if key not in received_info.info_dict:
+            if key not in received_info:
                 raise KeyError(f"{key} is needed, but not returned.")
 
     def aggregate(self, clear_buffer: bool = True):

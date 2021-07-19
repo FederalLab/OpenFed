@@ -38,9 +38,6 @@ Address = namedtuple('Address',
                      defaults=['gloo', 'env://', 2, -1, None, 'openfed'
                                ])
 
-
-
-
 parser = argparse.ArgumentParser("OpenFed")
 
 # Add parser to address

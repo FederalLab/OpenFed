@@ -30,7 +30,7 @@ from typing import Any, Callable, Dict, Tuple, Union
 
 import openfed
 from bidict import bidict
-from openfed.common import (ASYNC_OP, Address, Array, Hook, Package,
+from openfed.common import (ASYNC_OP, Address, ArrayDict, Hook, Package,
                             SafeThread, TaskInfo, load_address_from_file,
                             logger, peeper)
 from openfed.common.base import (ConnectTimeout, DeviceOffline, InvalidAddress,
@@ -50,8 +50,7 @@ from .space import (Country, ProcessGroup, Store, World, add_mt_lock,
 
 rw = RandomWords()
 
-peeper.delivery_dict = dict()
-delivery_array       = Array(peeper.delivery_dict)
+peeper.delivery_dict = ArrayDict()
 
 
 def safe_store_set(store: Store, key: str, value: Dict) -> bool:
@@ -149,7 +148,7 @@ class Delivery(Hook, Package):
             key   = self._i_key,
             value = {
                 openfed_status   : zombie,
-                openfed_task_info: TaskInfo().info_dict
+                openfed_task_info: TaskInfo(),
             }
         )
 
@@ -300,7 +299,7 @@ class Delivery(Hook, Package):
     def delivery_generator(cls) -> Any:
         """Return a generator to iterate over all delivery.
         """
-        for delivery, _ in delivery_array:
+        for delivery, _ in peeper.delivery_dict:
             yield [] if delivery is None else delivery
             if delivery is not None:
                 delivery.world.current_pg = delivery.pg
@@ -311,7 +310,7 @@ class Delivery(Hook, Package):
     def default_delivery(cls) -> Any:
         """Return the only delivery. If more then one, raise warning.
         """
-        for delivery, _ in delivery_array:
+        for delivery, _ in peeper.delivery_dict:
             return delivery
 
     @property
@@ -363,10 +362,10 @@ class Delivery(Hook, Package):
     @property
     @fresh_read
     def task_info(self) -> TaskInfo:
-        return TaskInfo().load_dict(self.get(openfed_task_info))
+        return TaskInfo(**self.get(openfed_task_info))
 
     def set_task_info(self, task_info: TaskInfo):
-        self.set(openfed_task_info, task_info.info_dict)
+        self.set(openfed_task_info, task_info)
 
     def _get_state(self) -> str:
         return self.get(openfed_status)
@@ -619,7 +618,7 @@ class Destroy(object):
             world.current_pg = NULL_PG
 
         delivery.offline()
-        del world._deliver_dict[delivery]
+        del world._delivery_dict[delivery]
         del peeper.delivery_dict[delivery]
 
         country.destroy_process_group(pg)
@@ -687,19 +686,19 @@ class Joint(SafeThread):
                 store   = country.get_store(sub_pg),
                 pg      = sub_pg,
                 country = country)
-            with self.world:
-                self.world._deliver_dict[delivery] = time_string()
+            with self.world._delivery_dict:
+                self.world._delivery_dict[delivery] = time_string()
         self.build_success = True
         return f"Connected to {self.address}"
 
 
-class Maintainer(Array, SafeThread):
+class Maintainer(SafeThread):
     """
     Dynamic build the connection.
     """
     # unfinished address
     # Address -> [create time, try times]
-    pending_queue: Dict[Address, Tuple[float, int]]
+    pending_queue: ArrayDict
 
     # finished address
     # Address -> [connection time, try times]
@@ -726,9 +725,9 @@ class Maintainer(Array, SafeThread):
         """
         SafeThread.__init__(self)
         self.address_file = address_file
-
-        self.pending_queue = {address: (time.time(), 0)} if address is not None else {}
-        Array.__init__(self, self.pending_queue)
+        self.pending_queue = ArrayDict()
+        if address is not None:
+            self.pending_queue[address] = [time.time(), 0]
 
         self.finished_queue  = dict()
         self.discard_queue   = dict()
@@ -748,10 +747,10 @@ class Maintainer(Array, SafeThread):
             if not openfed.DAL.is_dal:
                 self.join()
         else:
-            assert len(self) == 1, "Only single address is allowed."
-            address, (create_time, try_times) = self[0]
+            assert len(self.pending_queue) == 1, "Only single address is allowed."
+            address, (create_time, try_times) = self.pending_queue[0]
             Joint(address, self.world)
-            with self:
+            with self.pending_queue:
                 del self.pending_queue[address]
             self.finished_queue[address] = (time.time(), try_times+1)
 
@@ -769,7 +768,7 @@ class Maintainer(Array, SafeThread):
                 logger.error(f"Discarded!\nInvalid address: {address}.")
             else:
                 # add address to pending queue
-                with self:
+                with self.pending_queue:
                     self.pending_queue[address] = (time.time(), 0)
 
     def safe_run(self) -> str:
@@ -778,7 +777,7 @@ class Maintainer(Array, SafeThread):
             # update pending list
             self.read_address_from_file()
             # Create new Joint for new address
-            for address, (last_time, try_times) in self:
+            for address, (last_time, try_times) in self.pending_queue:
                 if address not in joint_map:
                     joint_map[address] = Joint(address, self.world)
 
@@ -792,7 +791,7 @@ class Maintainer(Array, SafeThread):
                     if joint.build_success:
                         self.finished_queue[address] = (
                             time.time(), try_times + 1)
-                        with self:
+                        with self.pending_queue:
                             del self.pending_queue[address]
                         rm_address.append((address))
                     else:
@@ -804,11 +803,11 @@ class Maintainer(Array, SafeThread):
                             # Move to discard_queue
                             self.discard_queue[address] = (
                                 time.time(), try_times)
-                            with self:
+                            with self.pending_queue:
                                 del self.pending_queue[address]
                             break
                         else:
-                            with self:
+                            with self.pending_queue:
                                 self.pending_queue[address] = (
                                     time.time(), try_times)
             for address in rm_address:
@@ -837,7 +836,7 @@ class Maintainer(Array, SafeThread):
             raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
 
         if self.world.leader:
-            with self:
+            with self.pending_queue:
                 self.pending_queue[address] = (time.time(), 0)
         else:
             Joint(address, self.world)
