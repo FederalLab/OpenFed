@@ -466,7 +466,7 @@ class Country(object):
             return lambda: True
 
         tmp_timeout = timedelta(
-            seconds=0.5) if rank == 0 else timedelta(minutes=30)
+            seconds=0.5) if rank == 1 else timedelta(minutes=30)
 
         def init_store(rank, world_size):
             rendezvous_iterator = rendezvous(
@@ -480,7 +480,7 @@ class Country(object):
             # whatever the backend is, we need a store to exchange information.
             try:
                 callback(*init_store(rank, world_size))
-            except TimeoutError as e:
+            except Exception as e:
                 return False
             return True
 
@@ -840,7 +840,7 @@ class Country(object):
                                 rank: int = 0,
                                 timeout: timedelta = DEFAULT_PG_TIMEOUT,
                                 backend: Union[str, Backend] = None) -> List[ProcessGroup]:
-        """Build point2point group, :param:rank will be regarded as new rank=0 and connect to other rank in this world.
+        """Build point2point group, :param:rank will be regarded as new rank=leader_rank and connect to other rank in this world.
 
         .. note::
             Only build this if you really need it. Otherwise, please use new_group() to build single one.
@@ -856,8 +856,9 @@ class Country(object):
                 # skip self to self connection
                 continue
             else:
+                ranks = [other, rank] if follower_rank == 0 else [rank, other]
                 pg = self.new_group(
-                    ranks=[rank, other],
+                    ranks=ranks,
                     timeout=timeout,
                     backend=backend,
                     group_name=f"point2point-{rank}-{other}", )

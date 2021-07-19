@@ -626,9 +626,9 @@ class Joint(SafeThread):
     def __init__(self, address: Address_, world: World) -> None:
         super().__init__()
 
-        if address.rank == -1:
-            assert address.world_size == 2, InvalidAddress(address)
-            address.rank = 1 if world.follower else 0  # type: ignore
+        if address.world_size == 2:
+            # If this address is point to point access, set the correct rank for leader and follower.
+            address.rank = follower_rank if world.follower else leader_rank  # type: ignore
 
         self.address = address
         self.build_success = False
@@ -656,7 +656,10 @@ class Joint(SafeThread):
 
         # rank is always set to 0 for that we want to build a
         # point2point connection between the master and each nodes.
-        sub_pg_list = country.build_point2point_group(rank=0)
+        # If the address is a point2point one, we should use the leader rank.
+        # If the address is a shared multi-node one, we take the rank 0 as the leader rank.
+        # And the re-arranged rank will be set to the ideal rank order in function call.
+        sub_pg_list = country.build_point2point_group(rank=leader_rank if country.get_world_size() == 2 else 0)
 
         # bound pg with the country
         for sub_pg in sub_pg_list:
