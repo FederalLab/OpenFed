@@ -23,11 +23,11 @@
 
 import time
 from copy import copy
-from threading import Lock
+from threading import Lock, Thread
 from typing import Any, Dict, List, Union
 
 from torch import Tensor
-from threading import Thread
+
 import openfed
 from openfed.common import (Address, DeviceOffline, Hook, TaskInfo,
                             default_address, logger, peeper)
@@ -79,8 +79,6 @@ class API(Thread, Hook):
         """
         super().__init__(daemon=True)
         self.world = world
-        self.role = world.role
-        self.max_try_times = world.max_try_times
 
         # how many times for leader waiting for connections.
 
@@ -257,7 +255,7 @@ class API(Thread, Hook):
                 return True
 
         try_times = 0
-        while not self.stopped and try_times < self.max_try_times:
+        while not self.stopped and try_times < self.world.mtt:
             with self.maintainer.pending_queue:
                 step(at_new_episode)
                 cnt = 0
@@ -298,25 +296,13 @@ class API(Thread, Hook):
                     # sleep a short time is very import!
                     # otherwise, some states may be rewrite.
                     time.sleep(0.1)
-
-            try_times = 0 if cnt else try_times + 1
-
             if cnt == 0:
-                logger.info(
-                    f"Empty delivery, waiting {try_times}/{self.max_try_times}...")
                 time.sleep(5.0)
-
-            # left some time to maintainer lock
-            time.sleep(0.1)
+                try_times  += 1
+            else:
+                time.sleep(0.1)
+                try_times = 0
         return True
-
-    @property
-    def leader(self) -> bool:
-        return self.role == leader
-
-    @property
-    def follower(self) -> bool:
-        return self.role == follower
 
     def finish(self, auto_exit: bool = False):
         if self.maintainer:
@@ -329,16 +315,44 @@ class API(Thread, Hook):
         if auto_exit and self.leader:
             exit(15)
 
-    def __getattribute__(self, name: str) -> Any:
-        """Try to fetch the attribute of api. If failed, try to fetch it from delivery.
-        """
-        if name == 'delivery':
-            return super().__getattribute__(name)
+    def manual_stop(self):
+        self.stopped = True
 
-        try:
-            return super().__getattribute__(name)
-        except AttributeError as e:
-            return getattr(self.delivery, name)
+    @property
+    def role(self) -> str:
+        return self.world.role
+
+    @property
+    def leader(self) -> bool:
+        return self.world.leader
+
+    @property
+    def follower(self) -> bool:
+        return self.world.follower
+
+    @property
+    def tensor_indexed_packages(self) -> Any:
+        return self.delivery.tensor_indexed_packages
+
+    @property
+    def pack_state(self):
+        return self.delivery.pack_state
+
+    @property
+    def nick_name(self):
+        return self.delivery.nick_name
+
+    @property
+    def unpack_state(self):
+        return self.delivery.unpack_state
+
+    @property
+    def upload_version(self):
+        return self.delivery.upload_version
+    
+    @property
+    def download_version(self):
+        return self.delivery.download_version
 
     def __str__(self):
         return openfed_class_fmt.format(

@@ -87,7 +87,7 @@ class World():
 
         self.async_op = True if role == leader else False
         self.dal = True
-        self.max_try_times = 5
+        self.mtt = 5
 
     def kill(self) -> None:
         """Shout down this world with force. 

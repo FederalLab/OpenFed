@@ -717,7 +717,7 @@ class Maintainer(Thread):
                  world           : World,
                  address         : Address = None,
                  address_file    : str      = None,
-                 max_try_times   : int      = 5,
+                 mtt   : int      = 5,
                  interval_seconds: float    = 10) -> None: 
         """
             Only a single valid address is allowed in client.
@@ -732,7 +732,7 @@ class Maintainer(Thread):
         self.discard_queue   = dict()
         self.abnormal_exited = False
 
-        self.max_try_times    = max_try_times
+        self.mtt    = mtt
         self.interval_seconds = interval_seconds
 
         add_mt_lock(self)
@@ -783,7 +783,7 @@ class Maintainer(Thread):
                     joint_map[address] = Joint(address, self.world)
 
             def try_now(last_time, try_times) -> bool:
-                return False if (time.time() - last_time < self.interval_seconds) or try_times >= self.max_try_times else True
+                return False if (time.time() - last_time < self.interval_seconds) or try_times >= self.mtt else True
 
             rm_address = []
             for address, joint in joint_map.items():
@@ -797,7 +797,7 @@ class Maintainer(Thread):
                         rm_address.append((address))
                     else:
                         try_times += 1
-                        if try_times > self.max_try_times:
+                        if try_times > self.mtt:
                             # Stop and delete the joint
                             joint._stop()
                             rm_address.append(address)
