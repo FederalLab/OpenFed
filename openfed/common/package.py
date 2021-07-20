@@ -135,6 +135,6 @@ class Package(object):
                     else:
                         state = self.state[p]
                         for key in state.keys():
-                            # The keys may be missing for some tensor.
+                            # The keys may be missing for some tensors.
                             if key not in keys:
                                 del state[key]
