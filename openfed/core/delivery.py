@@ -821,12 +821,9 @@ class Maintainer(Thread):
             self.pending_queue) > 0 or len(self.discard_queue) > 0
         return f"Build connection to {len(self.finished_queue)} addresses."
 
-    def kill_world(self) -> None:
-        self.world.kill()
-
     def manual_stop(self, kill_world: bool = True) -> None:
         if kill_world:
-            self.kill_world()
+            self.world.kill()
         del_mt_lock(self)
         self.stopped = True
 
