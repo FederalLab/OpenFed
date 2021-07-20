@@ -1,73 +1,119 @@
-from typing import List
+import warnings
+from typing import Any, Callable, Dict
+from openfed.utils import openfed_class_fmt
 
-from openfed.utils import openfed_class_fmt, convert_to_list
-from typing import Dict, Callable, Any
 
 class Gluer(object):
     """An empty class. 
     """
+
     def __init__(self):
         pass
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name='Gluer',
-            description='',
+            class_name  = 'Gluer',
+            description = self.__class__.__name__,
         )
 
 
 def glue(inst_a: Any,
          inst_b: Any,
-         parall_func_list: List[str]           = None,
-         parall_func_dict: Dict[str, Callable] = None):
-    """Glue inst_a of TypeA with inst_b of TypeB, return a new inst_c of TypeC.
+         extra_func: Dict[str, Callable] = None):
+    """Glue ``inst_a`` of ``TypeA`` with ``inst_b`` of ``TypeB``, 
+    return a new ``inst_c`` of ``TypeC``. At default, ``inst_c`` will keep variables and 
+    functions from  ``inst_a`` if they appeared both in ``inst_a`` and ``inst_b``.
+
     Args:
-        inst_a: Instance.
-        inst_b: Instance.
-        parall_func_dict: The parallel function dict. If value is None, use default one.
-    ..note:: 
-        If parall_func_dict is not None, we will rewrite the function in TypeA and TypeB. 
-    In the new function, it will call TypeA and then TypeB. (make sure the function name
-    is in both TypeA and TypeB). We will return A's output if it is not None, otherwise B's 
-    output. If both A's output and B's output are dict, we will merge them.
+        inst_a: Instance of TypeA.
+        inst_b: Instance of TypeB.
+        extra_func: The new function registered to TypeC.
 
-    ..note::
-        The variable in inst_a and inst_b will be merged obey the following rules:
-        1. If variable in a and variable in b have the same name:
-            use variable in a, if variable is not a dict.
-            otherwise, a.update(b)
+    .. note::
+        1. Dictionary variables will be re-assigned via `inst_c.v = inst_a.v.update(inst_b.v)`.
+        2. If extra_func's value is not provided (`None`), a new function will created via
+            `new_f = lambda: inst_a.func() or inst_b.func()`.
+        3. The variable starts with `_` or `__` will be skipped automatically in `inst_b`.
+
+    .. Example::
+        >>> class TypeA(object):
+        ...     def print_A(self):
+        ...             print('print_A')
+        ...     def print(self):
+        ...             print('print_A')
+        ...     def pprint(self):
+        ...             print('print_A')
+        ...             return {'pprint_A': 'pprint_A'}
+        ...     def __init__(self):
+        ...             self.name = 'TypeA'
+        ...             self.name_dict = {'TypeA_name': 'TypeA'}
+        ... 
+        >>> class TypeB(object):
+        ...     def print_B(self):
+        ...             print('print_B')
+        ...     def print(self):
+        ...             print('print_B')
+        ...     def pprint(self):
+        ...             print('print_B')
+        ...             return {'pprint_B': 'pprint_B'}
+        ...     def __init__(self):
+        ...             self.name = 'TypeB' 
+        ...             self.name_dict = {'TypeB_name': 'TypeB'}
+        ... 
+        >>> extra_func = dict(
+        ...     pprint=None,
+        ...     print_C=lambda self:print("Type_C")
+        ... )
+        >>> inst_a = TypeA()
+        >>> inst_b = TypeB()
+        >>> inst_c = glue(inst_a, inst_b, extra_func)
+        /Users/densechen/code/OpenFed/openfed/common/gluer.py:124: UserWarning: 1 variables of <__main__.TypeB object at 0x7f7ee00a5910> are discarded, 1 variables of <__main__.TypeB object at 0x7f7ee00a5910> are merged.
+        warnings.warn(f"{len(skip_keys)} variables of {inst_b} are discarded, {len(merge_keys)} variables of {inst_b} are merged.")
+        /Users/densechen/code/OpenFed/openfed/common/gluer.py:127: UserWarning: Disabled keys: ['name']
+        warnings.warn(f"Disabled keys: {skip_keys}")
+        /Users/densechen/code/OpenFed/openfed/common/gluer.py:129: UserWarning: Merged keys: ['name_dict']
+        warnings.warn(f"Merged keys: {merge_keys}")
+        >>> inst_c.print()
+        print_A
+        >>> inst_c.pprint()
+        print_A
+        print_B
+        {'pprint_A': 'pprint_A', 'pprint_B': 'pprint_B'}
+        >>> inst_c.name
+        'TypeA'
+        >>> inst_c.name_dict
+        {'TypeA_name': 'TypeA', 'TypeB_name': 'TypeB'}
+        >>> inst_c.print_C()
+        Type_C
     """
-    if parall_func_dict is None:
-        parall_func_dict = {}
 
-    parall_func_list = convert_to_list(parall_func_list)
-    if parall_func_list is not None:
-        parall_func_dict.update(
-            {k: None for k in parall_func_list})  # type: ignore
-
-    TypeA     = type(inst_a)
-    TypeB     = type(inst_b)
+    TypeA = type(inst_a)
+    TypeB = type(inst_b)
     func_dict = dict()
-    if parall_func_dict is not None:
-        for func_name, func_impl in parall_func_dict.items():
-            assert hasattr(TypeA, func_name), 'parall_func must in TypeA'
-            assert hasattr(TypeB, func_name), 'parall_func must in TypeB'
-            if func_impl is None:
-                def parall_func(func_a, func_b):
-                    def _parall_func(self, *args, **kwargs):
-                        output_a = func_a(self, *args, **kwargs)
-                        output_b = func_b(self, *args, **kwargs)
-                        if output_a is None:
-                            return output_b
+    if extra_func is not None:
+        for func_name, func_impl in extra_func.items():
+            if func_impl is not None:
+                func_dict[func_name] = func_impl
+            else:
+                if not(hasattr(TypeA, func_name) and hasattr(TypeB, func_name)):
+                    raise RuntimeError(
+                        f"{TypeA} and {TypeB} must provide the implementation of {func_name}.")
+
+                def glue_func(func_a, func_b):
+                    # Create a decorator that glue func_a and func_b.
+                    def _glue_func(*args, **kwargs):
+                        # If the output is dictionary, we will return output_a.update(output_b)
+                        # Otherwise, we only return `output_a or output_b`
+                        output_a = func_a(*args, **kwargs)
+                        output_b = func_b(*args, **kwargs)
                         if isinstance(output_a, dict) and isinstance(output_b, dict):
                             output_a.update(output_b)
                             return output_a
-                        return output_a
-                    return _parall_func
-                func_dict[func_name] = parall_func(
-                    getattr(TypeA, func_name), getattr(TypeB, func_name))
-            else:
-                func_dict[func_name] = func_impl
+                        return output_a or output_b
+                    return _glue_func
+                func_dict[func_name] = glue_func(
+                    func_a = getattr(TypeA, func_name),
+                    func_b = getattr(TypeB, func_name))
 
     name = f"Gluer_{inst_a.__class__.__name__}_{inst_b.__class__.__name__}"
 
@@ -76,16 +122,27 @@ def glue(inst_a: Any,
     inst_c = TypeC()
 
     inst_c.__dict__.update(inst_a.__dict__)
-    skip_keys = []
+    skip_keys  = []
+    merge_keys = []
     for k, v in inst_b.__dict__.items():
-        if k in inst_c.__dict__:
-            if isinstance(v, dict) and isinstance(inst_c.__dict__[k], dict):
-                inst_c.__dict__[k].update(v)
+        # The key starts with `_` or `__` will be skipped automatically.
+        if not k.startswith("_"):
+            if k in inst_c.__dict__:
+                if isinstance(v, dict) and isinstance(inst_c.__dict__[k], dict):
+                    inst_c.__dict__[k].update(v)
+                    merge_keys.append(k)
+                else:
+                    skip_keys.append(k)
             else:
-                skip_keys.append(k)
-        else:
-            inst_c.__dict__[k] = v
-    if len(skip_keys):
-        print(
-            f"The following variables in {inst_b} have been written: {skip_keys}")
+                inst_c.__dict__[k] = v
+
+    warnings.warn(
+        f"{len(skip_keys)} variables of {inst_b} are discarded,"
+        f"{len(merge_keys)} variables of {inst_b} are merged.")
+
+    if skip_keys:
+        warnings.warn(f"Disabled keys: {skip_keys}")
+    if merge_keys:
+        warnings.warn(f"Merged keys: {merge_keys}")
+
     return inst_c
