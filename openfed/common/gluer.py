@@ -67,12 +67,9 @@ def glue(inst_a: Any,
         >>> inst_a = TypeA()
         >>> inst_b = TypeB()
         >>> inst_c = glue(inst_a, inst_b, extra_func)
-        /Users/densechen/code/OpenFed/openfed/common/gluer.py:124: UserWarning: 1 variables of <__main__.TypeB object at 0x7f7ee00a5910> are discarded, 1 variables of <__main__.TypeB object at 0x7f7ee00a5910> are merged.
-        warnings.warn(f"{len(skip_keys)} variables of {inst_b} are discarded, {len(merge_keys)} variables of {inst_b} are merged.")
-        /Users/densechen/code/OpenFed/openfed/common/gluer.py:127: UserWarning: Disabled keys: ['name']
-        warnings.warn(f"Disabled keys: {skip_keys}")
-        /Users/densechen/code/OpenFed/openfed/common/gluer.py:129: UserWarning: Merged keys: ['name_dict']
-        warnings.warn(f"Merged keys: {merge_keys}")
+        UserWarning: 1 variables of <__main__.TypeB object at 0x7f7ee00a5910> are discarded, 1 variables of <__main__.TypeB object at 0x7f7ee00a5910> are merged.
+        UserWarning: Discarded keys: ['name']
+        UserWarning: Merged keys: ['name_dict']
         >>> inst_c.print()
         print_A
         >>> inst_c.pprint()
@@ -141,7 +138,7 @@ def glue(inst_a: Any,
         f"{len(merge_keys)} variables of {inst_b} are merged.")
 
     if skip_keys:
-        warnings.warn(f"Disabled keys: {skip_keys}")
+        warnings.warn(f"Discarded keys: {skip_keys}")
     if merge_keys:
         warnings.warn(f"Merged keys: {merge_keys}")
 
