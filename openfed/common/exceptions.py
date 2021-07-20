@@ -31,16 +31,16 @@ class OpenFedException(Exception):
     """
 
     def __init__(self,
-                 exception_name: str = 'OpenFedException',
-                 msg: Union[str,  Any] = ''):
+                 exception_name: str              = 'OpenFedException',
+                 msg           : Union[str,  Any] = ''):
         super().__init__()
-        self.msg = msg
+        self.msg            = msg
         self.exception_name = exception_name
 
     def __str__(self):
         return openfed_class_fmt.format(
-            class_name=self.exception_name,
-            description=self.msg
+            class_name  = self.exception_name,
+            description = self.msg
         )
 
 

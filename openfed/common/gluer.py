@@ -1,21 +1,23 @@
 from typing import List
 
 from openfed.utils import openfed_class_fmt, convert_to_list
-from typing import Dict, Callable
+from typing import Dict, Callable, Any
 
 class Gluer(object):
+    """An empty class. 
+    """
     def __init__(self):
         pass
 
     def __str__(self):
         return openfed_class_fmt.format(
             class_name='Gluer',
-            description=''
+            description='',
         )
 
 
-def glue(inst_a,
-         inst_b,
+def glue(inst_a: Any,
+         inst_b: Any,
          parall_func_list: List[str]           = None,
          parall_func_dict: Dict[str, Callable] = None):
     """Glue inst_a of TypeA with inst_b of TypeB, return a new inst_c of TypeC.
