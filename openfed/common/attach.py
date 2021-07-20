@@ -26,9 +26,8 @@ from typing import Any, Dict, List, Union, overload
 
 
 class Attach(object):
-    """Provide some functions to register and manage hooks.
+    """Attach hooks to class.
     """
-
     _hook_dict: Dict[str, Any]
     _hook_list: List[Any]
 
@@ -46,38 +45,41 @@ class Attach(object):
 
     @overload
     def register_hook(self, key: str, func: Any):
-        """Register a func with key to hook dictionary.
+        """Register hook to ``hook_dict``.
         """
 
     @overload
     def register_hook(self, func: Any):
-        """Register a func to hook list.
+        """Register hook to ``hook_list``.
         """
 
     def register_hook(self, *args):
         if len(args) == 1:
             func = args[0]
             if func in self.hook_list:
-                raise KeyError(f"{func} is already registered.")
+                raise RuntimeError(f"{func} is already registered.")
             self._hook_list.append(func)
         elif len(args) == 2:
             key, func = args
             if key in self.hook_dict:
-                raise KeyError(f"Key {key} already registered.")
+                raise RuntimeError(f"{key} already registered.")
             self.hook_dict[key] = func
         else:
             raise RuntimeError("Too many parameters.")
 
     def remove_hook(self, key: Union[str, Any]):
-        """
+        """Remove ``key`` from ``hook_list`` or ``hook_dict``.
         Args: 
-            key: if key is str, remove it from hook dict.
-                else, remove it from hook list.
+            key: If key is a string, remove it from ``hook_dict``,
+                If key is a function, remove it from ``hook_list``.
         """
         if isinstance(key, str):
-            if key in self._hook_dict:
-                del self._hook_dict[key]
+            if key not in self.hook_dict:
+                raise RuntimeError(f"{key} is not registered.")
+            del self._hook_dict[key]
         else:
+            if key not in self.hook_list:
+                raise RuntimeError(f"{key} is not registered")
             for i, func in enumerate(self._hook_list):
                 if func == key:
                     del self._hook_list[i]
