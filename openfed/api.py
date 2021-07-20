@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Union
 from torch import Tensor
 
 from openfed.common import (Address, Attach, DeviceOffline, TaskInfo,
-                            default_address, logger, peeper)
+                            default_tcp_address, logger, peeper)
 from openfed.container import Container
 from openfed.core import Delivery, Destroy, Maintainer, World, openfed_lock
 from openfed.hooks.collector import Collector
@@ -135,7 +135,7 @@ class API(Thread, Attach):
     def build_connection(self, address: Union[Address, List[Address]] = None, address_file: str = None):
         world = self.world
         if address is None and address_file is None:
-            address = default_address
+            address = default_tcp_address
 
         if self.leader and self.world.dal:
             # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
