@@ -82,8 +82,6 @@ class API(Thread, Hook):
         self.role = world.role
         self.max_try_times = world.max_try_times
 
-        self.dal = True
-
         # how many times for leader waiting for connections.
 
         keyboard_interrupt_handle()
@@ -143,7 +141,7 @@ class API(Thread, Hook):
         if address is None and address_file is None:
             address = default_address
 
-        if self.leader and openfed.DAL.is_dal:
+        if self.leader and self.world.dal:
             # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
             # otherwise, it may interrupt the process and cause error before you go into loop()
             openfed_lock.acquire()
@@ -232,7 +230,7 @@ class API(Thread, Hook):
             Use self.start() to start this loop in the thread.
         """
         # NOTE: release openfed_lock here.
-        if openfed.DAL.is_dal:
+        if self.world.dal:
             openfed_lock.release()
 
         if self.follower:
@@ -349,16 +347,10 @@ class API(Thread, Hook):
         )
 
     def __enter__(self):
-        self.original_state = openfed.DAL.is_dal,
-
-        openfed.DAL.set(self.dal)
         peeper.api_lock.acquire()
         peeper.api = self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # restore state
-        dal = self.original_state
-
-        openfed.DAL.set(dal)
         peeper.api = None
         peeper.api_lock.release()

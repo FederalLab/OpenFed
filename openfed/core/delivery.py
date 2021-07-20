@@ -745,7 +745,7 @@ class Maintainer(Thread):
 
         if self.world.leader:
             self.start()
-            if not openfed.DAL.is_dal:
+            if not self.world.dal:
                 self.join()
         else:
             assert len(self.pending_queue) == 1, "Only single address is allowed."
@@ -814,7 +814,7 @@ class Maintainer(Thread):
             for address in rm_address:
                 del joint_map[address]
 
-            if openfed.DAL.is_dal:
+            if self.world.dal:
                 time.sleep(self.interval_seconds)
             else:
                 break
@@ -833,7 +833,7 @@ class Maintainer(Thread):
         self.stopped = True
 
     def manual_joint(self, address: Address) -> None:
-        if not openfed.DAL.is_dal and self.world.leader:
+        if not self.world.dal and self.world.leader:
             raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
 
         if self.world.leader:
