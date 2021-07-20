@@ -27,7 +27,7 @@ from openfed.utils import openfed_class_fmt
 
 
 class OpenFedException(Exception):
-    """A base class for exceptions.
+    """The base class for inner exceptions on OpenFed.
     """
 
     def __init__(self,
@@ -45,7 +45,7 @@ class OpenFedException(Exception):
 
 
 class InvalidAddress(OpenFedException):
-    """If not a valid address is given, raise it.
+    """Raised when occur an invalid address.
     """
 
     def __init__(self, msg: Union[str,  Any] = ''):
@@ -53,7 +53,7 @@ class InvalidAddress(OpenFedException):
 
 
 class ConnectTimeout(OpenFedException):
-    """Timeout while building a new connection.
+    """Raised when a connection is timeout.
     """
 
     def __init__(self, msg: Union[str, Any] = ""):
@@ -61,11 +61,7 @@ class ConnectTimeout(OpenFedException):
 
 
 class InvalidStoreReading(OpenFedException):
-    """Read an invalid store value.
-    It mainly because the too many request for the single
-    key value store at the same time.
-    By default, we will return the cached one instead to 
-    avoid this Error.
+    """Raised when read value from store failed.
     """
 
     def __init__(self, msg: Union[str, Any] = ""):
@@ -73,11 +69,7 @@ class InvalidStoreReading(OpenFedException):
 
 
 class InvalidStoreWriting(OpenFedException):
-    """Write store failed.
-    It mainly because the too many request for the single
-    key value store at the same time.
-    By default, we will return the cached one instead to 
-    avoid this Error.
+    """Raised when write value to store failed.
     """
 
     def __init__(self, msg: Union[str, Any] = ""):
@@ -85,7 +77,7 @@ class InvalidStoreWriting(OpenFedException):
 
 
 class DeviceOffline(OpenFedException):
-    """This error is raised when client/server is offline.
+    """Raised when other end is offline (both for leader and follower).
     """
 
     def __init__(self, msg: Union[str, Any] = ""):
