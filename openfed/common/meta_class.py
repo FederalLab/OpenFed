@@ -4,19 +4,6 @@ from typing import Any, List, Tuple
 
 from openfed.utils import convert_to_list
 
-
-class Clone(object):
-    """Provide the methods to clone a class itself and return a new one.
-
-    This is useful for copying hook functions between different classes.
-    """
-
-    def clone(self) -> Any:
-        """Returns a shallow copy of this class.
-        """
-        return copy(self)
-
-
 class Buffer(object):
     """Used for Optimizer/Aggregator format class to clear buffer
     """

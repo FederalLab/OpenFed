@@ -1,9 +1,9 @@
 from typing import Dict, Union
 
-from openfed.common import Clone, peeper
+from openfed.common import peeper
 from torch import Tensor
 
-class Cypher(Clone):
+class Cypher(object):
     r"""Cypher: encrypt/decrypt data in pairs.
     The encrypt and decrypt functions will be called in two ends respectively.
     You can store the inner operation in the returned dictionary directly, but not 

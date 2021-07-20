@@ -90,7 +90,7 @@ class World():
         If any delivery still uses, make them offline directly.
         """
         for delivery in self._delivery_dict:
-            delivery.offline()
+            delivery[0].offline()
         else:
             self.ALIVE = False
 

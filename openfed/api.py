@@ -26,7 +26,7 @@ from threading import Lock
 from typing import Any, Dict, List, Union
 
 from torch import Tensor
-
+from copy import copy
 import openfed
 from openfed.common import (Address, Hook, SafeThread, TaskInfo,
                             default_address, logger)
@@ -136,8 +136,8 @@ class API(SafeThread, Hook):
         # register a clone of informer hook.
         # informer hook may contain some inner variable, which is not allowed
         # to share with each other.
-        [self.delivery.register_collector(hook.clone(
-        )) for hook in self._hooks_collector if hook.bounding_name not in self.delivery._hook_dict]
+        [self.delivery.register_collector(copy(
+            hook)) for hook in self._hooks_collector if hook.bounding_name not in self.delivery._hook_dict]
         # register the hook directly.
         # deliver hook is not allowed to have inner parameters.
         # it can be used among all delivery.

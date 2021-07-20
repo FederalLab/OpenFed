@@ -28,7 +28,7 @@ from enum import Enum, unique
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
-from openfed.common import Clone, TaskInfo, logger
+from openfed.common import TaskInfo, logger
 from openfed.common.base import peeper
 from openfed.common.logging import logger
 from openfed.utils import (convert_to_list, openfed_class_fmt, process_bar,
@@ -73,7 +73,7 @@ before_download = StepName.BEFORE_DOWNLOAD.value
 before_upload = StepName.BEFORE_UPLOAD.value
 
 
-class Step(Clone):
+class Step(object):
     step_name: str
 
     def __init__(self):
