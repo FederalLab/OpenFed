@@ -51,11 +51,11 @@ class Agg(Package):
 
     def __init__(self,
                  params,
-                 defaults : Dict,
+                 defaults: Dict,
                  info_keys: List[str],
                  pipe_keys: List[str],
                  keep_keys: List[str] = None,
-                 legacy   : bool      = False):
+                 legacy: bool = False):
         """
         Args:
             info_keys: necessary keys saved in returned info dict.
@@ -94,8 +94,8 @@ class Agg(Package):
 
     def __getstate__(self):
         return {
-            'defaults'    : self.defaults,
-            'state'       : self.state,
+            'defaults': self.defaults,
+            'state': self.state,
             'param_groups': self.param_groups,
         }
 
@@ -282,11 +282,6 @@ class Agg(Package):
 
         self.param_groups.append(param_group)
 
-    def _check_defaults_keys(self, info_keys: List[str], received_info: TaskInfo):
-        for key in info_keys:
-            if key not in received_info:
-                raise KeyError(f"{key} is needed, but not returned.")
-
     def aggregate(self, clear_buffer: bool = True):
         r"""Performs a single aggregation step (parameter update).
 
@@ -308,16 +303,26 @@ class Agg(Package):
         """Add a new received data.
         """
         for group in self.param_groups:
-            self._check_defaults_keys(group['info_keys'], received_info)
-            legacy = group['legacy']
+            # info keys is the necessary keys for computing the aggregated tensor.
+            # If not given, raise an error.
+            for key in group['info_keys']:
+                assert key in received_info, f"{key} is required, but not given."
+
             for p in group["params"]:
                 if p in received_params:
-                    if legacy:
-                        self.stack(p, received_params[p],
-                                   received_info=received_info, group=group)
+                    if group['legacy']:
+                        self.stack(
+                            p,
+                            received_params[p],
+                            received_info = received_info,
+                            group         = group)
                     else:
-                        self.merge(p, received_params[p],
-                                   received_info=received_info, group=group)
+                        self.merge(
+                            p,
+                            received_params[p],
+                            received_info = received_info,
+                            group         = group)
+
         self.task_info_buffer.append(received_info)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
