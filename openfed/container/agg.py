@@ -51,11 +51,11 @@ class Agg(Package):
 
     def __init__(self,
                  params,
-                 defaults: Dict,
+                 defaults : Dict,
                  info_keys: List[str],
                  pipe_keys: List[str],
                  keep_keys: List[str] = None,
-                 legacy: bool = False):
+                 legacy   : bool      = False):
         """
         Args:
             info_keys: necessary keys saved in returned info dict.
@@ -94,8 +94,8 @@ class Agg(Package):
 
     def __getstate__(self):
         return {
-            'defaults': self.defaults,
-            'state': self.state,
+            'defaults'    : self.defaults,
+            'state'       : self.state,
             'param_groups': self.param_groups,
         }
 
