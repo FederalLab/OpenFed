@@ -21,113 +21,120 @@
 # SOFTWARE.
 
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Set, Union
 
 from openfed.utils import convert_to_list
 from torch import Tensor
 
 
-def _check_state_keys(obj, keys: Union[None, str, List[str]], mode: str):
-    keys = convert_to_list(keys)
-
-    return keys if keys else getattr(obj, mode, None)
-
-
 class Package(object):
-    """Define some unified functions to package and unpackage the class's state dictionary, such as Optimizer, Agg and Pipe.
+    """Pack Optimizer, Penalizer and Container state to state dict. 
+    Unpack received state dict to Optimizer, Penalizer and Container.
     """
-    _pack_key_list: List[str]
-    _unpack_key_list: List[str]
-    param_groups: Any
-    state: Any
+    _pack_set   : Set[str]
+    _unpack_set : Set[str]
+    param_groups: List[Dict]
+    state       : Dict
 
-    def pack_state(self, obj, keys: Union[None, str, List[str]] = None) -> None:
-        """
+    def pack_state(self, obj, keys=None) -> None:
+        """Pack ``obj.state_dict`` to ``self.state_dict``.
         Args:
-            keys: if keys are not given, we will try to load the `pack_key_list` attribute of obj.
+            obj (Penalizer, Pipe, Container): The object contains state dict to fetch data.
+            keys: The extra keys want to pack to Package.
         """
-        keys = _check_state_keys(obj, keys, mode='pack_key_list')
-        if keys:
-            for group in obj.param_groups:
-                for p in group["params"]:
-                    state = obj.state[p]
-                    rdict = {k: state[k] for k in keys if k in state}
-                    self.pack(p, rdict)
+        keys     = convert_to_list(keys)
+        all_keys = obj.pack_set
+        for key in keys:
+            if key not in all_keys:
+                all_keys.append(key)
 
-    def unpack_state(self, obj, keys: Union[None, str, List[str]] = None) -> None:
-        """
+        for group in obj.param_groups:
+            for p in group["params"]:
+                state = obj.state[p]
+                # Sometimes, not all params will contains all the keys,
+                # Here, we just return the contains one.
+                rdict = {k: state[k] for k in all_keys if k in state}
+                self.pack(p, rdict)
+
+    def unpack_state(self, obj, keys=None) -> None:
+        """Unpack ``self.state_dict`` to ``obj.state_dict``. 
+        This is the reverse process of `self.pack_state`.
         Args:
-            keys: if keys are not given, we will try to load the `unpack_key_list` attribute of obj.
+            obj (Penalizer, Pipe, Container): The object contains state dict to fill data.
+            keys: The extra keys want to unpack to obj.
         """
-        keys = _check_state_keys(obj, keys, mode="unpack_key_list")
-        if keys:
-            for group in obj.param_groups:
-                for p in group["params"]:
-                    state = obj.state[p]
-                    rdict = {k: None for k in keys}
-                    rdict = self.unpack(p, rdict)
-                    state.update(rdict)
+        keys     = convert_to_list(keys)
+        all_keys = obj.unpack_set
+        for key in keys:
+            if key not in all_keys:
+                all_keys.append(key)
 
-    def pack(self, key: Union[str, Tensor], rdict: Dict[str, Tensor]) -> None:
-        """Implement it in subclass if needed.
-        """
-        raise NotImplementedError
+        for group in obj.param_groups:
+            for p in group["params"]:
+                state = obj.state[p]
+                # Fill `None` to all keys.
+                rdict = {k: None for k in keys}
+                state.update(self.unpack(p, rdict))
 
-    def unpack(self, key: Union[str, Tensor], rdict: Dict[str, Any]) -> Dict[str, Tensor]:
-        """Implement it in subclass if needed.
+    def pack(self,
+             key  : Union[str, Tensor],
+             rdict: Dict[str, Any]) -> None: 
+        """Pack ``rdict`` to ``self.state_dict[key]``.
         """
-        raise NotImplementedError
+        state = self.state[key]
+        state.update(rdict)
+
+    def unpack(self,
+               key  : Union[str, Tensor],
+               rdict: Dict[str, Any]) -> Dict[str, Any]: 
+        """Unpack ``self.state_dict[key]`` to ``rdict``.
+        """
+        state = self.state[key]
+        rdict.update({k: state[k] for k in rdict})
+        return rdict
 
     @property
-    def pack_key_list(self):
-        if not hasattr(self, '_pack_key_list'):
-            self._pack_key_list = list()
-        return self._pack_key_list
+    def pack_set(self):
+        if not hasattr(self, '_pack_set'):
+            self._pack_set = set()
+        return self._pack_set
 
     @property
-    def unpack_key_list(self):
-        if not hasattr(self, '_unpack_key_list'):
-            self._unpack_key_list = list()
-        return self._unpack_key_list
+    def unpack_set(self):
+        if not hasattr(self, '_unpack_set'):
+            self._unpack_set = set()
+        return self._unpack_set
 
-    def add_pack_key(self, key: Union[str, List[str]]) -> None:
-        key = convert_to_list(key)
-        for k in key:
-            if k in self.pack_key_list:
-                raise KeyError(f"{k} is already registered.")
-            self.pack_key_list.append(k)
+    def add_pack_key(self, keys: Union[str, List[str]]):
+        """Add a new key to ``pack_set``.
+        """
+        [self.pack_set.add(k) for k in convert_to_list(keys)]
 
-    def add_unpack_key(self, key: Union[str, List[str]]) -> None:
-        key = convert_to_list(key)
-        for k in key:
-            if k in self.unpack_key_list:
-                raise KeyError(f"{k} is already registered.")
-            self.unpack_key_list.append(k)
+    def add_unpack_key(self, keys: Union[str, List[str]]):
+        """Add a new key to ``unpack_set``.
+        """
+        [self.unpack_set.add(k) for k in convert_to_list(keys)]
 
     def clear_buffer(self, keep_keys: List[str] = None):
-        """Clear state buffers.
+        """Clear the key-value in ``state_dict``.
         Args:
-            keep_keys: if not specified, we will directly remove all buffers.
-                Otherwise, the key in keep_keys will be kept.
+            keep_keys: The list of keys which will not be cleared.
+
+        .. note::
+            If ``keep_keys`` in ``self.param_groups``, the passed one
+        will be discarded.
         """
         keep_keys = convert_to_list(keep_keys)
 
         for group in self.param_groups:
-            if 'keep_keys' in group:
-                if keep_keys is None:
-                    keys = group['keep_keys']
-                elif group['keep_keys'] is None:
-                    keys = keep_keys
-                else:
-                    keys = keep_keys + group['keep_keys']
-            else:
-                keys = keep_keys
-
+            keys = group['keep_keys'] or keep_keys
             for p in group["params"]:
                 if p in self.state[p]:
-                    if keys is None:
+                    if not keys:
                         del self.state[p]
                     else:
-                        for k in self.state[p].keys():
-                            if k not in keys:
-                                del self.state[p][k]
+                        state = self.state[p]
+                        for key in state.keys():
+                            # The keys may be missing for some tensor.
+                            if key not in keys:
+                                del state[key]

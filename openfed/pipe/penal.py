@@ -43,13 +43,13 @@ class Penalizer(Package):
 
     def __init__(self,
                  role = follower,
-                 pack_key_list: List[str] = None,
-                 unpack_key_list: List[str] = None):
+                 pack_set: List[str] = None,
+                 unpack_set: List[str] = None):
         self.role = role
-        if pack_key_list is not None:
-            self.add_pack_key(pack_key_list)
-        if unpack_key_list is not None:
-            self.add_unpack_key(unpack_key_list)
+        if pack_set is not None:
+            self.add_pack_key(pack_set)
+        if unpack_set is not None:
+            self.add_unpack_key(unpack_set)
 
     @torch.no_grad()
     @final
@@ -117,21 +117,21 @@ class ElasticPenalizer(Penalizer):
     def __init__(self,
                  role: ROLE,
                  momentum: float = 0.9,
-                 pack_key_list: List[str] = None,
-                 unpack_key_list: List[str] = None):
-        pack_key_list = convert_to_list(pack_key_list)
-        unpack_key_list = convert_to_list(unpack_key_list)
-        if pack_key_list is None:
-            pack_key_list = ['importance']
+                 pack_set: List[str] = None,
+                 unpack_set: List[str] = None):
+        pack_set = convert_to_list(pack_set)
+        unpack_set = convert_to_list(unpack_set)
+        if pack_set is None:
+            pack_set = ['importance']
         else:
-            pack_key_list.append('importance')
+            pack_set.append('importance')
 
         if not 0.0 <= momentum <= 1.0:
             raise ValueError(f"Invalid momentum value: {momentum}")
 
         self.momentum = momentum
 
-        super().__init__(role, pack_key_list, unpack_key_list)
+        super().__init__(role, pack_set, unpack_set)
 
     def acg_step(self):
         """Performs a single accumulate gradient step.
@@ -153,11 +153,11 @@ class ProxPenalizer(Penalizer):
     """https://arxiv.org/pdf/1812.06127.pdf
     """
 
-    def __init__(self, role: ROLE, mu: float = 0.9, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
+    def __init__(self, role: ROLE, mu: float = 0.9, pack_set: List[str] = None, unpack_set: List[str] = None):
         if not 0.0 < mu < 1.0:
             raise ValueError(f"Invalid mu value: {mu}")
 
-        super().__init__(role, pack_key_list, unpack_key_list)
+        super().__init__(role, pack_set, unpack_set)
         self.mu = mu
 
     def _follower_step(self, closure=None):
@@ -190,7 +190,7 @@ class ScaffoldPenalizer(Penalizer):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
 
-    def __init__(self, role: ROLE, lr: float = None, pack_key_list: List[str] = None, unpack_key_list: List[str] = None):
+    def __init__(self, role: ROLE, lr: float = None, pack_set: List[str] = None, unpack_set: List[str] = None):
         """Scaffold need to run on both leader and follower.
         If lr is given, we will use the second way provided in the paper to update c.
         Otherwise, we will use the first way provided in the paper.
@@ -228,24 +228,24 @@ class ScaffoldPenalizer(Penalizer):
 
             >>> # Backend
             >>> scaffold = Scaffold(net.parameters(), role=leader)
-            >>> agg = Agg(net.parameters(), pipe_keys=scaffold.pack_key_list)
+            >>> agg = Agg(net.parameters(), pipe_keys=scaffold.pack_set)
             >>> agg.agg()
             >>> scaffold.step()
             >>> optim.step()
             >>> deliver.pack(scaffold)
         """
-        pack_key_list = convert_to_list(pack_key_list)
-        unpack_key_list = convert_to_list(unpack_key_list)
-        if pack_key_list is not None:
-            pack_key_list.append('c_para')
+        pack_set = convert_to_list(pack_set)
+        unpack_set = convert_to_list(unpack_set)
+        if pack_set is not None:
+            pack_set.append('c_para')
         else:
-            pack_key_list = ['c_para']
+            pack_set = ['c_para']
 
-        if unpack_key_list is not None:
-            unpack_key_list.append('c_para')
+        if unpack_set is not None:
+            unpack_set.append('c_para')
         else:
-            unpack_key_list = ['c_para']
-        super().__init__(role, pack_key_list, unpack_key_list)
+            unpack_set = ['c_para']
+        super().__init__(role, pack_set, unpack_set)
 
         self.lr = lr
 
