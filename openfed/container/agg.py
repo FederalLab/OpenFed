@@ -29,7 +29,7 @@ from itertools import chain
 from typing import Any, Dict, List, Union
 
 import torch
-from openfed.common import Package, TaskInfo, Buffer
+from openfed.common import Package, TaskInfo
 from openfed.utils import convert_to_list
 from torch import Tensor
 
@@ -44,7 +44,7 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Agg(Package, Buffer):
+class Agg(Package):
     r"""Base class for Agg.
     """
     task_info_buffer: List[TaskInfo]  # Used by Reducer, it will be cleared once .reduce() is callled.

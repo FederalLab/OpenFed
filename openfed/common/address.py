@@ -32,8 +32,8 @@ from openfed.utils import convert_to_list
 from .exceptions import InvalidAddress
 
 Address = namedtuple('Address',
-    field_names=['backend', 'init_method', 'world_size', 'rank', 'store', 'group_name'],
-    defaults=['gloo', 'env://', 2, -1, None, 'openfed'])
+    field_names = ['backend', 'init_method', 'world_size', 'rank', 'store', 'group_name'],
+    defaults    = ['gloo', 'env://', 2, -1, None, 'openfed'])
 
 
 def build_address(
