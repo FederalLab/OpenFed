@@ -150,7 +150,7 @@ class ArrayDict(dict):
 
 class TaskInfo(AttrDict):
     """
-    ::Example
+    .. Example::
         >>> task_info = TaskInfo(part_id=1)
         >>> task_info
         {'part_id': 1}

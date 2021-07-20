@@ -13,5 +13,5 @@ class Pipe(Optimizer, Penalizer):
 
 def build_pipe(optimizer: Optimizer, penalizer: Penalizer = None) -> Pipe:
     penalizer = Penalizer() if penalizer is None else penalizer
-    parall_func_list = ['step']
-    return glue(optimizer, penalizer, parall_func_list)
+    extra_func = dict(step=None)
+    return glue(optimizer, penalizer, extra_func)
