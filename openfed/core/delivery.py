@@ -28,16 +28,14 @@ from datetime import timedelta
 from threading import Lock, Thread
 from typing import Any, Callable, Dict, Tuple, Union
 
-import openfed
 from bidict import bidict
-from openfed.common import (Address, ArrayDict, ConnectTimeout,
-                            DeviceOffline, Hook, InvalidAddress,
-                            InvalidStoreReading, InvalidStoreWriting, Package,
-                            TaskInfo, load_address_from_file, logger, peeper)
+from openfed.common import (Address, ArrayDict, ConnectTimeout, DeviceOffline,
+                            Attach, InvalidAddress, InvalidStoreReading,
+                            InvalidStoreWriting, Package, TaskInfo,
+                            load_address_from_file, logger, peeper)
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
 from openfed.hooks.cypher import Cypher, FormatCheck
-from openfed.utils import (convert_to_list, openfed_class_fmt, tablist,
-                           time_string)
+from openfed.utils import openfed_class_fmt, tablist, time_string
 from random_words import RandomWords
 from torch import Tensor
 from torch._C._distributed_c10d import Work
@@ -87,7 +85,7 @@ def fresh_read(func):
     return _fresh_read
 
 
-class Delivery(Hook, Package):
+class Delivery(Attach, Package):
     """Contains all communication functions in Delivery.
     """
     world  : World
@@ -661,7 +659,7 @@ class Joint(Thread):
         if self.world.follower:
             self.join()
 
-    def run(self) -> str:
+    def run(self):
         # create a country
         country = Country(self.world)
 

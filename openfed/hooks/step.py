@@ -29,11 +29,12 @@ from typing import Any, Dict, List, Tuple, Union
 
 import torch
 from openfed.common import TaskInfo, logger
-from openfed.common import peeper
 from openfed.common.logging import logger
 from openfed.utils import (convert_to_list, openfed_class_fmt, process_bar,
                            tablist)
 from torch.optim.lr_scheduler import _LRScheduler
+
+from .hooks import Hooks
 
 
 @unique
@@ -73,14 +74,9 @@ before_download = StepName.BEFORE_DOWNLOAD.value
 before_upload = StepName.BEFORE_UPLOAD.value
 
 
-class Step(object):
+class Step(Hooks):
     step_name: str
-
-    def __init__(self):
-        # automatically register step hooks to leader
-        if peeper.api is not None:
-            peeper.api.register_everything(self)
-
+    
     def __call__(self, leader, *args, **kwargs) -> Union[None, bool]:
         return self.step(leader, *args, **kwargs)
 

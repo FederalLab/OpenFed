@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Union
 from torch import Tensor
 
 import openfed
-from openfed.common import (Address, DeviceOffline, Hook, TaskInfo,
+from openfed.common import (Address, DeviceOffline, Attach, TaskInfo,
                             default_address, logger, peeper)
 from openfed.container import Container
 from openfed.core import (Delivery, Destroy, Maintainer, World, follower,
@@ -58,7 +58,7 @@ def device_offline_care(func):
     return _device_offline_care
 
 
-class API(Thread, Hook):
+class API(Thread, Attach):
     """Provide a unified api for leader and role.
     """
 
@@ -302,7 +302,6 @@ class API(Thread, Hook):
             else:
                 time.sleep(0.1)
                 try_times = 0
-        return True
 
     def finish(self, auto_exit: bool = False):
         if self.maintainer:

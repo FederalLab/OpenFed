@@ -25,7 +25,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Union, overload
 
 
-class Hook(object):
+class Attach(object):
     """Provide some functions to register and manage hooks.
     """
 

@@ -5,9 +5,11 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Type
 
 import torch
-from openfed.common import logger, peeper
+from openfed.common import logger
 from openfed.utils import openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
+
+from .hooks import Hooks
 
 
 class Recorder(object):
@@ -57,7 +59,7 @@ class Recorder(object):
 
 
 @Recorder.register
-class Collector(object):
+class Collector(Hooks):
     """Some useful utilities to collect message.
     What's more, Collector also provide necessary function to better 
     visualizing the received messages.
@@ -76,6 +78,7 @@ class Collector(object):
     follower_scatter: bool = True
 
     def __init__(self, once_only: bool = False):
+        super().__init__()
         # If True, this collector will only be called once.
         # Otherwise, it will be called everytime when the ends
         # want to upload/download data.
@@ -83,9 +86,6 @@ class Collector(object):
         # Only be used while once_only is True
         self.collected: bool = False
         self.scattered: bool = False
-
-        if peeper.api is not None:
-            peeper.api.register_everything(self)
 
     @abstractmethod
     def collect(self) -> Any:

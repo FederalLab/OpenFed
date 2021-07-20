@@ -1,19 +1,16 @@
 from typing import Dict, Union
 
-from openfed.common import peeper
 from torch import Tensor
 
-class Cypher(object):
+from .hooks import Hooks
+
+
+class Cypher(Hooks):
     r"""Cypher: encrypt/decrypt data in pairs.
     The encrypt and decrypt functions will be called in two ends respectively.
     You can store the inner operation in the returned dictionary directly, but not 
     specify then as self.xxx=yyy.
     """
-
-    def __init__(self):
-        super().__init__()
-        if peeper.api is not None:
-            peeper.api.register_everything(self)
 
     def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package before transfer to the other end.
