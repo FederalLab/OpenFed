@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import torch
 from openfed.common import TaskInfo, logger
-from openfed.common.base import peeper
+from openfed.common import peeper
 from openfed.common.logging import logger
 from openfed.utils import (convert_to_list, openfed_class_fmt, process_bar,
                            tablist)

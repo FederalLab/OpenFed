@@ -2,7 +2,8 @@ from copy import copy
 from threading import Lock
 from typing import Any, List, Tuple
 
-from openfed.utils import convert_to_list
+from openfed.utils import convert_to_list, openfed_class_fmt, tablist
+
 
 class Buffer(object):
     """Used for Optimizer/Aggregator format class to clear buffer
@@ -148,3 +149,26 @@ class TaskInfo(AttrDict):
         >>> task_info
         {'part_id': 1}
     """
+
+    def __str__(self):
+        return openfed_class_fmt.format(
+            class_name='TaskInfo',
+            description=tablist(
+                list(self.keys()),
+                list(self.values()),
+                force_in_one_row=True,
+            )
+        )
+
+class Peeper(AttrDict):
+    def __str__(self):
+        return openfed_class_fmt.format(
+            class_name='Peeper',
+            description=tablist(
+                list(self.keys()),
+                list(self.values()),
+            ),
+        )
+
+peeper = Peeper()
+peeper['api'] = None

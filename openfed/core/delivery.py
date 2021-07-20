@@ -25,16 +25,15 @@ import json
 import time
 from collections import defaultdict
 from datetime import timedelta
-from threading import Lock
+from threading import Lock, Thread
 from typing import Any, Callable, Dict, Tuple, Union
 
 import openfed
 from bidict import bidict
-from openfed.common import (ASYNC_OP, Address, ArrayDict, Hook, Package,
-                            SafeThread, TaskInfo, load_address_from_file,
-                            logger, peeper)
-from openfed.common.base import (ConnectTimeout, DeviceOffline, InvalidAddress,
-                                 InvalidStoreReading, InvalidStoreWriting)
+from openfed.common import (Address, ArrayDict, ConnectTimeout,
+                            DeviceOffline, Hook, InvalidAddress,
+                            InvalidStoreReading, InvalidStoreWriting, Package,
+                            TaskInfo, load_address_from_file, logger, peeper)
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
 from openfed.hooks.cypher import Cypher, FormatCheck
 from openfed.utils import (convert_to_list, openfed_class_fmt, tablist,
@@ -269,7 +268,7 @@ class Delivery(Hook, Package):
         # set version on task info
         self.set("upload_version", version)
 
-        if ASYNC_OP.is_async_op:
+        if self.world.async_op:
             handle, step_func = self.push()
             # store the necessary message, and hang up begining time.
             self._upload_hang_up = (  # type: ignore
@@ -286,7 +285,7 @@ class Delivery(Hook, Package):
         # set version
         self.set("download_version", version)
 
-        if ASYNC_OP.is_async_op:
+        if self.world.async_op:
             handle, step_func = self.pull()
             self._download_hang_up = (  # type: ignore
                 handle, step_func, time.time())
@@ -556,10 +555,10 @@ class Delivery(Hook, Package):
             received,
             dst      = rank,
             group    = self.pg,
-            async_op = ASYNC_OP.is_async_op,
+            async_op = self.world.async_op,
             country  = self.country)
 
-        if ASYNC_OP.is_async_op:
+        if self.world.async_op:
             handler, step_func = returns  # type: ignore
             # lambda: before go into this layer's function, call step_func first.
             return handler, lambda: _op_after_gather(step_func())
@@ -586,7 +585,7 @@ class Delivery(Hook, Package):
             None,
             dst      = rank,
             group    = self.pg,
-            async_op = ASYNC_OP.is_async_op,
+            async_op = self.world.async_op,
             country  = self.country)
 
     def __str__(self) -> str:
@@ -635,7 +634,7 @@ class Destroy(object):
             cls.destroy_delivery(delivery)
 
 
-class Joint(SafeThread):
+class Joint(Thread):
     """A thread to build connection among specified ends.
     """
 
@@ -643,7 +642,7 @@ class Joint(SafeThread):
     build_success: bool
 
     def __init__(self, address: Address, world: World) -> None:
-        super().__init__()
+        super().__init__(daemon=True)
 
         if address.world_size == 2:
             # If this address is point to point access, set the correct rank for leader and follower.
@@ -662,7 +661,7 @@ class Joint(SafeThread):
         if self.world.follower:
             self.join()
 
-    def safe_run(self) -> str:
+    def run(self) -> str:
         # create a country
         country = Country(self.world)
 
@@ -689,10 +688,8 @@ class Joint(SafeThread):
             with self.world._delivery_dict:
                 self.world._delivery_dict[delivery] = time_string()
         self.build_success = True
-        return f"Connected to {self.address}"
 
-
-class Maintainer(SafeThread):
+class Maintainer(Thread):
     """
     Dynamic build the connection.
     """
@@ -714,6 +711,8 @@ class Maintainer(SafeThread):
 
     abnormal_exited: bool
 
+    stopped: bool
+
     def __init__(self,
                  world           : World,
                  address         : Address = None,
@@ -723,7 +722,7 @@ class Maintainer(SafeThread):
         """
             Only a single valid address is allowed in client.
         """
-        SafeThread.__init__(self)
+        super().__init__(daemon=True)
         self.address_file = address_file
         self.pending_queue = ArrayDict()
         if address is not None:
@@ -741,6 +740,8 @@ class Maintainer(SafeThread):
         self.world = world
 
         self.read_address_from_file()
+
+        self.stopped = False
 
         if self.world.leader:
             self.start()
@@ -771,7 +772,7 @@ class Maintainer(SafeThread):
                 with self.pending_queue:
                     self.pending_queue[address] = (time.time(), 0)
 
-    def safe_run(self) -> str:
+    def run(self) -> str:
         joint_map = dict()  # address -> joint
         while not self.stopped and self.world.ALIVE:
             # update pending list
@@ -829,7 +830,7 @@ class Maintainer(SafeThread):
         if kill_world:
             self.kill_world()
         del_mt_lock(self)
-        super().manual_stop()
+        self.stopped = True
 
     def manual_joint(self, address: Address) -> None:
         if not openfed.DAL.is_dal and self.world.leader:

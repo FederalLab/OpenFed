@@ -30,7 +30,7 @@ from typing import Any, List, Union, overload
 
 from openfed.utils import convert_to_list
 
-from .base import InvalidAddress
+from .exceptions import InvalidAddress
 
 Address = namedtuple('Address',
                      field_names=['backend', 'init_method',

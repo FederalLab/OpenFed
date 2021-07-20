@@ -33,7 +33,7 @@ from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from openfed.common import ArrayDict, logger
-from openfed.common.base import ConnectTimeout, peeper
+from openfed.common import ConnectTimeout, peeper
 from openfed.utils import openfed_class_fmt, time_string
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)
@@ -84,6 +84,10 @@ class World():
 
         self._delivery_dict = ArrayDict()  # [Delivery -> Create Time]
         self.current_pg    = NULL_PG
+
+        self.async_op = True if role == leader else False
+        self.dal = True
+        self.max_try_times = 5
 
     def kill(self) -> None:
         """Shout down this world with force. 

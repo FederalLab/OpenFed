@@ -62,23 +62,3 @@ class _DAL(Vars):
 
 DAL = _DAL()
 
-
-class _ASYNC_OP(Vars):
-    """ASYNC OP.
-    """
-
-    def __init__(self):
-        super().__init__(True, "ASYNC_OP")
-
-    def set_async_op(self) -> None:
-        self.set(True)
-
-    def unset_async_op(self) -> None:
-        self.set(False)
-
-    @property
-    def is_async_op(self) -> bool:
-        return self.flag
-
-
-ASYNC_OP = _ASYNC_OP()
