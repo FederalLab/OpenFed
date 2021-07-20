@@ -70,7 +70,7 @@ class AttrDict(dict):
 
 class ArrayDict(dict):
     """
-    ::Example
+    .. Example::
         >>> array_dict = ArrayDict()
         >>> array_dict['a'] = [time_string(), 0]
         >>> array_dict['b'] = [time_string(), 1]
