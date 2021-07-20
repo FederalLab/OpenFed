@@ -29,8 +29,8 @@ from threading import Lock, Thread
 from typing import Any, Callable, Dict, Tuple, Union
 
 from bidict import bidict
-from openfed.common import (Address, ArrayDict, ConnectTimeout, DeviceOffline,
-                            Attach, InvalidAddress, InvalidStoreReading,
+from openfed.common import (Address, ArrayDict, Attach, ConnectTimeout,
+                            DeviceOffline, InvalidAddress, InvalidStoreReading,
                             InvalidStoreWriting, Package, TaskInfo,
                             load_address_from_file, logger, peeper)
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
@@ -374,7 +374,7 @@ class Delivery(Attach, Package):
     def alive(self) -> bool:
         """opposite to self.offline
         """
-        return self.world.ALIVE and self._get_state() != offline
+        return self.world.alive and self._get_state() != offline
 
     def pulling(self):
         """Set state to pull.
@@ -410,7 +410,7 @@ class Delivery(Attach, Package):
 
     @property
     def is_offline(self) -> bool:
-        return self.world.ALIVE and self._get_state() == offline
+        return self.world.alive and self._get_state() == offline
 
     @Recorder.add_to_pool
     def register_collector(self, collector: Collector):
@@ -772,7 +772,7 @@ class Maintainer(Thread):
 
     def run(self) -> str:
         joint_map = dict()  # address -> joint
-        while not self.stopped and self.world.ALIVE:
+        while not self.stopped and self.world.alive:
             # update pending list
             self.read_address_from_file()
             # Create new Joint for new address

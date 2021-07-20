@@ -73,13 +73,15 @@ class World():
             └── Delivery-2
     """
 
-    def __init__(self, role: str) -> None:
+    def __init__(self, 
+                role: str, 
+                ) -> None:
         """
         Args: 
             role:
         """
         peeper.world_dict[self] = time_string()
-        self.ALIVE = True
+        self.alive = True
         self.role  = role
 
         self._delivery_dict = ArrayDict()  # [Delivery -> Create Time]
@@ -96,7 +98,7 @@ class World():
         for delivery in self._delivery_dict:
             delivery[0].offline()
         else:
-            self.ALIVE = False
+            self.alive = False
 
     @property
     def leader(self) -> bool:
