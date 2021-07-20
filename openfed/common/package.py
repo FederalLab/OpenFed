@@ -42,7 +42,7 @@ class Package(object):
             obj (Penalizer, Pipe, Container): The object contains state dict to fetch data.
             keys: The extra keys want to pack to Package.
         """
-        keys     = convert_to_list(keys)
+        keys     = convert_to_list(keys) or []
         all_keys = obj.pack_set
         for key in keys:
             if key not in all_keys:
@@ -63,7 +63,7 @@ class Package(object):
             obj (Penalizer, Pipe, Container): The object contains state dict to fill data.
             keys: The extra keys want to unpack to obj.
         """
-        keys     = convert_to_list(keys)
+        keys     = convert_to_list(keys) or []
         all_keys = obj.unpack_set
         for key in keys:
             if key not in all_keys:
