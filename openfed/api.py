@@ -28,12 +28,10 @@ from typing import Any, Dict, List, Union
 
 from torch import Tensor
 
-import openfed
-from openfed.common import (Address, DeviceOffline, Attach, TaskInfo,
+from openfed.common import (Address, Attach, DeviceOffline, TaskInfo,
                             default_address, logger, peeper)
 from openfed.container import Container
-from openfed.core import (Delivery, Destroy, Maintainer, World, follower,
-                          leader, openfed_lock)
+from openfed.core import Delivery, Destroy, Maintainer, World, openfed_lock
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,

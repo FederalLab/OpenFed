@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 
-"""This file provides some useful functions fpr auto-reduce operation among received task infos.
+"""This file provides some useful functions for auto-reduce operation among received task infos.
 """
 
 from collections import defaultdict
