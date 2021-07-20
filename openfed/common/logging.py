@@ -24,51 +24,69 @@
 import sys
 
 
-def _pop_items(kwargs, key, default_value):
-    if key in kwargs:
-        return kwargs.pop(key)
-    else:
-        return default_value
-
-
 class Logger(object):
-    def __init__(self, level: str = "INFO"):
+    """A logger class that wrapper the loguru.
+    """
+
+    def __init__(self):
         from loguru import logger
         self.logger = logger
-        self.level  = level
+        # Remove the default logger.
+        # The default logger will print log information
+        # to screen directly.
         self.logger.remove()
 
     def log_level(self, level: str = "INFO"):
-        # remove default logger
+        # Add a new logger.
         self.logger.add(sys.stderr, level=level)
         self.level = level
 
     def log_to_file(self, filename: str, *args, **kwargs):
         self.logger.add(
-            filename, *args,
-            level=_pop_items(kwargs,
-                             'level', self.level),
+            filename,
+            *args,
+            level=kwargs.get('level', self.level),
             **kwargs)
 
-    def error(self, *args, **kwargs):
-        depth = _pop_items(kwargs, 'depth', 1)
-        self.logger.opt(depth=depth).error(*args, **kwargs)
+    def error(self, msg, depth=1):
+        """
+        .. Example::
+            >>> logger.error("Error")
+            2021-07-20 22:36:30.521 | ERROR    | __main__:<module>:1 - Error
+        """
+        self.logger.opt(depth=depth).error(msg)
 
-    def warning(self, *args, **kwargs):
-        depth = _pop_items(kwargs, 'depth', 1)
-        self.logger.opt(depth=depth).warning(*args, **kwargs)
+    def warning(self, msg, depth=1):
+        """
+        .. Example::
+            >>> logger.warning("Warning")
+            2021-07-20 22:37:06.037 | WARNING  | __main__:<module>:1 - Warning
+        """
+        self.logger.opt(depth=depth).warning(msg)
 
-    def info(self, *args, **kwargs):
-        depth = _pop_items(kwargs, 'depth', 1)
-        self.logger.opt(depth=depth).info(*args, **kwargs)
+    def info(self, msg, depth=1):
+        """
+        .. Example::
+            >>> logger.info("Info")
+            2021-07-20 22:37:44.523 | INFO     | __main__:<module>:1 - Info
+        """
+        self.logger.opt(depth=depth).info(msg)
 
-    def debug(self, *args, **kwargs):
-        depth = _pop_items(kwargs, 'depth', 1)
-        self.logger.opt(depth=depth).debug(*args, **kwargs)
+    def debug(self, msg, depth=1):
+        """
+        .. Example::
+            >>> logger.debug("Debug")
+            2021-07-20 22:38:13.817 | DEBUG    | __main__:<module>:1 - Debug
+        """
+        self.logger.opt(depth=depth).debug(msg)
 
-    def success(self, *args, **kwargs):
-        depth = _pop_items(kwargs, 'depth', 1)
-        self.logger.opt(depth=depth).success(*args, **kwargs)
+    def success(self, msg, depth=1):
+        """
+        .. Example::
+            >>> logger.success("Success")
+            2021-07-20 22:38:40.479 | SUCCESS  | __main__:<module>:1 - Success
+        """
+        self.logger.opt(depth=depth).success(msg)
 
 
 logger = Logger()
