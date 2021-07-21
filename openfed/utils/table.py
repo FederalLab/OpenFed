@@ -42,7 +42,14 @@ def _string_trim(string: str, length: int = 15):
 def _tablist(head: List[Any], data: List[Any]) -> str:
     columns = 80
     length  = (columns - len(head) * 3 - 1)  // len(head)
-    table  = PrettyTable([_string_trim(h, length) for h in head])
+    head = [_string_trim(h, length) for h in head]
+    # String operation may string the head with the same result.
+    # In this case, you should split then into more tables,
+    # or just use a different head.
+    # By the way, the head should with different starts, which 
+    # can largely avoid this error.
+    assert len(head) == len(set(head)), "String trim operation make some head with the some name."
+    table  = PrettyTable(head)
     table.add_row([_string_trim(d, length) for d in data])
 
     return str(table)

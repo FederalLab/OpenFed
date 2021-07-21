@@ -21,22 +21,26 @@
 # SOFTWARE.
 
 
-"""This file provides some useful functions for auto-reduce operation among received task infos.
-"""
-
 from collections import defaultdict
-from typing import List, Union
+from typing import List
 
 from openfed.common import TaskInfo
 from openfed.utils import convert_to_list
 
 
 class Reducer(object):
-    """The base class of different reducers.
+    """The base class for different reducers.
+    It will reduce the ``task_info_buffer`` and return the final result.
+
+    .. note::
+        ``task_info_buffer`` will be automatically cleared after reduce.
+    It is not necessary to do clear it in aggregator.
     """
-    task_info_buffer: List[TaskInfo]  # assigned from aggregator
+    task_info_buffer: List[TaskInfo]  # access from aggregator
 
     def reduce(self) -> TaskInfo:
+        """Reduce the `task_info_buffer`.
+        """
         return TaskInfo()
 
 class AutoReducer(Reducer):
@@ -44,29 +48,34 @@ class AutoReducer(Reducer):
     """
 
     def __init__(self,
-                 weight_key     : str                   = None,
-                 reduce_keys    : Union[str, List[str]] = None,
-                 additional_keys: Union[str, List[str]] = None):
+                 reduce_keys : List[str],
+                 weight_key  : str = None,
+                 ignore_keys : List[str] = None):
         """
         Args:
-            reduce_keys: if not specified, we will try to apply auto reduce on all int and float numbers.
-            weight_key: if specified, we will apply a weighed reduce operation accross all values.
-                weight_keys must be in the returned task_info_dict.
-            additional_keys: the keys which do not apply reduce operation, but contains some message to indicate the task.
-                we will keep these keys in the reduced task info.
+            weight_key: If specified, we will apply a weighed reduce operation accross all values.
+                ``weight_key`` must be in the returned task_info_dict.
+            reduce_keys: if not specified, auto reduce will be applied on all `int` and `float` numbers.
+        
+        .. note:: 
+            The extra key value in task_info_dict will keep the same as first task info.
         """
         super().__init__()
-        self.weight_key      = weight_key
-        self.reduce_keys     = convert_to_list(reduce_keys)
-        self.additional_keys = convert_to_list(additional_keys)
+        assert isinstance(weight_key, str), "weight_key must be a string."
+        self.weight_key  = weight_key
+        self.reduce_keys = convert_to_list(reduce_keys) or []
+        self.ignore_keys = convert_to_list(ignore_keys) or []
+
+        assert self.reduce_keys, "Attempt to reduce empty list of keys."
 
     def reduce(self) -> TaskInfo:
+        """Reduce the task_info_buffer and then clear it.
+        """
         task_info_list = self.task_info_buffer
-        rdict          = defaultdict(lambda: 0.0)
-        task_info      = task_info_list[0]
+        rdict     = defaultdict(lambda: 0.0)
+        task_info = task_info_list[0]
         if self.weight_key is not None:
             assert self.weight_key in task_info, "weight key is not contained in task info."
-
             demo = sum([ti[self.weight_key]
                        for ti in task_info_list])
             rdict[self.weight_key] = demo
@@ -79,25 +88,22 @@ class AutoReducer(Reducer):
         for w, ti in zip(weight, task_info_list):
             for k, v in ti.items():
                 if k == self.weight_key:
-                    # skip weight key
+                    # Skip weight key
                     continue
-
-                if self.reduce_keys is not None and k in self.reduce_keys:
+                elif k in self.reduce_keys:
                     rdict[k] += v * w
-                elif self.reduce_keys is None and isinstance(v, float):
-                    rdict[k] += v * w
-                else:
-                    pass
-
-        r_task_info = {}
-        if self.additional_keys is not None:
-            for k in self.additional_keys:
-                r_task_info.update({k: task_info[k]})
+                elif k not in rdict:
+                    # Keep unexpected value.
+                    # They may be `version` information.
+                    rdict[k] = v
 
         # Clear buffers
-        self.task_info_buffer = []
+        self.task_info_buffer.clear()
 
-        return TaskInfo(**r_task_info, **rdict)
+        for k in self.ignore_keys:
+            del rdict[k]
+
+        return TaskInfo(**rdict)
 
 
 reducers = [Reducer, AutoReducer]
