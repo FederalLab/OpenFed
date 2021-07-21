@@ -106,34 +106,34 @@ def glue(inst_a: Any,
         >>> inst_c.print_C()
         Type_C
     """
-
+    extra_func = extra_func or {}
     TypeA = type(inst_a)
     TypeB = type(inst_b)
     func_dict = dict()
-    if extra_func is not None:
-        for func_name, func_impl in extra_func.items():
-            if func_impl is not None:
-                func_dict[func_name] = func_impl
-            else:
-                if not(hasattr(TypeA, func_name) and hasattr(TypeB, func_name)):
-                    raise RuntimeError(
-                        f"{TypeA} and {TypeB} must provide the implementation of {func_name}.")
 
-                def glue_func(func_a, func_b):
-                    # Create a decorator that glue func_a and func_b.
-                    def _glue_func(*args, **kwargs):
-                        # If the output is dictionary, we will return output_a.update(output_b)
-                        # Otherwise, we only return `output_a or output_b`
-                        output_a = func_a(*args, **kwargs)
-                        output_b = func_b(*args, **kwargs)
-                        if isinstance(output_a, dict) and isinstance(output_b, dict):
-                            output_a.update(output_b)
-                            return output_a
-                        return output_a or output_b
-                    return _glue_func
-                func_dict[func_name] = glue_func(
-                    func_a = getattr(TypeA, func_name),
-                    func_b = getattr(TypeB, func_name))
+    for func_name, func_impl in extra_func.items():
+        if func_impl is not None:
+            func_dict[func_name] = func_impl
+        else:
+            if not(hasattr(TypeA, func_name) and hasattr(TypeB, func_name)):
+                raise RuntimeError(
+                    f"{TypeA} and {TypeB} must provide the implementation of {func_name}.")
+
+            def glue_func(func_a, func_b):
+                # Create a decorator that glue func_a and func_b.
+                def _glue_func(*args, **kwargs):
+                    # If the output is dictionary, we will return output_a.update(output_b)
+                    # Otherwise, we only return `output_a or output_b`
+                    output_a = func_a(*args, **kwargs)
+                    output_b = func_b(*args, **kwargs)
+                    if isinstance(output_a, dict) and isinstance(output_b, dict):
+                        output_a.update(output_b)
+                        return output_a
+                    return output_a or output_b
+                return _glue_func
+            func_dict[func_name] = glue_func(
+                func_a = getattr(TypeA, func_name),
+                func_b = getattr(TypeB, func_name))
 
     name = f"Gluer_{inst_a.__class__.__name__}_{inst_b.__class__.__name__}"
 
@@ -142,7 +142,7 @@ def glue(inst_a: Any,
     inst_c = TypeC()
 
     inst_c.__dict__.update(inst_a.__dict__)
-    skip_keys  = []
+    discard_keys  = []
     merge_keys = []
     for k, v in inst_b.__dict__.items():
         # The key starts with `_` or `__` will be skipped automatically.
@@ -152,16 +152,16 @@ def glue(inst_a: Any,
                     inst_c.__dict__[k].update(v)
                     merge_keys.append(k)
                 else:
-                    skip_keys.append(k)
+                    discard_keys.append(k)
             else:
                 inst_c.__dict__[k] = v
 
     warnings.warn(
-        f"{len(skip_keys)} variables of {inst_b} are discarded,"
+        f"{len(discard_keys)} variables of {inst_b} are discarded,"
         f"{len(merge_keys)} variables of {inst_b} are merged.")
 
-    if skip_keys:
-        warnings.warn(f"Discarded keys: {skip_keys}")
+    if discard_keys:
+        warnings.warn(f"Discarded keys: {discard_keys}")
     if merge_keys:
         warnings.warn(f"Merged keys: {merge_keys}")
 
