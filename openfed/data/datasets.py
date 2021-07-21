@@ -31,6 +31,10 @@ from .partitioner import Partitioner
 
 
 class FederatedDataset(Dataset):
+    """Federated Dataset is the common used dataset in OpenFed.
+    Each federated dataset has an unique part id. This is useful
+    while doing simulation experiments.
+    """
     part_id    : int = 0
     total_parts: int = 1
 
@@ -44,6 +48,10 @@ class FederatedDataset(Dataset):
 
 
 class PartitionerDataset(FederatedDataset):
+    """PartitionerDataset can make a non-federated dataset as a federated dataset
+    via specify different partition methods. It is useful while exploring the 
+    influence of non-iid experiments.
+    """
     dataset         : Dataset
     parts_index_list: List
     partitioner     : Partitioner
@@ -54,7 +62,9 @@ class PartitionerDataset(FederatedDataset):
                  partitioner: Partitioner): 
         """
         Args:
-            dataset: 
+            dataset: Any torch kind dataset.
+            total_parts: How many parts the dataset participated into.
+            partitioner: The way to participate the dataset.
         """
         self.dataset     = dataset
         self.total_parts = total_parts

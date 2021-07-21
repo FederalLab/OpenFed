@@ -24,9 +24,10 @@
 from datetime import timedelta
 from enum import Enum, unique
 
-# communication
+# communication timeout
 DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
-NULL_PG            = None
+# null progress group
+NULL_PG = None
 
 @unique
 class ROLE(Enum):
@@ -51,6 +52,8 @@ offline = STATUS.OFFLINE.value
 
 @unique
 class CONST(Enum):
+    """The following keys will used as the key of store.
+    """
     OPENFED_IDENTIFY  = "OPENFED_IDENTIFY"
     OPENFED_STATUS    = "OPENFED_STATUS"
     OPENFED_TASK_INFO = 'OPENFED_TASK_INFO'

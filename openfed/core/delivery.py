@@ -47,10 +47,12 @@ from .space import (Country, ProcessGroup, Store, World, add_mt_lock,
 
 rw = RandomWords()
 
-peeper.delivery_dict = ArrayDict()
+peeper.delivery_dict = ArrayDict() # type: ignore
 
 
 def safe_store_set(store: Store, key: str, value: Dict) -> bool:
+    """Write key to store safely.
+    """
     jsonstr = json.dumps(value)
     try:
         store.set(key, jsonstr)
@@ -60,6 +62,8 @@ def safe_store_set(store: Store, key: str, value: Dict) -> bool:
 
 
 def safe_store_get(store: Store, key: str) -> Dict[str, Any]:
+    """Read key from state safely.
+    """
     try:
         jsonbytes = store.get(key)
     except Exception as e:
@@ -69,24 +73,31 @@ def safe_store_get(store: Store, key: str) -> Dict[str, Any]:
 
 
 def fresh_read(func):
-    """A decorate function that will raise error if the data is refresh.
+    """A decorate function that will raise error if the data is not fresh.
+    If read key value from the store is failed, we will use the cached info.
     """
 
     def _fresh_read(self, *args, **kwargs):
         output = func(self, *args, **kwargs)
-        if not self.fresh_read:
-            logger.debug(
-                "Use an cached value instead a fresh required data."
-                "Which may cause Error."
-                f"func: {func}"
-                f"args: {args}"
-                f"kwargs: {kwargs}")
+        assert self.fresh_read, "Data out of date."
         return output
     return _fresh_read
 
 
 class Delivery(Attach, Package):
-    """Contains all communication functions in Delivery.
+    """Delivery is responsible for transfer tensors and any other short information
+    to the other hand. You can pack state dict of Container, Pipe to Delivery. Vise via,
+    You can unpack inner state from Delivery to Container or Pipe.
+
+    Delivery is the unified API that provided for user to access.
+
+    .. warn::
+        In federated learning, the tensor transfer between each node may be varied significantly.
+        And it may be diffcult to maintain all the received data previously like Distributed Learing.
+        (In distributed learning, each node will transfer certain tensor.)
+        In Delivery, we will organize all data as a dictionary which using a unifed string name 
+        across all nodes. Then, we use the `gather_object` method to transfer tensors. This also 
+        requires that all the data transferred should be picklable.
     """
     world  : World
     country: Country
@@ -122,24 +133,39 @@ class Delivery(Attach, Package):
                  pg     : ProcessGroup,
                  country: Country,
                  ) -> None:
+        """
+        Args:
+            store: It is a long-time connection, we can transfer information
+                with other end.
+            pg: The process group belong to. In fact, the process group always
+                contains two process, the leader and follower.
+            country: The pg belongs to. Country also contains all global variables
+                that shared among different delivery.
+        """
         self.pg      = pg
         self.store   = store
         self.country = country
         self.world   = country.world
 
-        # set nick name first!
+        # Set nick name on leader end.
+        # Nick name is always assigned by leader.
+        # With this nick name, we can have a better identification
+        # of each follower.
+        # warn: the nick name may be not unique.
         if self.world.leader:
             safe_store_set(
                 store = self.store,
                 key   = nick_name,
                 value = rw.random_word()
             )
+        # Record the nick name.
+        # So that we can avoid to read it from store every time.
         self.nick_name = safe_store_get(
             store = self.store,
             key   = nick_name
         )
 
-        # write self._i_key to initialize the key value store.
+        # Write self._i_key to initialize the key value store.
         safe_store_set(
             store = self.store,
             key   = self._i_key,
@@ -149,30 +175,41 @@ class Delivery(Attach, Package):
             }
         )
 
-        # Fetch data at last
-        # try to read _u_key from the other end to make sure it is online.
+        # Try to read _u_key from the other end.
+        # This is also a lock to make sure that the other end is online.
         self._i_backup_info = safe_store_get(self.store, self._i_key)
         self._u_backup_info = safe_store_get(self.store, self._u_key)
 
-        # register a default collector
+        # Register default collectors
         self.register_collector(SystemInfo())
         self.register_collector(GPUInfo())
 
+        # Scatter will call collector and set them in the store.
         self.scatter()
 
-        # Run at the initialize state.
+        # Collect is the inverse process of Scatter, which will read other
+        # hand information then store it in self collector.
         self.collect()
 
-        self.fresh_read        = True
+        self.fresh_read = True
+
+        # A bi-direction map that bounding the name with the tensor.
         self.key_tensor_bidict = bidict()
-        self.packages          = defaultdict(dict)
+        # Packages use the string name as dictionary.
+        self.packages = defaultdict(dict)
         
+        # FormatCheck is a necessary cypher, which will move the tensor to 
+        # CPU, and then convert back to corresponding GPU.
         self.register_cypher(FormatCheck())
 
+        # download and upload hang up indicate that whether it is dealling
+        # with a download or upload event.
+        # Only used while async is enable.
         self.download_hang_up: bool = False
         self.upload_hang_up  : bool = False
 
-        peeper.delivery_dict[self] = time_string()
+        # Register delivery to peeper.delivery_dict
+        peeper.delivery_dict[self] = time_string() # type: ignore
 
     @property
     def upload_version(self) -> int:
@@ -189,8 +226,10 @@ class Delivery(Attach, Package):
                  step_func: Callable = None) -> bool: 
         """
         Args:
-            to: it true, transfer data to other side.
-            handler: if not None, call handler.wait().
+            to: If `True`, transfer data to other end. Otherwise, download 
+                data from the other end.
+            handler: If not None, call handler.wait(). Otherwise, call `pull()`
+                or `push` directly.
             tic: start counting time.
         """
         assert not self.is_offline, DeviceOffline(self)
@@ -261,6 +300,8 @@ class Delivery(Attach, Package):
 
     def upload(self, version: int) -> bool:
         """Upload packages date to the other end.
+        Args:
+            version: The version of current upload packages.
         """
 
         # set version on task info
@@ -278,6 +319,8 @@ class Delivery(Attach, Package):
 
     def download(self, version: int) -> bool:
         """Download packages from other end.
+        Args:
+            version: The version requested by current process.
         """
 
         # set version
@@ -294,9 +337,9 @@ class Delivery(Attach, Package):
 
     @classmethod
     def delivery_generator(cls) -> Any:
-        """Return a generator to iterate over all delivery.
+        """Return a generator to iterate over all deliveries.
         """
-        for delivery, _ in peeper.delivery_dict:
+        for delivery, _ in peeper.delivery_dict: # type: ignore
             yield [] if delivery is None else delivery
             if delivery is not None:
                 delivery.world.current_pg = delivery.pg
@@ -305,27 +348,34 @@ class Delivery(Attach, Package):
 
     @classmethod
     def default_delivery(cls) -> Any:
-        """Return the only delivery. If more then one, raise warning.
+        """Return the fist delivery.
         """
-        for delivery, _ in peeper.delivery_dict:
+        for delivery, _ in peeper.delivery_dict: # type: ignore
             return delivery
 
     @property
     def _i_key(self) -> str:
+        """Delivery will write information to `i_key`.
+        """
         return openfed_identity + "_" + ("LEADER" if self.world.leader else "FOLLOWER")
 
     @property
     def _u_key(self) -> str:
+        """Delivery will read information from `u_key`.
+        """
         return openfed_identity + "_" + ("LEADER" if not self.world.leader else "FOLLOWER")
 
     def _write(self, info: Dict[str, str]) -> bool:
         """Write info to self._i_key.
+
+        .. warn::
+            This will erase all information directly.
         """
         info["timestemp"] = time_string()
         return safe_store_set(self.store, self._i_key, info)
 
     def _update(self, info: Dict[str, str]) -> bool:
-        """rewrite the old message in kv-store.
+        """Update the value in store with info.
         """
         # read i_key information, then update it
         self._i_backup_info.update(info)
@@ -351,23 +401,36 @@ class Delivery(Attach, Package):
             return self._u_backup_info[key] if key else self._u_backup_info
 
     def set(self, key: str, value: Any):
+        """Set key-value to store.
+        """
         self._update({key: value})
 
     def get(self, key: Union[None, str]) -> Any:
+        """Get key from store.
+        """
         return self._read(key)
 
     @property
     @fresh_read
     def task_info(self) -> TaskInfo:
+        """Get task info from store.
+        The task infomation must be fresh read.
+        """
         return TaskInfo(**self.get(openfed_task_info))
 
     def set_task_info(self, task_info: TaskInfo):
+        """Set task infomation to the store directly.
+        """
         self.set(openfed_task_info, task_info)
 
     def _get_state(self) -> str:
+        """Return the other end state.
+        """
         return self.get(openfed_status)
 
     def _set_state(self, state: str):
+        """Set self state.
+        """
         self.set(openfed_status, state)
 
     @property
@@ -428,11 +491,12 @@ class Delivery(Attach, Package):
             if key.startswith("Collector"):
                 # don't forget () operation.
                 obj: Collector = Recorder(key, self)()
-                if obj is not None and self.world.leader and obj.leader_collector or \
-                        self.world.follower and obj.follower_collector:
-                    if not obj.once_only or not obj.collected:
-                        obj.load_message(value)
-                        logger.debug(obj)
+                if obj is not None:
+                    if (self.world.leader and obj.leader_collector) or \
+                        (self.world.follower and obj.follower_collector):
+                        if not obj.once_only or not obj.collected:
+                            obj.load_message(value)
+                            logger.debug(obj)
 
     def scatter(self):
         """Scatter self.hook information to the other end.
@@ -616,7 +680,7 @@ class Destroy(object):
 
         delivery.offline()
         del world._delivery_dict[delivery]
-        del peeper.delivery_dict[delivery]
+        del peeper.delivery_dict[delivery] # type: ignore
 
         country.destroy_process_group(pg)
 
@@ -628,7 +692,7 @@ class Destroy(object):
 
     @classmethod
     def destroy_all_deliveries(cls):
-        for delivery, _ in peeper.delivery_dict:
+        for delivery, _ in peeper.delivery_dict: # type: ignore
             cls.destroy_delivery(delivery)
 
 
@@ -822,6 +886,8 @@ class Maintainer(Thread):
         return f"Build connection to {len(self.finished_queue)} addresses."
 
     def manual_stop(self, kill_world: bool = True) -> None:
+        """Kill current delivery as soon as possible.
+        """
         if kill_world:
             self.world.kill()
         del_mt_lock(self)

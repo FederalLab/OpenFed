@@ -43,7 +43,7 @@ from openfed.pipe import Pipe
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
 
-peeper.api_lock = Lock()
+peeper.api_lock = Lock() # type: ignore
 
 
 def device_offline_care(func):
@@ -358,10 +358,10 @@ class API(Thread, Attach):
         )
 
     def __enter__(self):
-        peeper.api_lock.acquire()
-        peeper.api = self
+        peeper.api_lock.acquire() # type: ignore
+        peeper.api = self # type: ignore
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # restore state
-        peeper.api = None
-        peeper.api_lock.release()
+        peeper.api = None # type: ignore
+        peeper.api_lock.release() # type: ignore
