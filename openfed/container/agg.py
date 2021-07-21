@@ -339,29 +339,53 @@ class Agg(Package):
                         self.stack(
                             p,
                             received_params[p],
-                            received_info = received_info,
-                            group         = group)
+                            r_info = received_info,
+                            group  = group)
                     else:
                         self.merge(
                             p,
                             received_params[p],
-                            received_info = received_info,
-                            group         = group)
+                            r_info = received_info,
+                            group  = group)
 
         # Cache received info to task info. 
         # The task_info_buffer will be accessed by Reducer, and get the final results.
         self.task_info_buffer.append(received_info)
 
-    def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
+    def merge(self, p: Tensor, r_p: Dict[str, Tensor], r_info: TaskInfo, group: Dict) -> Any:
+        """Merge a received data to buffer.
+        Args:
+            p: The tensor used as index.
+            r_p: The received data dictionary.
+            r_info: The received task info dictionary.
+            group: The group `p` belongs to. It contains other necessary hyper parameters.
+        """
         raise NotImplementedError
 
     def _merge_aggregate(self, p: Tensor, group: Dict) -> None:
+        """Aggregate operation on merged buffer.
+        Args:
+            p: The parameter attached gradient to.
+            group: The group contains necessary hyper-parameters.
+        """
         raise NotImplementedError
 
-    def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
+    def stack(self, p: Tensor, r_p: Dict[str, Tensor], r_info: TaskInfo, group: Dict) -> Any:
+        """Stack a received data to buffer.
+        Args:
+            p: The tensor used as index.
+            r_p: The received data dictionary.
+            r_info: The received task info dictionary.
+            group: The group `p` belongs to. It contains other necessary hyper parameters.
+        """
         raise NotImplementedError
 
     def _stack_aggregate(self, p: Tensor, group: Dict) -> None:
+        """Aggregate operation on stack buffer.
+        Args:
+            p: The parameter attached gradient to.
+            group: The group contains necessary hyper-parameters.
+        """
         raise NotImplementedError
 
 class AverageAgg(Agg):
@@ -394,7 +418,7 @@ class AverageAgg(Agg):
             pipe_keys=pipe_keys,
             legacy=legacy)
 
-    def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
+    def merge(self, p: Tensor, r_p: Dict[str, Tensor], r_info: Dict, group: Dict) -> Any:
         state = self.state[p]
         if 'step' not in state:
             state['step'] = 0
@@ -491,9 +515,9 @@ class ElasticAgg(Agg):
     def merge(self,
               p: Tensor,
               r_p: Dict[str, Tensor],
-              received_info: TaskInfo,
+              r_info: TaskInfo,
               group: Dict) -> Any:
-        instances = received_info.instances  # type: ignore
+        instances = r_info.instances  # type: ignore
         state = self.state[p]
         if 'step' not in state:
             state['step'] = 0
@@ -508,13 +532,13 @@ class ElasticAgg(Agg):
     def stack(self,
               p: Tensor,
               r_p: Dict[str, Tensor],
-              received_info: TaskInfo,
+              r_info: TaskInfo,
               **unused) -> Any:
         state = self.state[p]
         if 'received_params' not in state:
             state['received_params'] = []
 
-        r_p["instances"] = received_info.instances  # type: ignore
+        r_p["instances"] = r_info.instances  # type: ignore
         state['received_params'].append(r_p)
 
     def _merge_aggregate(self, p: Tensor, group: Dict):
@@ -611,9 +635,9 @@ class NaiveAgg(Agg):
     def merge(self,
               p: Tensor,
               r_p: Dict[str, Tensor],
-              received_info: TaskInfo,
+              r_info: TaskInfo,
               group: Dict) -> Any:
-        instances = received_info.instances  # type: ignore
+        instances = r_info.instances  # type: ignore
         state = self.state[p]
         if 'step' not in state:
             state['step'] = 0
@@ -628,13 +652,13 @@ class NaiveAgg(Agg):
     def stack(self,
               p: Tensor,
               r_p: Dict[str, Tensor],
-              received_info: TaskInfo,
+              r_info: TaskInfo,
               **unused) -> Any:
         state = self.state[p]
         if 'received_params' not in state:
             state['received_params'] = []
 
-        r_p["instances"] = received_info.instances  # type: ignore
+        r_p["instances"] = r_info.instances  # type: ignore
         state['received_params'].append(r_p)
 
     def _merge_aggregate(self, p: Tensor, group: Dict):
