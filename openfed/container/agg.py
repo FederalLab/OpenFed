@@ -45,35 +45,51 @@ required = _RequiredParameter()
 
 
 class Agg(Package):
-    r"""Base class for Agg.
+    r"""Base class for Aggregation.
+
+    Aggregator collects all received tensor and related task information.
+    At each round end, it will aggregate gradient from received models and
+    save them to `param.grad` attribute.
+
+    .. note::
+        Aggregator only calculate gradients for params, just like `loss.backward`.
+    It is never to modify any parameters directly. The update operation is still
+    left for `optim` or `pipe`.
+
+    .. note::
+        Aggregator needs be coupled with ``Reducer``, which will reduce the received
+    task information and yields the task-related training or testing results.
     """
-    task_info_buffer: List[TaskInfo]  # Used by Reducer, it will be cleared once .reduce() is callled.
+    # Used by Reducer, it will be cleared automatically once `Reducer.reduce()` callled.
+    task_info_buffer: List[TaskInfo] 
 
     def __init__(self,
                  params,
-                 defaults: Dict,
-                 info_keys: List[str],
-                 pipe_keys: List[str],
-                 keep_keys: List[str] = None,
-                 legacy: bool = False):
+                 defaults : Dict[Any, Any],
+                 info_keys: List[str] = None,
+                 pipe_keys: List[str] = None,
+                 legacy   : bool = False): 
         """
         Args:
-            info_keys: necessary keys saved in returned info dict.
-            pipe_keys: other tensor that needed to saved.
-            keep_keys: the state which will not be cleared while .clear_buffer() is called
-            legacy: if True, just stack received data, otherwise will merge them.
+            info_keys: The keys must be returned in the `received_info`. 
+                It is used to calculate the weight of each clients or any other statistic
+                information about each client.
+            pipe_keys: The keys need to be returned in the `received_params`. 
+                It is used to calculate the inner state of pipe, such as `scaffold`.
+            legacy: If `True`, stack received data into buffer directly. 
+                If `False`, merge received data into buffer. The latter one only take
+                const memory cost, but the formmer one will cost a O(n) memory cost.
+                However, the merge way will discard the accurate value of each received model,
+                which may not be desired at some times.
         """
-        self.legacy = legacy
-
         # add info_keys to defaults
-        defaults['info_keys'] = convert_to_list(info_keys)
-        defaults['pipe_keys'] = convert_to_list(pipe_keys)
-        defaults['keep_keys'] = convert_to_list(keep_keys)
+        defaults['info_keys'] = convert_to_list(info_keys) or []
+        defaults['pipe_keys'] = convert_to_list(pipe_keys) or []
         defaults['legacy'] = legacy
 
         self.defaults = defaults
 
-        if isinstance(params, torch.Tensor):
+        if isinstance(params, Tensor):
             raise TypeError("params argument given to the agg should be "
                             "an iterable of Tensors or dicts, but got " +
                             torch.typename(params))
@@ -136,7 +152,7 @@ class Agg(Package):
             return packed
         param_groups = [pack_group(g) for g in self.param_groups]
         # Remap state to use order indices as keys
-        packed_state = {(param_mappings[id(k)] if isinstance(k, torch.Tensor) else k): v
+        packed_state = {(param_mappings[id(k)] if isinstance(k, Tensor) else k): v
                         for k, v in self.state.items()}
         return {
             'state': packed_state,
@@ -172,7 +188,7 @@ class Agg(Package):
 
         def cast(param, value):
             r"""Make a deep copy of value, casting all tensors to device of param."""
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, Tensor):
                 # Floating-point types are a bit special here. They are the only ones
                 # that are assumed to always match the type of params.
                 if param.is_floating_point():
@@ -206,7 +222,7 @@ class Agg(Package):
         self.__setstate__({'state': state, 'param_groups': param_groups})
 
     def zero_grad(self, set_to_none: bool = False):
-        r"""Sets the gradients of all optimized :class:`torch.Tensor` s to zero.
+        r"""Sets the gradients of all optimized :class:`Tensor` s to zero.
         Args:
             set_to_none (bool): instead of setting to zero, set the grads to None.
                 This will in general have lower memory footprint, and can modestly improve performance.
@@ -244,7 +260,7 @@ class Agg(Package):
         assert isinstance(param_group, dict), "param group must be a dict"
 
         params = param_group['params']
-        if isinstance(params, torch.Tensor):
+        if isinstance(params, Tensor):
             param_group['params'] = [params]
         elif isinstance(params, set):
             raise TypeError('agg parameters need to be organized in ordered collections, but '
@@ -253,7 +269,7 @@ class Agg(Package):
             param_group['params'] = list(params)
 
         for param in param_group['params']:
-            if not isinstance(param, torch.Tensor):
+            if not isinstance(param, Tensor):
                 raise TypeError("agg can only optimize Tensors, "
                                 "but one of the params is " + torch.typename(param))
             if not param.is_leaf:
@@ -283,24 +299,33 @@ class Agg(Package):
         self.param_groups.append(param_group)
 
     def aggregate(self, clear_buffer: bool = True):
-        r"""Performs a single aggregation step (parameter update).
+        r"""Performs a single aggregation step on all received data.
+        It should be called at the end of round.
 
         Args: 
-            clear_buffer: if True, will clear the cached data.
+            clear_buffer: If `True`, it will clear the cached data.
+        
+        .. note::
+            `aggregate()` has a similar function as `backward()`, which only calculate
+            the gradient and store them in `p.grad`, but do not attempt to modify the 
+            parameters itself.
         """
         for group in self.param_groups:
             legacy = group['legacy']
             for p in group["params"]:
-                if legacy:
-                    self._stack_aggregate(p, group=group)
-                else:
-                    self._merge_aggregate(p, group=group)
-
+                [self._stack_aggregate(p, group) if legacy else self._merge_aggregate(p, group)]
         if clear_buffer:
             self.clear_buffer()
 
-    def step(self, received_params: Dict[str, Dict[str, Tensor]], received_info: TaskInfo) -> None:
-        """Add a new received data.
+    def step(self, received_params: Dict[Tensor, Dict[str, Tensor]], received_info: TaskInfo) -> None:
+        """Called once received a new data.
+        Args:
+            received_params: A tensor indexed dictionary, which usually returned by `delivery.indexed_tensor_packages`. Each items must contain all `pipe_keys`.
+            received_info: The received task information, which must contain all `info_keys`.
+        
+        .. note::
+            `step()` only caches the received info, but does anything else. You should call 
+            `aggregate()` to compute the final gradient for each parameter.
         """
         for group in self.param_groups:
             # info keys is the necessary keys for computing the aggregated tensor.
@@ -323,26 +348,21 @@ class Agg(Package):
                             received_info = received_info,
                             group         = group)
 
+        # Cache received info to task info. 
+        # The task_info_buffer will be accessed by Reducer, and get the final results.
         self.task_info_buffer.append(received_info)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
         raise NotImplementedError
 
-    def _merge_aggregate(self, p: torch.Tensor, group: Dict) -> None:
+    def _merge_aggregate(self, p: Tensor, group: Dict) -> None:
         raise NotImplementedError
 
     def stack(self, p: Tensor, r_p: Dict[str, Tensor], received_info: TaskInfo, group: Dict) -> Any:
         raise NotImplementedError
 
-    def _stack_aggregate(self, p: torch.Tensor, group: Dict) -> None:
+    def _stack_aggregate(self, p: Tensor, group: Dict) -> None:
         raise NotImplementedError
-
-    def unpack(self, key: Tensor, rdict: Dict[str, Any]) -> Dict[str, Tensor]:
-        """used for Package.
-        """
-        state = self.state[key]
-        return {key: state[key] for key in rdict}
-
 
 class AverageAgg(Agg):
     """average all received data directly.
@@ -351,7 +371,6 @@ class AverageAgg(Agg):
     def __init__(self,
                  params,
                  other_keys: List[str] = None,
-                 keep_keys: List[str] = None,
                  legacy: bool = True):
         """
         Args:
@@ -373,7 +392,6 @@ class AverageAgg(Agg):
             defaults,
             info_keys=info_keys,
             pipe_keys=pipe_keys,
-            keep_keys=keep_keys,
             legacy=legacy)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], received_info: Dict, group: Dict) -> Any:
@@ -388,14 +406,14 @@ class AverageAgg(Agg):
                     state[key] * step + r_p[key]) / (step + 1)
         state['step'] += 1
 
-    def stack(self, p: torch.Tensor, r_p: Dict[str, Tensor], **unused) -> Any:
+    def stack(self, p: Tensor, r_p: Dict[str, Tensor], **unused) -> Any:
         state = self.state[p]
 
         if 'received_params' not in state:
             state['received_params'] = []
         state['received_params'].append(r_p)
 
-    def _merge_aggregate(self, p: torch.Tensor, group: Dict):
+    def _merge_aggregate(self, p: Tensor, group: Dict):
         state = self.state[p]
         pipe_keys = group['pipe_keys']
 
@@ -414,7 +432,7 @@ class AverageAgg(Agg):
                 else:
                     ...
 
-    def _stack_aggregate(self, p: torch.Tensor, group: Dict):
+    def _stack_aggregate(self, p: Tensor, group: Dict):
         state = self.state[p]
 
         def aggregate(dl, k):
@@ -444,7 +462,6 @@ class ElasticAgg(Agg):
 
     def __init__(self, params,
                  other_keys: Union[str, List[str]] = None,
-                 keep_keys: List[str] = None,
                  quantile: float = 0.5,
                  legacy: bool = True):
 
@@ -469,7 +486,6 @@ class ElasticAgg(Agg):
             defaults,
             info_keys=info_keys,
             pipe_keys=pipe_keys,
-            keep_keys=keep_keys,
             legacy=legacy)
 
     def merge(self,
@@ -573,7 +589,6 @@ class NaiveAgg(Agg):
     def __init__(self,
                  params,
                  other_keys: Union[str, List[str]] = None,
-                 keep_keys: List[str] = None,
                  legacy: bool = True):
         other_keys = [] if other_keys is None else convert_to_list(other_keys)
 
@@ -591,7 +606,6 @@ class NaiveAgg(Agg):
             defaults,
             info_keys=info_keys,
             pipe_keys=pipe_keys,
-            keep_keys=keep_keys,
             legacy=legacy)
 
     def merge(self,

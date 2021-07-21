@@ -124,10 +124,13 @@ class Package(object):
             If ``keep_keys`` in ``self.param_groups``, the passed one
         will be discarded.
         """
-        keep_keys = convert_to_list(keep_keys)
+        keep_keys = convert_to_list(keep_keys) or []
 
         for group in self.param_groups:
-            keys = group['keep_keys'] or keep_keys or []
+            if 'keep_keys' in group:
+                keys = group['keep_keys'] or keep_keys
+            else:
+                keys = keep_keys
             for p in group["params"]:
                 if p in self.state[p]:
                     state = self.state[p]

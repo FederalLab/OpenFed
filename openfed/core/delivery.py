@@ -528,8 +528,8 @@ class Delivery(Attach, Package):
         rank       = leader_rank if self.world.leader else follower_rank
         other_rank = follower_rank if self.world.leader else leader_rank
 
-        rank       = self.country._get_global_rank(self.pg, rank)
-        other_rank = self.country._get_global_rank(self.pg, other_rank)
+        rank       = self.country._get_global_rank(self.pg, rank) if self.country.get_world_size() > 2 else rank
+        other_rank = self.country._get_global_rank(self.pg, other_rank) if self.country.get_world_size() > 2 else other_rank
 
         def _op_after_gather(*args):
             r_packages = [r for r in received if r is not None][0]
@@ -570,7 +570,7 @@ class Delivery(Attach, Package):
             self.pg) == 2, "Delivery is only designed for group with size 2"
 
         rank = follower_rank if self.world.leader else leader_rank
-        rank = self.country._get_global_rank(self.pg, rank)
+        rank = self.country._get_global_rank(self.pg, rank) if self.country.get_world_size() > 2 else rank
 
         # encrypt data
         packages = self.packages
