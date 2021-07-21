@@ -65,10 +65,7 @@ class Agg(Package):
 
     def __init__(self,
                  params,
-                 defaults : Dict[Any, Any],
-                 info_keys: List[str] = None,
-                 pipe_keys: List[str] = None,
-                 legacy   : bool = False): 
+                 defaults : Dict[Any, Any]): 
         """
         Args:
             info_keys: The keys must be returned in the `received_info`. 
@@ -83,9 +80,9 @@ class Agg(Package):
                 which may not be desired at some times.
         """
         # add info_keys to defaults
-        defaults['info_keys'] = convert_to_list(info_keys) or []
-        defaults['pipe_keys'] = convert_to_list(pipe_keys) or []
-        defaults['legacy'] = legacy
+        defaults['info_keys'] = defaults.get('info_keys', [])
+        defaults['pipe_keys'] = defaults.get('pipe_keys', [])
+        defaults['legacy'] = defaults.get('legacy', False)
 
         self.defaults = defaults
 
@@ -110,8 +107,8 @@ class Agg(Package):
 
     def __getstate__(self):
         return {
-            'defaults': self.defaults,
-            'state': self.state,
+            'defaults'    : self.defaults,
+            'state'       : self.state,
             'param_groups': self.param_groups,
         }
 
@@ -389,36 +386,29 @@ class Agg(Package):
         raise NotImplementedError
 
 class AverageAgg(Agg):
-    """average all received data directly.
+    """Average Aggregation: aggregate received tensor with an average operation.
     """
 
     def __init__(self,
                  params,
                  other_keys: List[str] = None,
-                 legacy: bool = True):
+                 legacy    : bool      = True):
         """
         Args:
-            other_keys: any keys you want to track.
+            other_keys: The keys you want to track, like `momentum_buffer`, `exp_avg`, `exp_avg_sq`.
         """
-        other_keys = [] if other_keys is None else convert_to_list(other_keys)
+        other_keys = convert_to_list(other_keys) or []
+        pipe_keys  = list(set(["step", "received_params", "param"] + other_keys))
 
-        info_keys: List[str] = []
-        pipe_keys: List[str] = ["step", "received_params", "param"]
-
-        for k in other_keys:
-            if k in pipe_keys:
-                raise ValueError(f"Duplicate key: {k}")
-
-        pipe_keys.extend(other_keys)
-        defaults = dict()
-        super().__init__(
-            params,
-            defaults,
-            info_keys=info_keys,
-            pipe_keys=pipe_keys,
-            legacy=legacy)
+        defaults = dict(
+            pipe_keys = pipe_keys,
+            legacy    = legacy,
+        )
+        super().__init__(params, defaults)
 
     def merge(self, p: Tensor, r_p: Dict[str, Tensor], r_info: Dict, group: Dict) -> Any:
+        """Merge received tensor to average aggregator buffer.
+        """
         state = self.state[p]
         if 'step' not in state:
             state['step'] = 0
@@ -426,56 +416,99 @@ class AverageAgg(Agg):
 
         for key in group['pipe_keys']:
             if key in r_p:
+                # Merge the received tensor to previous stored one
+                # Here, a simple average operation over buffer is applied.
                 state[key] = r_p[key] if key not in state else (
                     state[key] * step + r_p[key]) / (step + 1)
         state['step'] += 1
 
     def stack(self, p: Tensor, r_p: Dict[str, Tensor], **unused) -> Any:
+        """Stack received tensor to average aggregator buffer.
+        """
         state = self.state[p]
-
         if 'received_params' not in state:
             state['received_params'] = []
+        # Simply stack the received tensors to buffer.
+        # If will be more flexible if you want to do anything else.
         state['received_params'].append(r_p)
 
     def _merge_aggregate(self, p: Tensor, group: Dict):
+        """Aggregate the merged buffer.
+        """
         state = self.state[p]
         pipe_keys = group['pipe_keys']
 
         for key in pipe_keys:
             if key in state:
-                new_p = state[key]
                 if key == "param":
+                    # `param` is the general name of the index key tensor.
+                    # In most cases, it is the parameters of network or the buffer stored
+                    # in the network. Sometimes, you can specify any tensor as `param`.
+                    r_p = state[key]
                     if p.requires_grad:
-                        if p.grad is not None:
-                            # NOTE: grad = p - new_p
-                            p.grad.copy_(p - new_p)
+                        # If `param` required grad, we take it as a learnable parameter
+                        # of network. In this case, we will calculate the gradient and 
+                        # copy it to the grad attribute.
+
+                        # NOTE: The received parameters are the updated one.
+                        # We should use the original p to sub the received one, yielding the 
+                        # correct gradient.
+                        grad = p - r_p
+                        if p.grad is None:
+                            p.grad = grad
                         else:
-                            p.grad = p - new_p
+                            p.grad.copy_(grad)
                     else:
-                        p.copy_(new_p)
+                        # If `param` does not require gradient, we regard it as the buffer or
+                        # user defined tensor, such as the mean and var in batch norm layer.
+                        # In this case, we will directly copy the aggregated tensor to cover
+                        # the original one.
+                        p.copy_(r_p)
                 else:
+                    # Some inner state is unchanged. Such as `momentum_buffer` if you have specified.
+                    # They will unpack to target object from state.
                     ...
 
     def _stack_aggregate(self, p: Tensor, group: Dict):
-        state = self.state[p]
-
+        """Aggregate the stack buffer.
+        """
         def aggregate(dl, k):
             return torch.stack([data[k] for data in dl], dim=0).mean(dim=0, keepdim=False)
 
+        state = self.state[p]
         pipe_keys = group['pipe_keys']
         for key in pipe_keys:
             if key in state['received_params'][0]:
-                new_p = aggregate(state["received_params"], key)
+                r_p = aggregate(state["received_params"], key)
                 if key == "param":
+                    # `param` is the general name of the index key tensor.
+                    # In most cases, it is the parameters of network or the buffer stored
+                    # in the network. Sometimes, you can specify any tensor as `param`.
                     if p.requires_grad:
+                        # If `param` required grad, we take it as a learnable parameter
+                        # of network. In this case, we will calculate the gradient and 
+                        # copy it to the grad attribute.
+
+                        # NOTE: The received parameters are the updated one.
+                        # We should use the original p to sub the received one, yielding the 
+                        # correct gradient.
+                        grad = p-r_p
                         if p.grad is None:
-                            p.grad = p-new_p
+                            p.grad = grad
                         else:
-                            p.grad.copy_(p-new_p)
+                            p.grad.copy_(grad)
                     else:
-                        p.copy_(new_p)
+                        # If `param` does not require gradient, we regard it as the buffer or
+                        # user defined tensor, such as the mean and var in batch norm layer.
+                        # In this case, we will directly copy the aggregated tensor to cover
+                        # the original one.
+                        p.copy_(r_p)
                 else:
-                    state[key] = new_p
+                    # Some inner state is unchanged. Such as `momentum_buffer` if you have specified.
+                    # They will unpack to target object from state.
+                    # Different with merged one, which already calculate the inner state in the 
+                    # step() process. Stack one must calculate them manually here.
+                    state[key] = r_p
 
 
 class ElasticAgg(Agg):
@@ -485,32 +518,25 @@ class ElasticAgg(Agg):
     """
 
     def __init__(self, params,
-                 other_keys: Union[str, List[str]] = None,
+                 other_keys: List[str] = None,
                  quantile: float = 0.5,
                  legacy: bool = True):
 
-        other_keys = [] if other_keys is None else convert_to_list(other_keys)
+        other_keys = convert_to_list(other_keys) or []
 
         if not (0 < quantile < 1.0):
             raise ValueError("quantile must be between 0 and 1")
 
         info_keys: List[str] = ['instances']
-        pipe_keys: List[str] = [
-            "step", "received_params", "param", "importance"]
+        pipe_keys = list(set(["step", "received_params", "param", "importance"] + other_keys))
 
-        for k in other_keys:
-            if k in pipe_keys:
-                raise ValueError(f"Duplicate key: {k}")
-
-        pipe_keys.extend(other_keys)
-
-        defaults = dict(quantile=quantile,)
-        super().__init__(
-            params,
-            defaults,
-            info_keys=info_keys,
-            pipe_keys=pipe_keys,
-            legacy=legacy)
+        defaults = dict(
+            quantile  = quantile,
+            info_keys = info_keys,
+            pipe_keys = pipe_keys,
+            legacy    = legacy
+            )
+        super().__init__(params, defaults)
 
     def merge(self,
               p: Tensor,
@@ -612,25 +638,18 @@ class NaiveAgg(Agg):
 
     def __init__(self,
                  params,
-                 other_keys: Union[str, List[str]] = None,
+                 other_keys: List[str] = None,
                  legacy: bool = True):
-        other_keys = [] if other_keys is None else convert_to_list(other_keys)
+        other_keys = convert_to_list(other_keys) or []
+        info_keys  = ['instances']
+        pipe_keys  = list(set(["step", "received_params", "param"] + other_keys))
 
-        info_keys: List[str] = ['instances']
-        pipe_keys: List[str] = ["step", "received_params", "param"]
-
-        for k in other_keys:
-            if k in pipe_keys:
-                raise ValueError(f"Duplicate key: {k}")
-
-        pipe_keys.extend(other_keys)
-        defaults = dict()
-        super().__init__(
-            params,
-            defaults,
-            info_keys=info_keys,
-            pipe_keys=pipe_keys,
-            legacy=legacy)
+        defaults = dict(
+            info_keys = info_keys,
+            pipe_keys = pipe_keys,
+            legacy    = legacy,
+        )
+        super().__init__(params, defaults)
 
     def merge(self,
               p: Tensor,
