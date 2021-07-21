@@ -127,14 +127,10 @@ class Package(object):
         keep_keys = convert_to_list(keep_keys)
 
         for group in self.param_groups:
-            keys = group['keep_keys'] or keep_keys
+            keys = group['keep_keys'] or keep_keys or []
             for p in group["params"]:
                 if p in self.state[p]:
-                    if not keys:
-                        del self.state[p]
-                    else:
-                        state = self.state[p]
-                        for key in state.keys():
-                            # The keys may be missing for some tensors.
-                            if key not in keys:
-                                del state[key]
+                    state = self.state[p]
+                    del_keys = [key for key in state.keys() if key not in keys]
+                    for key in del_keys:
+                        del state[key]
