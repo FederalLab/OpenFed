@@ -47,9 +47,14 @@ peeper.api_lock = Lock() # type: ignore
 
 
 def device_offline_care(func):
-    def _device_offline_care(self, *args, **kwargs):
+    """Return False instead of raise an exception when device is offline.
+
+    .. warn::
+        This decorator is unable to catch the exception raised by `assert`.
+    """
+    def _device_offline_care(*args, **kwargs):
         try:
-            return func(self, *args, **kwargs)
+            return func(*args, **kwargs)
         except DeviceOffline as e:
             logger.error(e)
             return False
@@ -302,12 +307,17 @@ class API(Thread, Attach):
                 try_times = 0
 
     def finish(self, auto_exit: bool = False):
+        """Kill all delivery in this world as soon as possible.
+        """
         if self.maintainer:
+            # Stop maintainer first
             self.maintainer.manual_stop()
+            self.maintainer.join()
+
+            # Delete the delivery in world
             world = self.maintainer.world
-            for delivery in Delivery.delivery_generator():
-                if delivery.world == world:
-                    Destroy.destroy_delivery(delivery)
+            for delivery in list(world._delivery_dict.keys()):
+                Destroy.destroy_delivery(delivery)
 
         if auto_exit and self.leader:
             exit(15)

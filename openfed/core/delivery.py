@@ -229,7 +229,7 @@ class Delivery(Attach, Package):
                 or `push` directly.
             tic: start counting time.
         """
-        assert not self.is_offline, DeviceOffline(self)
+        if self.is_offline: raise DeviceOffline(self)
 
         def _state():
             return self.is_pulling if to else self.is_pushing
@@ -242,7 +242,7 @@ class Delivery(Attach, Package):
             # wait until satisfied
             tic = time.time() if not tic else tic
             while not _state():
-                assert not self.is_offline, DeviceOffline(self)
+                if self.is_offline: raise DeviceOffline(self)
                 toc = time.time()
                 if timedelta(seconds=toc-tic) > timedelta(minutes=30):
                     raise ConnectTimeout(self)
