@@ -47,9 +47,6 @@ from .space import (Country, ProcessGroup, Store, World, add_mt_lock,
 
 rw = RandomWords()
 
-peeper.delivery_dict = ArrayDict() # type: ignore
-
-
 def safe_store_set(store: Store, key: str, value: Dict) -> bool:
     """Write key to store safely.
     """
@@ -208,8 +205,8 @@ class Delivery(Attach, Package):
         self.download_hang_up: bool = False
         self.upload_hang_up  : bool = False
 
-        # Register delivery to peeper.delivery_dict
-        peeper.delivery_dict[self] = time_string() # type: ignore
+        # Register delivery to world and peeper dictionary
+        self.world.register_delivery(self)
 
     @property
     def upload_version(self) -> int:
@@ -679,9 +676,12 @@ class Destroy(object):
             world.current_pg = NULL_PG
 
         delivery.offline()
-        del world._delivery_dict[delivery]
-        del peeper.delivery_dict[delivery] # type: ignore
-
+        # NOTE:
+        # world._delivery_dict only recording the delivery defined under 
+        # the same world. 
+        # peeper.delivery_dict contains all defined delivery under all world.
+        world.delete_delivery(delivery)
+        
         country.destroy_process_group(pg)
 
         if country._group_count == 1:
@@ -743,12 +743,11 @@ class Joint(Thread):
 
         # bound pg with the country
         for sub_pg in sub_pg_list:
-            delivery = Delivery(
+            # Delivery will automatically register to the corresponding world dictionary.
+            Delivery(
                 store   = country.get_store(sub_pg),
                 pg      = sub_pg,
                 country = country)
-            with self.world._delivery_dict:
-                self.world._delivery_dict[delivery] = time_string()
         self.build_success = True
 
 class Maintainer(Thread):

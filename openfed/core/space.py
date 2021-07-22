@@ -32,9 +32,8 @@ from enum import Enum, unique
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from openfed.common import ArrayDict, logger
-from openfed.common import ConnectTimeout, peeper
-from openfed.utils import openfed_class_fmt, time_string
+from openfed.common import ArrayDict, ConnectTimeout, logger, peeper
+from openfed.utils import openfed_class_fmt, tablist, time_string
 from torch._C._distributed_c10d import (BarrierOptions, PrefixStore,
                                         ProcessGroup, Store)
 from torch.distributed.distributed_c10d import (Backend, P2POp,
@@ -61,12 +60,15 @@ except ImportError as e:
 
 
 peeper.world_dict = dict()
-
+# the delivery dictionary in world only to record the new delivery under 
+# corresponding world, but the delivery dict in peeper will record all
+# delivery in openfed.
+peeper.delivery_dict = ArrayDict() # type: ignore
 
 class World():
     """Relation map between World, Country and Delivery:
-        World: n master, varied roles
-        ├── Country-a: singe master, n client
+        World: n master, n roles (leader or follower).
+        ├── Country-a: singe role, n client
         │   └── Delivery-1: single master, single client.
         └── Country-b
             ├── Delivery-1
@@ -74,11 +76,31 @@ class World():
     """
 
     def __init__(self, 
-                role: str, 
+                role    : str,
+                async_op: str = 'auto',
+                dal     : bool = True,
+                mtt     : int = 5,
                 ) -> None:
         """
         Args: 
-            role:
+            role: The role played in this world.
+            async_op: Using async op or not. 'true', 'false', 'auto'.
+                If true, use async op, If false,, do not use async op.
+                If auto, use async op if leader, otherwise do not use.
+            dal: dynamic address loading. If `False`, it address will
+                be given at the beginning.
+            mtt: max try times. Use for waiting new address connecting.
+
+        .. note::
+            Dynamic address loading enables you to add new connections dynamically,
+            which will be very flexible to build different topology structure in 
+            federated learning.
+            Async operation will split the download and upload process into two phase:
+            1. state confirm 2. upload data. A handler will be returned.
+            If you facing some unstable connection between each node, this is helpful.
+            However, it may also slow down the speed to response to every request.
+            In simulation experiments, we recommend to disable it. In real federated
+            learning senaria, enable this can give you a more robust openfed backend.
         """
         peeper.world_dict[self] = time_string()
         self.alive = True
@@ -87,9 +109,33 @@ class World():
         self._delivery_dict = ArrayDict()  # [Delivery -> Create Time]
         self.current_pg    = NULL_PG
 
-        self.async_op = True if role == leader else False
-        self.dal = True
-        self.mtt = 5
+        assert async_op in ['auto', 'true', 'false']
+        if async_op == 'auto':
+            self.async_op = True if role == leader else False
+        else:
+            self.async_op = async_op == 'true'
+        self.dal = dal
+        self.mtt = mtt
+    
+    def register_delivery(self, delivery):
+        """Register a delivery to both world and peeper dictionary.
+        """
+        time_str = time_string()
+        # Register to world delivery dict.
+        with self._delivery_dict:
+            self._delivery_dict[delivery] = time_str
+        # Register to peeper delivery dict.
+        with peeper.delivery_dict:
+            peeper.delivery_dict[delivery] = time_str
+        logger.success(f'Capture a new Delivery: {delivery.nick_name}\n{self}')
+    
+    def delete_delivery(self, delivery):
+        """Delete the delivery from both world and peeper dictionary.
+        """
+        with self._delivery_dict:
+            del self._delivery_dict[delivery]
+        with peeper.delivery_dict:
+            del peeper.delivery_dict[delivery]
 
     def kill(self) -> None:
         """Shout down this world with force. 
@@ -119,9 +165,10 @@ class World():
     def __str__(self) -> str:
         return openfed_class_fmt.format(
             class_name="World",
-            description=(
-                f"ROLE: {self.role}\n"
-                f"{len(self)} deliveries are alive.\n"
+            description=tablist(
+                head=['role', 'alive', 'async_op', 'dal', 'mtt', 'delivery'],
+                data=[self.role, self.alive, self.async_op, self.dal, self.mtt, len(self._delivery_dict)],
+                force_in_one_row=True,
             )
         )
 
