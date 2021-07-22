@@ -35,6 +35,15 @@ class Pipe(Optimizer, Penalizer):
 
 
 def build_pipe(optimizer: Optimizer, penalizer: Penalizer = None) -> Pipe:
+    """Glue optimizer and penalizer as a single class, named `Pipe`.
+    Args:
+        optimizer: The torch optimizer.
+        penalizer: The federated penalizer.
+    
+    .. note::
+        Penalizer has no influence on optimizer's behavior. You can just
+        write such code: `optim=build_pipe(optim)`. 
+    """
     penalizer = Penalizer() if penalizer is None else penalizer
     extra_func = dict(step=None)
     return glue(optimizer, penalizer, extra_func) # type: ignore

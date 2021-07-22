@@ -24,37 +24,56 @@
 from typing import List
 
 import torch
-from openfed.core import ROLE, follower, leader
+from openfed.core import follower, leader
 from openfed.common import Package
 from openfed.utils import convert_to_list
 from typing_extensions import final
 
 
 class Penalizer(Package):
-    """The basic class for federated pipe.
+    """Penalizer is a special class that bound torch optimizer into 
+    federated optimizer.
 
-    Most federated optimizer just rectify the gradients according to
-    some regulation, but not necessarily rewrite all the updating process.
-    So, we device this Pipe class to do this.
+    Most of federated optimizer, actually, just rectifies the gradients
+    according to specified regulations. Hence, we can split optimizer into
+    two parts, the torch optimizer and penalizer. The latter one is responsible
+    for the gradients rectifying but not update the param actually.
     """
 
     param_groups: dict  # assigned from optimizer
     state: dict  # assigned from optimizer
 
     def __init__(self,
-                 role = follower,
+                 role=follower,
                  pack_set: List[str] = None,
                  unpack_set: List[str] = None):
+        """
+        Args:
+            role: The role of current penalizer.
+            pack_set: The inner state to upload, used for optimizer.
+            unpack_set: The inner state to download, used for optimizer.
+        """
         self.role = role
-        if pack_set is not None:
-            self.add_pack_key(pack_set)
-        if unpack_set is not None:
-            self.add_unpack_key(unpack_set)
+        # Torch optimizer has no pack and unpack attributes,
+        # So, we left this pack_key and unpack_key to compatible
+        # with the torch optimizer. 
+        self.add_pack_key(pack_set or [])
+        self.add_unpack_key(unpack_set or [])
+
+    @property
+    def leader(self):
+        return self.role == leader
+
+    @property
+    def follower(self):
+        return self.role == follower
 
     @torch.no_grad()
     @final
     def step(self, closure=None):
-        return self._follower_step(closure) if self.role == follower else self._leader_step(closure)
+        """Like `optimizer.step()`.
+        """
+        return self._follower_step(closure) if self.follower else self._leader_step(closure)
 
     def _follower_step(self, closure):
         ...
@@ -65,7 +84,9 @@ class Penalizer(Package):
     @torch.no_grad()
     @final
     def round(self):
-        return self._follower_round() if self.role == follower else self._leader_round()
+        """Called after each round is finished.
+        """
+        return self._follower_round() if self.follower else self._leader_round()
 
     def _follower_round(self):
         ...
@@ -73,34 +94,39 @@ class Penalizer(Package):
     def _leader_round(self):
         ...
 
+
 class ElasticPenalizer(Penalizer):
-    r"""Paired with ElasticAgg.
+    r"""Elastic Penalizer is used for collecting some training statics 
+    of client's data. Actually, it can be glued with other penalizers 
+    to create new Pipe.
 
-    Example:
-        >>> elastic_pipe = ElasticPipe(net.parameters(), momentum=0.9)
-        >>> while:
-        >>>     elastic_pipe.zero_grad()
-        >>>     MSE(net(input), zeros).backward()
-        >>>     elastic_pipe.step()
-        >>> elastic_pipe.clear_state()
-
+    .. note::
+        Not any two penalizer can be glued, you have to make sure that
+        the methods are not conflict. ElasticPenalizer only use the `acg_step`, 
+        which make it couple well with other penalizers.
     """
 
     def __init__(self,
-                 role: ROLE,
+                 role: str,
                  momentum: float = 0.9,
                  pack_set: List[str] = None,
                  unpack_set: List[str] = None):
-        pack_set = convert_to_list(pack_set)
-        unpack_set = convert_to_list(unpack_set)
-        if pack_set is None:
-            pack_set = ['importance']
-        else:
-            pack_set.append('importance')
+        """
+        Args:
+            role: The role played.
+            momentum: The momentum to accumulate importance weight.
+            pack_set: ...
+            unpack_set: ...
+        """
+        pack_set = convert_to_list(pack_set) or []
+        pack_set.append('importance')
 
         if not 0.0 <= momentum <= 1.0:
             raise ValueError(f"Invalid momentum value: {momentum}")
 
+        # Do not record momentum to defaults.
+        # It will make conflict with the momentum in other optimizer, 
+        # such as SGD.
         self.momentum = momentum
 
         super().__init__(role, pack_set, unpack_set)
@@ -125,7 +151,7 @@ class ProxPenalizer(Penalizer):
     """https://arxiv.org/pdf/1812.06127.pdf
     """
 
-    def __init__(self, role: ROLE, mu: float = 0.9, pack_set: List[str] = None, unpack_set: List[str] = None):
+    def __init__(self, role: str, mu: float = 0.9, pack_set: List[str] = None, unpack_set: List[str] = None):
         if not 0.0 < mu < 1.0:
             raise ValueError(f"Invalid mu value: {mu}")
 
@@ -162,61 +188,21 @@ class ScaffoldPenalizer(Penalizer):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
 
-    def __init__(self, role: ROLE, lr: float = None, pack_set: List[str] = None, unpack_set: List[str] = None):
-        """Scaffold need to run on both leader and follower.
+    def __init__(self, 
+        role      : str,
+        lr        : float = None,
+        pack_set  : List[str] = None,
+        unpack_set: List[str] = None): 
+        """Scaffold needs to run on both leader and follower.
         If lr is given, we will use the second way provided in the paper to update c.
         Otherwise, we will use the first way provided in the paper.
-        If lr is not given, accumulate_gradient is needed.
-
-        .. Example::
-            >>> # lr is given.
-            >>> scaffold = Scaffold(net.parameters(), lr=0.1, role=follower)
-            >>> openfed_api.unpack(scaffold)
-            >>> for data in dataloader:
-            >>>     optim.zero_grad()
-            >>>     net(data).backward()
-            >>>     scaffold.step()
-            >>>     optim.step()
-            >>> # round end
-            >>> scaffold.finish_round()
-            >>> openfed_api.pack(scaffold)
-
-            >>> # lr not given
-            >>> scaffold = Scaffold(net.parameters(), role=follower)
-            >>> openfed_api.unpack(scaffold)
-            >>> # Accumulate Gradient Stage
-            >>> for data in dataloader:
-            >>>     net(data).backward()
-            >>> scaffold.step(accumulate_gradient=True)
-            >>> # Train
-            >>> for data in dataloader:
-            >>>     optim.zero_grad()
-            >>>     net(data).backward()
-            >>>     scaffold.step()
-            >>>     optim.step()
-            >>> # round end
-            >>> scaffold.finish_round()
-            >>> openfed_api.pack(scaffold)
-
-            >>> # Backend
-            >>> scaffold = Scaffold(net.parameters(), role=leader)
-            >>> agg = Agg(net.parameters(), pipe_keys=scaffold.pack_set)
-            >>> agg.agg()
-            >>> scaffold.step()
-            >>> optim.step()
-            >>> deliver.pack(scaffold)
+        If lr is not given, acg_step is needed.
         """
-        pack_set = convert_to_list(pack_set)
-        unpack_set = convert_to_list(unpack_set)
-        if pack_set is not None:
-            pack_set.append('c_para')
-        else:
-            pack_set = ['c_para']
+        pack_set = convert_to_list(pack_set) or []
+        unpack_set = convert_to_list(unpack_set) or []
+        pack_set.append('c_para')
+        unpack_set.append('c_para')
 
-        if unpack_set is not None:
-            unpack_set.append('c_para')
-        else:
-            unpack_set = ['c_para']
         super().__init__(role, pack_set, unpack_set)
 
         self.lr = lr
