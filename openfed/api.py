@@ -104,7 +104,7 @@ class API(Thread, Attach):
         self.container: List[Container] = convert_to_list(container)
         self.pipe: List[Pipe] = convert_to_list(pipe)
 
-    def register_everything(self, hook: Any):
+    def register_everything(self, hook: Union[Step, Collector, Cypher]):
         """register hook to the corresponding class based on different hook types.
         """
         if isinstance(hook, Step):
