@@ -254,10 +254,10 @@ class Aggregate(AtLast):
             # Zero grad first
             pipe.zero_grad()
 
-            # Aggregate
-            container.aggregate()
-
             task_info_list.append(container.reduce())
+
+            # Aggregate
+            container.aggregate(clear_buffer=False)
 
             # Unpack state from agg
             container.unpack_state(pipe)
