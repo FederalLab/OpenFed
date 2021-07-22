@@ -22,7 +22,7 @@
 
 
 from typing import Any, Dict, List, Set, Union
-
+import gc
 from openfed.utils import convert_to_list
 from torch import Tensor
 import torch
@@ -137,5 +137,7 @@ class Package(object):
                     del_keys = [key for key in state.keys() if key not in keys]
                     for key in del_keys:
                         del state[key]
+        # Clear buffer and release memory.
+        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
