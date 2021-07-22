@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Set, Union
 
 from openfed.utils import convert_to_list
 from torch import Tensor
-
+import torch
 
 class Package(object):
     """Pack Optimizer, Penalizer and Container state to state dict. 
@@ -137,3 +137,5 @@ class Package(object):
                     del_keys = [key for key in state.keys() if key not in keys]
                     for key in del_keys:
                         del state[key]
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
