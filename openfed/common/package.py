@@ -132,12 +132,11 @@ class Package(object):
             else:
                 keys = keep_keys
             for p in group["params"]:
-                if p in self.state[p]:
-                    state = self.state[p]
-                    del_keys = [key for key in state.keys() if key not in keys]
-                    for key in del_keys:
-                        del state[key]
-        # Clear buffer and release memory.
+                state = self.state[p]
+                del_keys = [key for key in state.keys() if key not in keys]
+                for key in del_keys:
+                    del state[key]
+
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
