@@ -69,6 +69,18 @@ class Penalizer(Package):
     def follower(self):
         return self.role == follower
 
+    def acg(self, *args, **kwargs):
+        """Used to compute some extra information before training.
+        .. note::
+            The parameters is not allowed to be modified in this function.
+        """
+        ...
+
+    def _acg_step(self, *args, **kwargs):
+        """inner access only.
+        """
+        ...
+
     @torch.no_grad()
     @final
     def step(self, closure=None):
@@ -77,9 +89,13 @@ class Penalizer(Package):
         return self._follower_step(closure) if self.follower else self._leader_step(closure)
 
     def _follower_step(self, closure):
+        """inner access only.
+        """
         ...
 
     def _leader_step(self, closure):
+        """inner access only.
+        """
         ...
 
     @torch.no_grad()
@@ -90,11 +106,78 @@ class Penalizer(Package):
         return self._follower_round() if self.follower else self._leader_round()
 
     def _follower_round(self):
+        """inner access only.
+        """
         ...
 
     def _leader_round(self):
+        """inner access only.
+        """
         ...
 
+class PenalizerList(Penalizer):
+    """You can chain different penalizers in a PenalizerList.
+    It is very useful when you want to apply more than one
+    penalizer on federated learning. However, by doing this, 
+    you may not always gain performance improvements.
+    PenalizerList provide the same feature as a single Penalizer.
+
+    .. warn::
+        Different with Penalizer, which will share all variables 
+        and functions with Optimizer, PenalizerList will 
+        only share the `param_groups` and `state` 
+        variable from Optimizer. Pay attention to this.
+    """
+    def __init__(self, penalizer_list: List[Penalizer]):
+        self.penalizer_list = penalizer_list
+
+        assert len(set([p.role for p in self.penalizer_list])) == 1, 'The chained penalizer must have the same role.'
+
+        # Merge pack and unpack set for each penalizer.
+        for p in self.penalizer_list:
+            self.pack_set.update(p.pack_set)
+            self.unpack_set.update(p.unpack_set)
+
+    @property
+    def leader(self):
+        return self.penalizer_list[0].leader
+    
+    @property
+    def follower(self):
+        return self.penalizer_list[0].follower
+
+    def dynamic_build_penalizer(self, p: Penalizer):
+        """Assign some variables and basic function to penalizer.
+        .. note::
+            Only param_groups, state will be assigned currently.
+        """
+        p.param_groups = self.param_groups
+        p.state = self.state
+
+    def acg(self, *args, **kwargs):
+        for p in self.penalizer_list:
+            self.dynamic_build_penalizer(p)
+            p.acg(*args, **kwargs)
+
+    def _follower_step(self, closure):
+        for p in self.penalizer_list:
+            self.dynamic_build_penalizer(p)
+            p._follower_step(closure)
+
+    def _leader_step(self, closure):
+        for p in self.penalizer_list:
+            self.dynamic_build_penalizer(p)
+            p._leader_step(closure)
+
+    def _follower_round(self):
+        for p in self.penalizer_list:
+            self.dynamic_build_penalizer(p)
+            p._follower_round()
+    
+    def _leader_round(self):
+        for p in self.penalizer_list:
+            self.dynamic_build_penalizer(p)
+            p._leader_round()
 
 class ElasticPenalizer(Penalizer):
     r"""Elastic Penalizer is used for collecting some training statics 
@@ -141,7 +224,7 @@ class ElasticPenalizer(Penalizer):
                 the rask related loss fn. (F.mse_loss is suitable for
                 all cases.) (Do not modified this otherwise you do really
                 known what you are doing.) (Set this parameters for backward
-                compatible.)
+                compatible.) (not used.)
 
         The dataloader should return with [data, target] tuple.
         This is often used for classification task. 
@@ -151,12 +234,12 @@ class ElasticPenalizer(Penalizer):
             input, _ = data
             input = input.to(device)
 
-            self.zero_grad() # type: ignore
+            model.zero_grad()
             output = model(input)
-            loss_fn(output, torch.zeros_like(output)).backward()
-            self.acg_step()
+            F.mse_loss(output, torch.zeros_like(output)).backward()
+            self._acg_step()
 
-    def acg_step(self):
+    def _acg_step(self):
         """Performs a single accumulate gradient step.
         """
         for group in self.param_groups:
@@ -252,17 +335,22 @@ class ScaffoldPenalizer(Penalizer):
             This function only be called if you do not specify the `lr` in 
             `__init__` process.
         """
+        if self.lr is not None:
+            # It is not necessary to accumulate gradient with respect to the
+            # second update rule described in the paper.
+            return 
+
         # accumulate gradient
         model.train()
 
         for data in dataloader:
             input, target = data
             input, target = input.to(device), target.to(device)
-            self.zero_grad() # type: ignore
+            model.zero_grad()
             loss_fn(model(input), target).backward()
-            self.acg_step()
+            self._acg_step()
 
-    def acg_step(self):
+    def _acg_step(self):
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
