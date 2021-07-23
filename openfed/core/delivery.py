@@ -548,26 +548,46 @@ class Delivery(Attach, Package):
 
     def pack(self, key: Union[str, Tensor], rdict: Dict[str, Tensor]) -> None:
         """Update rdict to the key in package.
+        Args:
+            key: The key index, both tensor and string is acceptable.
+            rdict: The dictionary contains state information. (string indexed)
+
+        .. warn::
+            We will automatically skip the key with `None` value. (Set state with
+            `None`, may lead to some error at latter process.)
         """
+        if not rdict:
+            return
+
         if not isinstance(key, str):
             assert isinstance(key, Tensor)
             key = self.key_name(key)
 
-        package = self.packages[key]
+        # Filter out the `None` value.
+        rdict = {k: v for k, v in rdict.items() if v is not None}
+        self.packages[key].update(rdict)
 
-        package.update(rdict)
 
     def unpack(self, key: Union[str, Tensor], rdict: Dict[str, Any]) -> Dict[str, Tensor]:
         """Update rdict with the one saved in package.
+        Args:
+            key: The key index, both tensor and string is acceptable.
+            rdict: The dictionary contains required state information.
+
+        .. warn::
+            Sometimes, the required key in rdict may be missing, we will not raise
+            any expection or drop any error, but just skip those keys. So, be careful
+            with the returned dictionary.
         """
+        if not rdict:
+            return rdict
+
         if not isinstance(key, str):
             assert isinstance(key, Tensor)
             key = self.key_name(key)
 
         package = self.packages[key]
-        rdict   = {k: package[k] for k in rdict}
-
-        return rdict
+        return {k: package[k] for k in rdict if k in package}
 
     @property
     def tensor_indexed_packages(self) -> Dict[Tensor, Dict[str, Tensor]]:

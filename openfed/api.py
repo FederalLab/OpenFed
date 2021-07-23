@@ -167,53 +167,75 @@ class API(Thread, Attach):
             task_info: task info want to upload or download.
                 The new task info will be updated directly to this parameters.
         """
-        # 1. gather hook information
+        # Collect system information from other end.
+        # Most of the collect function will only be called once.
         self.delivery.collect()
+        
+        # Scatter system information to other end.
+        # Most of the scatter function will only be called once.
         self.delivery.scatter()
 
-        # 2. set state dict
-        assert self.state_dict
+        # Reset state
         self.delivery.reset_state_dict(self.state_dict)
-
+        
+        # Push data to the other end.
         if to:
-            # 3. set task info
-            self.delivery_task_info = self.delivery_task_info if task_info is None else task_info
+            # Assign task info to other end
+            self.delivery_task_info = task_info or self.delivery_task_info
             self.delivery.set_task_info(self.delivery_task_info)
 
-            # 4. Pack state
-            if self.pipe is not None:
-                [self.pack_state(pipe) for pipe in self.pipe]
+            # Pack related inner state of pipe.
+            [self.pack_state(pipe) for pipe in self.pipe]
 
-            # 5. transfer
+            # Upload data automatically.
             flag = self.delivery.upload(self.version)
+        # Pull data from the other end.
         else:
+            # Download data automatically.
             flag = self.delivery.download(self.version)
 
         def callback():
+            # Define a callback to deal with chores after download
             if not to:
                 self.delivery_task_info = self.delivery.task_info
                 if self.follower:
+                    # As for follower, we will unpack the inner state from 
+                    # received tensor automatically.
                     [self.unpack_state(pipe) for pipe in self.pipe]
                 elif self.leader:
-                    # Increase the total number of received models
-                    self.received_numbers += 1
-                    packages = self.tensor_indexed_packages
-                    [container.step(packages, self.delivery_task_info)
-                     for container in self.container]
+                    if self.upload_version <= self.version:
+                        # In federated learning, some device may upload the outdated model.
+                        # This is not desired, we should skip this invalid model.
+                        logger.warning(
+                            f"Received version of model is outdate."
+                            f"(Expected: > @{self.version}, Received: @{self.upload_version}).")
+                    else:
+                        # As for leader, we will increase the received numbers 
+                        # and catch received tensor to container.
+                        self.received_numbers += 1
+                        packages = self.tensor_indexed_packages
+                        [container.step(packages, self.delivery_task_info)
+                        for container in self.container]
 
                 if task_info is not None:
+                    # Update the task info if necessary.
                     task_info.update(self.delivery_task_info)
 
-        # 7. hand on
+        # Handler
         if flag:
+            # If success, callback() immediately and return.
             callback()
             return True
         else:
+            # If failed, it depends the role it played.
             if self.leader:
-                # return directly.
+                # As for leader, we wil not paid any time to wait for 
+                # other hand to prepare the state, just return flag.
+                # This request will be handled in the later.
                 return flag
             else:
-                # wait for finished.
+                # As for follower, it can do anything without the latest
+                # model, so we have to wait until finished.
                 if self.world.async_op:
                     while not self.delivery.deal_with_hang_up():
                         if self.delivery.is_offline:
@@ -285,11 +307,11 @@ class API(Thread, Attach):
                     elif delivery.is_zombie:
                         step(at_zombie)
                     elif delivery.is_pushing:
-                        # Client want to push data to server, we need to download.
+                        # Follower want to push data to leader, we need to download.
                         [step(after_download, self.transfer(to=False)) if step(
                             before_download) else step(at_failed)]
                     elif delivery.is_pulling:
-                        # Client want to pull data from server, we need to upload
+                        # Follower want to pull data from leader, we need to upload
                         [step(after_upload, self.transfer(to=True)) if step(
                             before_upload) else step(at_failed)]
                     else:

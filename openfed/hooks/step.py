@@ -279,7 +279,7 @@ class Aggregate(AtLast):
         if self.lr_scheduler is not None:
             [lr_sch.step() for lr_sch in self.lr_scheduler if lr_sch is not None]
 
-        # Reset same flags
+        # Clear the received_numbers flag
         leader.received_numbers = 0
 
         if self.checkpoint:
@@ -449,24 +449,11 @@ class Download(AfterDownload):
     def step(self, leader, flag: bool) -> None:
         if flag:  # Download success
             # download is to check others upload version
-            if leader.upload_version <= leader.version:
-                logger.warning(
-                    f"Excepted @{leader.version}, received @{leader.upload_version}, discard.")
-                return
-
-            leader.delivery_task_info = leader.delivery.task_info
-
-            # Increase the total number of received models
-            leader.received_numbers += 1
-            packages = leader.tensor_indexed_packages
-            [container.step(packages, leader.delivery_task_info)
-             for container in leader.container]
-
             logger.info(
                 f"{leader.received_numbers} at v.{leader.version} from {leader.nick_name}.")
         else:
             logger.debug(
-                f"Try to download {leader.received_numbers+1} failed.")
+                f"Try to download {leader.received_numbers+1} from {leader.nick_name} failed.")
 
 
 class Terminate(AtLast):

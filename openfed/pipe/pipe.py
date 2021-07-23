@@ -44,6 +44,25 @@ def build_pipe(optimizer: Optimizer, penalizer: Penalizer = None) -> Pipe:
         Penalizer has no influence on optimizer's behavior. You can just
         write such code: `optim=build_pipe(optim)`. 
     """
-    penalizer = Penalizer() if penalizer is None else penalizer
-    extra_func = dict(step=None)
+    # As for Penalizer(), it do noting, so the role is not related.
+    penalizer = penalizer or Penalizer()
+
+    def step(func_a, func_b):
+        # Create a decorator that glue func_a and func_b.
+        def _step(*args, **kwargs):
+            # If the output is dictionary, we will return output_a.update(output_b)
+            # Otherwise, we only return `output_a or output_b`
+            output_a = func_a(*args, **kwargs)
+            output_b = func_b(*args, **kwargs)
+            if isinstance(output_a, dict) and isinstance(output_b, dict):
+                output_a.update(output_b)
+                return output_a
+            return output_a or output_b
+        return _step
+    OptimizerT = type(optimizer)
+    PenalizerT = type(penalizer)
+    # Penalizer step should be first steped.
+    extra_func = dict(step=step(
+        func_a=getattr(PenalizerT, 'step'), 
+        func_b=getattr(OptimizerT, 'step')))
     return glue(optimizer, penalizer, extra_func) # type: ignore

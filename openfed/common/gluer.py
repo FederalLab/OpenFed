@@ -57,6 +57,10 @@ def glue(inst_a: Any,
         2. If extra_func's value is not provided (`None`), a new function will created via
             `new_f = lambda: inst_a.func() or inst_b.func()`.
         3. The variable starts with `_` or `__` will be skipped automatically in `inst_b`.
+    
+    .. warning::
+        The variable start with `__` in inst_b will be skipped automatically!
+        Pay attention to this feature!
 
     .. Example::
         >>> class TypeA(object):
@@ -146,7 +150,7 @@ def glue(inst_a: Any,
     merge_keys = []
     for k, v in inst_b.__dict__.items():
         # The key starts with `_` or `__` will be skipped automatically.
-        if not k.startswith("_"):
+        if not k.startswith("__"):
             if k in inst_c.__dict__:
                 if isinstance(v, dict) and isinstance(inst_c.__dict__[k], dict):
                     inst_c.__dict__[k].update(v)

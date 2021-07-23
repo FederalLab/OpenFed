@@ -26,6 +26,7 @@ import gc
 from openfed.utils import convert_to_list
 from torch import Tensor
 import torch
+from copy import deepcopy
 
 class Package(object):
     """Pack Optimizer, Penalizer and Container state to state dict. 
@@ -43,10 +44,9 @@ class Package(object):
             keys: The extra keys want to pack to Package.
         """
         keys     = convert_to_list(keys) or []
-        all_keys = obj.pack_set
-        for key in keys:
-            if key not in all_keys:
-                all_keys.append(key)
+        # Do not modify the `pack_state`: self.pack_state.update(keys) is not allowed.
+        all_keys = deepcopy(obj.pack_set)
+        all_keys.update(keys)
 
         for group in obj.param_groups:
             for p in group["params"]:
@@ -64,16 +64,15 @@ class Package(object):
             keys: The extra keys want to unpack to obj.
         """
         keys     = convert_to_list(keys) or []
-        all_keys = obj.unpack_set
-        for key in keys:
-            if key not in all_keys:
-                all_keys.append(key)
+        # Do not modify the `pack_state`: self.unpack_state.update(keys) is not allowed.
+        all_keys = deepcopy(obj.unpack_set)
+        all_keys.update(keys)
 
         for group in obj.param_groups:
             for p in group["params"]:
                 state = obj.state[p]
                 # Fill `None` to all keys.
-                rdict = {k: None for k in keys}
+                rdict = {k: None for k in all_keys}
                 state.update(self.unpack(p, rdict))
 
     def pack(self,
@@ -108,12 +107,12 @@ class Package(object):
     def add_pack_key(self, keys: Union[str, List[str]]):
         """Add a new key to ``pack_set``.
         """
-        [self.pack_set.add(k) for k in convert_to_list(keys)]
+        self.pack_set.update(keys)
 
     def add_unpack_key(self, keys: Union[str, List[str]]):
         """Add a new key to ``unpack_set``.
         """
-        [self.unpack_set.add(k) for k in convert_to_list(keys)]
+        self.unpack_set.update(keys)
 
     def clear_buffer(self, keep_keys: List[str] = None):
         """Clear the key-value in ``state_dict``.
