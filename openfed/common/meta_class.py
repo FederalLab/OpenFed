@@ -161,7 +161,17 @@ class TaskInfo(AttrDict):
         >>> del task_info.accuracy
         >>> task_info
         {'part_id': 1}
+    
+    .. note::
+        TaskInfo will have a default attribute of `train`.
+        It will be used to control some aggregating process.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add a train flag to task info.
+        if 'train' not in self:
+            self.train = True
 
     def __str__(self):
         return openfed_class_fmt.format(

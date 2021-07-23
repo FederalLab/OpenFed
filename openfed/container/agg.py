@@ -62,6 +62,8 @@ class Agg(Package):
     """
     # Used by Reducer, it will be cleared automatically once `Reducer.reduce()` callled.
     task_info_buffer: List[TaskInfo]
+    # Whether the state has been cached.
+    empty_state_cache: bool
 
     def __init__(self,
                  params,
@@ -104,6 +106,7 @@ class Agg(Package):
             self.add_param_group(param_group)
 
         self.task_info_buffer = []
+        self.empty_state_cache = True
 
     def __getstate__(self):
         return {
@@ -307,11 +310,12 @@ class Agg(Package):
             the gradient and store them in `p.grad`, but do not attempt to modify the 
             parameters itself.
         """
-        for group in self.param_groups:
-            legacy = group['legacy']
-            for p in group["params"]:
-                [self._stack_aggregate(
-                    p, group) if legacy else self._merge_aggregate(p, group)]
+        if not self.empty_state_cache:
+            for group in self.param_groups:
+                legacy = group['legacy']
+                for p in group["params"]:
+                    [self._stack_aggregate(
+                        p, group) if legacy else self._merge_aggregate(p, group)]
         if clear_buffer:
             self.clear_buffer()
 
@@ -325,26 +329,30 @@ class Agg(Package):
             `step()` only caches the received info, but does anything else. You should call 
             `aggregate()` to compute the final gradient for each parameter.
         """
-        for group in self.param_groups:
-            # info keys is the necessary keys for computing the aggregated tensor.
-            # If not given, raise an error.
-            for key in group['info_keys']:
-                assert key in received_info, f"{key} is required, but not given."
+        if received_params:
+            for group in self.param_groups:
+                # info keys is the necessary keys for computing the aggregated tensor.
+                # If not given, raise an error.
+                for key in group['info_keys']:
+                    assert key in received_info, f"{key} is required, but not given."
 
-            for p in group["params"]:
-                if p in received_params:
-                    if group['legacy']:
-                        self.stack(
-                            p,
-                            received_params[p],
-                            r_info=received_info,
-                            group=group)
-                    else:
-                        self.merge(
-                            p,
-                            received_params[p],
-                            r_info=received_info,
-                            group=group)
+                for p in group["params"]:
+                    if p in received_params:
+                        if group['legacy']:
+                            self.stack(
+                                p,
+                                received_params[p],
+                                r_info=received_info,
+                                group=group)
+                        else:
+                            self.merge(
+                                p,
+                                received_params[p],
+                                r_info=received_info,
+                                group=group)
+            self.empty_state_cache = False
+        else:
+            self.empty_state_cache = True
 
         # Cache received info to task info.
         # The task_info_buffer will be accessed by Reducer, and get the final results.
@@ -386,6 +394,9 @@ class Agg(Package):
         """
         raise NotImplementedError
 
+    def clear_buffer(self):
+        super().clear_buffer()
+        self.empty_state_cache = True
 
 class AverageAgg(Agg):
     """Average Aggregation: aggregate received tensor with an average operation.

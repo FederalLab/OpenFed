@@ -189,6 +189,7 @@ class API(Thread, Attach):
 
             # Upload data automatically.
             flag = self.delivery.upload(self.version)
+
         # Pull data from the other end.
         else:
             # Download data automatically.
@@ -197,25 +198,34 @@ class API(Thread, Attach):
         def callback():
             # Define a callback to deal with chores after download
             if not to:
+                # update task info
                 self.delivery_task_info = self.delivery.task_info
                 if self.follower:
                     # As for follower, we will unpack the inner state from 
                     # received tensor automatically.
                     [self.unpack_state(pipe) for pipe in self.pipe]
                 elif self.leader:
-                    if self.upload_version <= self.version:
-                        # In federated learning, some device may upload the outdated model.
-                        # This is not desired, we should skip this invalid model.
-                        logger.warning(
-                            f"Received version of model is outdate."
-                            f"(Expected: > @{self.version}, Received: @{self.upload_version}).")
+                    if self.delivery_task_info.train:
+                        if self.upload_version <= self.version:
+                            # In federated learning, some device may upload the outdated model.
+                            # This is not desired, we should skip this invalid model.
+                            logger.warning(
+                                f"Received version of model is outdate."
+                                f"(Expected: > @{self.version}, Received: @{self.upload_version}).")
+                        else:
+                            # As for leader, we will increase the received numbers 
+                            # and catch received tensor to container.
+                            self.received_numbers += 1
+                            packages = self.tensor_indexed_packages
+                            [container.step(packages, self.delivery_task_info)
+                            for container in self.container]
                     else:
+                        # If under test mode it is not necessary to do the aggregation operation.
                         # As for leader, we will increase the received numbers 
                         # and catch received tensor to container.
                         self.received_numbers += 1
-                        packages = self.tensor_indexed_packages
-                        [container.step(packages, self.delivery_task_info)
-                        for container in self.container]
+                        [container.step({}, self.delivery_task_info)
+                            for container in self.container]
 
                 if task_info is not None:
                     # Update the task info if necessary.

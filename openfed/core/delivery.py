@@ -80,6 +80,24 @@ def fresh_read(func):
         return output
     return _fresh_read
 
+class DelayHandler(object):
+    """An empty handler to skip the upload/download function. 
+    It is useful when you don't want to upload the tensor but send
+    the task info to other hand.
+    """
+    def __init__(self, func):
+        self.func = func
+        self.handler = None
+        self.step_func = None
+    
+    def wait(self):
+        if self.handler is None and self.step_func is None:
+            self.handler, self.step_func = self.func()
+        self.handler.wait()
+        self.step_func()
+
+    def is_completed(self) -> bool:
+        return self.handler.is_completed()
 
 class Delivery(Attach, Package):
     """Delivery is responsible for transfer tensors and any other short information
@@ -102,8 +120,8 @@ class Delivery(Attach, Package):
     store  : Store
 
     # handler, step function, timestamp
-    _download_hang_up: Tuple[Work, Callable, int]
-    _upload_hang_up  : Tuple[Work, Callable, int]
+    _download_hang_up: DelayHandler
+    _upload_hang_up  : DelayHandler
 
     download_hang_up: bool
     upload_hang_up  : bool
@@ -209,6 +227,14 @@ class Delivery(Attach, Package):
         self.world.register_delivery(self)
 
     @property
+    def follower(self):
+        return self.world.follower
+    
+    @property
+    def leader(self):
+        return self.world.leader
+
+    @property
     def upload_version(self) -> int:
         return self.get('upload_version')
 
@@ -218,9 +244,7 @@ class Delivery(Attach, Package):
 
     def transfer(self,
                  to       : bool,
-                 handler  : Any = None,
-                 tic      : float = None,
-                 step_func: Callable = None) -> bool: 
+                 handler  : Union[DelayHandler, None] = None) -> bool: 
         """
         Args:
             to: If `True`, transfer data to other end. Otherwise, download 
@@ -240,7 +264,7 @@ class Delivery(Attach, Package):
             [self.pushing() if to else self.pulling()]
 
             # wait until satisfied
-            tic = time.time() if not tic else tic
+            tic = time.time()
             while not _state():
                 if self.is_offline: raise DeviceOffline(self)
                 toc = time.time()
@@ -254,13 +278,27 @@ class Delivery(Attach, Package):
             else:
                 [self.pushing() if to else self.pulling()]
 
+        # Fetch task info
+        train = self.task_info.train
+        
         # transfer
-        if handler:
-            handler.wait()
-            if step_func is not None:
-                step_func()
-        else:
-            [self.push() if to else self.pull()]
+        # Fake download/upload or real download/upload
+        # 1. follower will always download the data
+        # 2. follower will only upload data if train == True
+        # 3. leader will always upload data
+        # 4. leader will only download data if train == True
+        def callback():
+            if handler:
+                handler.wait()
+            else:
+                [self.push() if to else self.pull()]
+
+        if self.follower:
+            if not to or train:
+                callback()
+        elif self.leader:
+            if to or train:
+                callback()
 
         self.zombie()
         return True
@@ -269,19 +307,17 @@ class Delivery(Attach, Package):
         """Dealing with the handler for hang up operations.
         """
         if self.upload_hang_up:
-            handler, step_func, tic = self._upload_hang_up
+            handler = self._upload_hang_up
             to = True
         elif self.download_hang_up:
-            handler, step_func, tic = self._download_hang_up
+            handler = self._download_hang_up
             to = False
         else:
             return False
 
         if not self.transfer(
             to        = to,
-            handler   = handler,
-            tic       = tic,
-            step_func = step_func):
+            handler   = handler):
             return False
 
         if handler.is_completed():
@@ -295,6 +331,9 @@ class Delivery(Attach, Package):
         else:
             return False
 
+    def set_upload_version(self, version: int):
+        self.set("upload_version", version)
+
     def upload(self, version: int) -> bool:
         """Upload packages date to the other end.
         Args:
@@ -302,17 +341,18 @@ class Delivery(Attach, Package):
         """
 
         # set version on task info
-        self.set("upload_version", version)
+        self.set_upload_version(version)
 
         if self.world.async_op:
-            handle, step_func = self.push()
             # store the necessary message, and hang up begining time.
-            self._upload_hang_up = (  # type: ignore
-                handle, step_func, time.time())
+            self._upload_hang_up = DelayHandler(self.push)
             self.upload_hang_up = True
             return False
         else:
             return self.transfer(to=True)
+
+    def set_download_version(self, version: int):
+        self.set("download_version", version)
 
     def download(self, version: int) -> bool:
         """Download packages from other end.
@@ -321,12 +361,10 @@ class Delivery(Attach, Package):
         """
 
         # set version
-        self.set("download_version", version)
+        self.set_download_version(version)
 
         if self.world.async_op:
-            handle, step_func = self.pull()
-            self._download_hang_up = (  # type: ignore
-                handle, step_func, time.time())
+            self._download_hang_up = DelayHandler(self.pull)
             self.download_hang_up = True
             return False
         else:
