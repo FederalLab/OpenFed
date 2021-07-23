@@ -93,11 +93,11 @@ class DelayHandler(object):
     def wait(self):
         if self.handler is None and self.step_func is None:
             self.handler, self.step_func = self.func()
-        self.handler.wait()
-        self.step_func()
+        self.handler.wait() # type: ignore
+        self.step_func() # type: ignore
 
     def is_completed(self) -> bool:
-        return self.handler.is_completed()
+        return self.handler.is_completed() # type: ignore
 
 class Delivery(Attach, Package):
     """Delivery is responsible for transfer tensors and any other short information
@@ -258,6 +258,20 @@ class Delivery(Attach, Package):
         def _state():
             return self.is_pulling if to else self.is_pushing
 
+        # HACK: In order to reduce the unnecessary tensor transfer between 
+        # follower and leader, we will not upload tensor if the model has not changed.
+        # In other word, if you are under the test mode, it is unnecessary to upload
+        # the unmodified tensor to leader. However, this feature improvement will
+        # bring a new hack: HACK-0 will listen to the other end's state with a short
+        # time sleep. At general case, leader will set the state and waiting to 
+        # transfer data from follower. So, everything goes well.
+        # But if we skip the download process, the state in leader will only be setted 
+        # as pulling or pushing for quiet short time, that HACK-0 may miss the state 
+        # change signal, and always keep wait. This hack will cause the error of 
+        # `Invalid part ID`. (The leader read the task info again and again, but the 
+        # follower is never able to capture the statue change.)
+        # It is vital to add a sleep if leader do not transfer data at HACK-1 and HACK-2.
+
         # logic judge
         if self.world.follower:
             # set state first
@@ -270,7 +284,8 @@ class Delivery(Attach, Package):
                 toc = time.time()
                 if timedelta(seconds=toc-tic) > timedelta(minutes=30):
                     raise ConnectTimeout(self)
-                time.sleep(0.1)
+                # HACK-0
+                time.sleep(0.01)
         else:
             # check state first
             if not _state():
@@ -279,7 +294,7 @@ class Delivery(Attach, Package):
                 [self.pushing() if to else self.pulling()]
 
         # Fetch task info
-        train = self.task_info.train
+        train = self.task_info.train # type: ignore
         
         # transfer
         # Fake download/upload or real download/upload
@@ -296,9 +311,15 @@ class Delivery(Attach, Package):
         if self.follower:
             if not to or train:
                 callback()
+            else:
+                # HACK-1
+                time.sleep(0.1)
         elif self.leader:
             if to or train:
                 callback()
+            else:
+                # HACK-2
+                time.sleep(0.1)
 
         self.zombie()
         return True

@@ -408,7 +408,7 @@ class Dispatch(MultiStep):
                 train=self.train,
             )
             # set task_info
-            leader.delivery_task_info = task_info
+            leader.delivery_task_info.update(task_info)
 
             return True
 

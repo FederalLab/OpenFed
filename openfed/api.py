@@ -205,7 +205,7 @@ class API(Thread, Attach):
                     # received tensor automatically.
                     [self.unpack_state(pipe) for pipe in self.pipe]
                 elif self.leader:
-                    if self.delivery_task_info.train:
+                    if self.delivery_task_info.train: # type: ignore
                         if self.upload_version <= self.version:
                             # In federated learning, some device may upload the outdated model.
                             # This is not desired, we should skip this invalid model.
