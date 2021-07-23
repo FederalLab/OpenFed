@@ -28,6 +28,7 @@ from openfed.core import follower, leader
 from openfed.common import Package
 from openfed.utils import convert_to_list
 from typing_extensions import final
+import torch.nn.functional as F
 
 
 class Penalizer(Package):
@@ -131,6 +132,30 @@ class ElasticPenalizer(Penalizer):
 
         super().__init__(role, pack_set, unpack_set)
 
+    def acg(self, model, dataloader, loss_fn=F.mse_loss, device="cpu"):
+        """Accumulate gradients for elastic aggregation.
+        Args:
+            model: The model used to test.
+            dataloader: The dataloader used to iterate over.
+            loss_fn: The loss_fn to accumulate gradient. It is not 
+                the rask related loss fn. (F.mse_loss is suitable for
+                all cases.) (Do not modified this otherwise you do really
+                known what you are doing.) (Set this parameters for backward
+                compatible.)
+
+        The dataloader should return with [data, target] tuple.
+        This is often used for classification task. 
+        """
+        model.train()
+        for data in dataloader:
+            input, _ = data
+            input = input.to(device)
+
+            self.zero_grad() # type: ignore
+            output = model(input)
+            loss_fn(output, torch.zeros_like(output)).backward()
+            self.acg_step()
+
     def acg_step(self):
         """Performs a single accumulate gradient step.
         """
@@ -214,6 +239,28 @@ class ScaffoldPenalizer(Penalizer):
             for p in group["params"]:
                 if p.requires_grad:
                     self.state[p]["c_para"] = torch.zeros_like(p)
+
+    def acg(self, model, dataloader, loss_fn, device="cpu"):
+        """Accumulate gradients for SCAFFOLD.
+        Args:
+            model: The model to test.
+            dataloader: The data loader to iterate over.
+            loss_fn: The loss fn to calculate gradients. (task related.)
+            device: the device.
+
+        .. note:: 
+            This function only be called if you do not specify the `lr` in 
+            `__init__` process.
+        """
+        # accumulate gradient
+        model.train()
+
+        for data in dataloader:
+            input, target = data
+            input, target = input.to(device), target.to(device)
+            self.zero_grad() # type: ignore
+            loss_fn(model(input), target).backward()
+            self.acg_step()
 
     def acg_step(self):
         for group in self.param_groups:
