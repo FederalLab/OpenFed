@@ -244,7 +244,32 @@ def preprocess(sentences, max_seq_len=SEQUENCE_LENGTH):
 
 
 class ShakespeareNWP(FederatedDataset):
-    """Used for next word prediction. TFF version
+    """Federated Shakespeare Dataset from [TFF](https://github.com/tensorflow/federated).
+    Used for next word prediction.
+
+    Downloads and caches the dataset locally. If previously downloaded, tries to
+    load the dataset from cache.
+    This dataset is derived from the Leaf repository
+    (https://github.com/TalwalkarLab/leaf) pre-processing on the works of
+    Shakespeare, which is published in "LEAF: A Benchmark for Federated Settings"
+    https://arxiv.org/abs/1812.01097.
+    The data set consists of 715 users (characters of Shakespeare plays), where
+    each
+    example corresponds to a contiguous set of lines spoken by the character in a
+    given play.
+    Data set sizes:
+    -   train: 16,068 examples
+    -   test: 2,356 examples
+    Rather than holding out specific users, each user's examples are split across
+    _train_ and _test_ so that all users have at least one example in _train_ and
+    one example in _test_. Characters that had less than 2 examples are excluded
+    from the data set.
+    The `tf.data.Datasets` returned by
+    `tff.simulation.datasets.ClientData.create_tf_dataset_for_client` will yield
+    `collections.OrderedDict` objects at each iteration, with the following keys
+    and values:
+        -   `'snippets'`: a `tf.Tensor` with `dtype=tf.string`, the snippet of
+        contiguous text.
     """
 
     def __init__(self, 

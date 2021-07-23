@@ -260,7 +260,57 @@ class StackOverFlow(FederatedDataset):
 
 
 class StackOverFlowTP(StackOverFlow):
-    """tag prediction.
+    """Federated StackOverFlow Dataset from [TFF](https://github.com/tensorflow/federated).
+    Used for Tag Prediction.
+
+    Downloads and caches the dataset locally. If previously downloaded, tries to
+    load the dataset from cache.
+    This dataset is derived from the Stack Overflow Data hosted by kaggle.com and
+    available to query through Kernels using the BigQuery API:
+    https://www.kaggle.com/stackoverflow/stackoverflow. The Stack Overflow Data
+    is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported
+    License. To view a copy of this license, visit
+    http://creativecommons.org/licenses/by-sa/3.0/ or send a letter to
+    Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+    The data consists of the body text of all questions and answers. The bodies
+    were parsed into sentences, and any user with fewer than 100 sentences was
+    expunged from the data. Minimal preprocessing was performed as follows:
+    1. Lowercase the text,
+    2. Unescape HTML symbols,
+    3. Remove non-ascii symbols,
+    4. Separate punctuation as individual tokens (except apostrophes and hyphens),
+    5. Removing extraneous whitespace,
+    6. Replacing URLS with a special token.
+    In addition the following metadata is available:
+    1. Creation date
+    2. Question title
+    3. Question tags
+    4. Question score
+    5. Type ('question' or 'answer')
+    The data is divided into three sets:
+    -   Train: Data before 2018-01-01 UTC except the held-out users. 342,477
+        unique users with 135,818,730 examples.
+    -   Held-out: All examples from users with user_id % 10 == 0 (all dates).
+        38,758 unique users with 16,491,230 examples.
+    -   Test: All examples after 2018-01-01 UTC except from held-out users.
+        204,088 unique users with 16,586,035 examples.
+    The `tf.data.Datasets` returned by
+    `tff.simulation.datasets.ClientData.create_tf_dataset_for_client` will yield
+    `collections.OrderedDict` objects at each iteration, with the following keys
+    and values, in lexicographic order by key:
+    -   `'creation_date'`: a `tf.Tensor` with `dtype=tf.string` and shape []
+        containing the date/time of the question or answer in UTC format.
+    -   `'score'`: a `tf.Tensor` with `dtype=tf.int64` and shape [] containing
+        the score of the question.
+    -   `'tags'`: a `tf.Tensor` with `dtype=tf.string` and shape [] containing
+        the tags of the question, separated by '|' characters.
+    -   `'title'`: a `tf.Tensor` with `dtype=tf.string` and shape [] containing
+        the title of the question.
+    -   `'tokens'`: a `tf.Tensor` with `dtype=tf.string` and shape []
+        containing the tokens of the question/answer, separated by space (' ')
+        characters.
+    -   `'type'`: a `tf.Tensor` with `dtype=tf.string` and shape []
+        containing either the string 'question' or 'answer'.
     """
 
     def __init__(self, *args, **kwargs):
