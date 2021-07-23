@@ -89,7 +89,12 @@ class EMNIST(FederatedDataset):
         digits [0-9] classes. If `False`, includes lower and upper case
         characters, for a total of 62 class labels.
     """
-    def __init__(self, root: str, train: bool = True, transform=None, target_transform=None, download: bool = True):
+    def __init__(self, 
+            root : str,
+            train: bool = True,
+            transform        = None,
+            target_transform = None,
+            download: bool = True):
         data_file = os.path.join(
             root, DEFAULT_TRAIN_FILE if train else DEFAULT_TEST_FILE)
 
