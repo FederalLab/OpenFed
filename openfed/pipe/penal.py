@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 
-from typing import List
+from typing import List, Callable, Union
 
 import torch
 from openfed.core import follower, leader
@@ -47,12 +47,15 @@ class Penalizer(Package):
     def __init__(self,
                  role=follower,
                  pack_set: List[str] = None,
-                 unpack_set: List[str] = None):
+                 unpack_set: List[str] = None,
+                 max_acg_step: int = -1):
         """
         Args:
             role: The role of current penalizer.
             pack_set: The inner state to upload, used for optimizer.
             unpack_set: The inner state to download, used for optimizer.
+            max_acg_step: If max_acg_step < 0, we will iterate over the whole 
+                dataset while call `acg()`.
         """
         self.role = role
         # Torch optimizer has no pack and unpack attributes,
@@ -60,6 +63,8 @@ class Penalizer(Package):
         # with the torch optimizer. 
         self.add_pack_key(pack_set or [])
         self.add_unpack_key(unpack_set or [])
+        
+        self.max_acg_step = max_acg_step
 
     @property
     def leader(self):
@@ -194,7 +199,8 @@ class ElasticPenalizer(Penalizer):
                  role: str,
                  momentum: float = 0.9,
                  pack_set: List[str] = None,
-                 unpack_set: List[str] = None):
+                 unpack_set: List[str] = None,
+                 max_acg_step: int = -1):
         """
         Args:
             role: The role played.
@@ -213,24 +219,21 @@ class ElasticPenalizer(Penalizer):
         # such as SGD.
         self.momentum = momentum
 
-        super().__init__(role, pack_set, unpack_set)
+        super().__init__(role, pack_set, unpack_set, max_acg_step)
 
-    def acg(self, model, dataloader, loss_fn=F.mse_loss, device="cpu"):
+    def acg(self, model, dataloader):
         """Accumulate gradients for elastic aggregation.
         Args:
             model: The model used to test.
             dataloader: The dataloader used to iterate over.
-            loss_fn: The loss_fn to accumulate gradient. It is not 
-                the rask related loss fn. (F.mse_loss is suitable for
-                all cases.) (Do not modified this otherwise you do really
-                known what you are doing.) (Set this parameters for backward
-                compatible.) (not used.)
 
         The dataloader should return with [data, target] tuple.
         This is often used for classification task. 
         """
         model.train()
-        for data in dataloader:
+        device = next(model.parameters()).device
+
+        for i, data in enumerate(dataloader):
             input, _ = data
             input = input.to(device)
 
@@ -238,6 +241,9 @@ class ElasticPenalizer(Penalizer):
             output = model(input)
             F.mse_loss(output, torch.zeros_like(output)).backward()
             self._acg_step()
+
+            if self.max_acg_step > 0 and i > self.max_acg_step:
+                break
 
     def _acg_step(self):
         """Performs a single accumulate gradient step.
@@ -300,20 +306,31 @@ class ScaffoldPenalizer(Penalizer):
         role      : str,
         lr        : float = None,
         pack_set  : List[str] = None,
-        unpack_set: List[str] = None): 
+        unpack_set: List[str] = None, 
+        max_acg_step: int = -1, 
+        acg_loss_fn: Union[Callable, str] = 'mse_loss'): 
         """Scaffold needs to run on both leader and follower.
         If lr is given, we will use the second way provided in the paper to update c.
         Otherwise, we will use the first way provided in the paper.
         If lr is not given, acg_step is needed.
+
+        Args:
+            acg_loss_fn: The callable loss function used to calculate acg operation.
+                At most of time, it should be the consit with the loss function used 
+                in the task itself, such as BCE, MSE...,
         """
         pack_set = convert_to_list(pack_set) or []
         unpack_set = convert_to_list(unpack_set) or []
         pack_set.append('c_para')
         unpack_set.append('c_para')
 
-        super().__init__(role, pack_set, unpack_set)
+        super().__init__(role, pack_set, unpack_set, max_acg_step)
 
         self.lr = lr
+        if isinstance(acg_loss_fn, str):
+            acg_loss_fn = getattr(F, acg_loss_fn)
+
+        self.acg_loss_fn = acg_loss_fn
 
     def init_c_para(self):
         """Call this function after glue operation.
@@ -323,13 +340,11 @@ class ScaffoldPenalizer(Penalizer):
                 if p.requires_grad:
                     self.state[p]["c_para"] = torch.zeros_like(p)
 
-    def acg(self, model, dataloader, loss_fn, device="cpu"):
+    def acg(self, model, dataloader):
         """Accumulate gradients for SCAFFOLD.
         Args:
             model: The model to test.
             dataloader: The data loader to iterate over.
-            loss_fn: The loss fn to calculate gradients. (task related.)
-            device: the device.
 
         .. note:: 
             This function only be called if you do not specify the `lr` in 
@@ -342,13 +357,16 @@ class ScaffoldPenalizer(Penalizer):
 
         # accumulate gradient
         model.train()
+        device = next(model.parameters()).device
 
-        for data in dataloader:
+        for i, data in enumerate(dataloader):
             input, target = data
             input, target = input.to(device), target.to(device)
             model.zero_grad()
-            loss_fn(model(input), target).backward()
+            self.acg_loss_fn(model(input), target).backward() # type: ignore
             self._acg_step()
+            if self.max_acg_step > 0 and i > self.max_acg_step:
+                break
 
     def _acg_step(self):
         for group in self.param_groups:
