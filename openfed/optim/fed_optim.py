@@ -27,22 +27,22 @@ from torch.optim import Optimizer
 from .penal import Penalizer
 
 
-class Pipe(Optimizer, Penalizer):
+class FedOptim(Optimizer, Penalizer):
     """Glue Optimizer and Penalizer as a single class.
     """
     def __new__(cls):
-        raise RuntimeError("Call `build_pipe` to create a pipe.")
+        raise RuntimeError("Call `build_fed_optim` to create a fed_optim.")
 
 
-def build_pipe(optimizer: Optimizer, penalizer: Penalizer = None) -> Pipe:
-    """Glue optimizer and penalizer as a single class, named `Pipe`.
+def build_fed_optim(optimizer: Optimizer, penalizer: Penalizer = None) -> FedOptim:
+    """Glue optimizer and penalizer as a single class, named `FedOptim`.
     Args:
         optimizer: The torch optimizer.
         penalizer: The federated penalizer.
     
     .. note::
         Penalizer has no influence on optimizer's behavior. You can just
-        write such code: `optim=build_pipe(optim)`. 
+        write such code: `optim=build_fed_optim(optim)`. 
     """
     # As for Penalizer(), it do noting, so the role is not related.
     penalizer = penalizer or Penalizer()
