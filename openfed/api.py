@@ -39,7 +39,7 @@ from openfed.hooks.step import (Step, after_destroy, after_download,
                                 at_invalid_state, at_last, at_new_episode,
                                 at_zombie, before_destroy, before_download,
                                 before_upload)
-from openfed.pipe import Pipe
+from openfed.optim import FedOptim
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
 
@@ -73,7 +73,7 @@ class API(Thread, Attach):
     def __init__(self,
                  world: World,
                  state_dict: Dict[str, Tensor],
-                 pipe: Pipe,
+                 fed_optim: FedOptim,
                  container: Container = None,
                  ):
         """Whether act as a role.
@@ -102,7 +102,7 @@ class API(Thread, Attach):
         # Data handle
         self.state_dict: Dict[str, Tensor] = state_dict
         self.container: List[Container] = convert_to_list(container)
-        self.pipe: List[Pipe] = convert_to_list(pipe)
+        self.fed_optim: List[FedOptim] = convert_to_list(fed_optim)
 
     def register_everything(self, hook: Union[Step, Collector, Cypher]):
         """register hook to the corresponding class based on different hook types.
@@ -184,8 +184,8 @@ class API(Thread, Attach):
             self.delivery_task_info = task_info or self.delivery_task_info
             self.delivery.set_task_info(self.delivery_task_info)
 
-            # Pack related inner state of pipe.
-            [self.pack_state(pipe) for pipe in self.pipe]
+            # Pack related inner state of fed_optim.
+            [self.pack_state(fed_optim) for fed_optim in self.fed_optim]
 
             # Upload data automatically.
             flag = self.delivery.upload(self.version)
@@ -203,7 +203,7 @@ class API(Thread, Attach):
                 if self.follower:
                     # As for follower, we will unpack the inner state from 
                     # received tensor automatically.
-                    [self.unpack_state(pipe) for pipe in self.pipe]
+                    [self.unpack_state(fed_optim) for fed_optim in self.fed_optim]
                 elif self.leader:
                     if self.delivery_task_info.train: # type: ignore
                         if self.upload_version <= self.version:

@@ -405,7 +405,7 @@ class AverageAgg(Agg):
     def __init__(self,
                  params,
                  other_keys: List[str] = None,
-                 legacy: bool = True):
+                 legacy: bool = False):
         """
         Args:
             other_keys: The keys you want to track, like `momentum_buffer`, `exp_avg`, `exp_avg_sq`.
@@ -535,7 +535,7 @@ class ElasticAgg(Agg):
     def __init__(self,
                  params,
                  quantile: float = 0.5,
-                 legacy: bool = True,
+                 legacy: bool = False,
                  other_keys: List[str] = None):
         """
         Args:
@@ -702,7 +702,7 @@ class NaiveAgg(Agg):
     def __init__(self,
                  params,
                  other_keys: List[str] = None,
-                 legacy: bool = True):
+                 legacy: bool = False):
         other_keys = convert_to_list(other_keys) or []
         info_keys = ['instances']
         pipe_keys = list(

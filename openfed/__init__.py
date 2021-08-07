@@ -4,7 +4,7 @@ __version__ = "0.0.0"
 import openfed.container as container
 import openfed.core as core
 import openfed.data as data
-import openfed.pipe as pipe
+import openfed.optim as optim
 import openfed.topo as topo
 import openfed.hooks as hooks
 
