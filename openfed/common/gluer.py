@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 
+from heapq import merge
 import warnings
 from typing import Any, Callable, Dict
 from openfed.utils import openfed_class_fmt
@@ -160,9 +161,12 @@ def glue(inst_a: Any,
             else:
                 inst_c.__dict__[k] = v
 
-    warnings.warn(
-        f"{len(discard_keys)} variables of {inst_b} are discarded,"
-        f"{len(merge_keys)} variables of {inst_b} are merged.")
+    if len(discard_keys) > 0:
+        warnings.warn(
+            f"{len(discard_keys)} variables of {inst_b} are discarded,")
+    if len(merge_keys) > 0:
+        warnings.warn(
+            f"{len(merge_keys)} variables of {inst_b} are merged.")
 
     if discard_keys:
         warnings.warn(f"Discarded keys: {discard_keys}")
