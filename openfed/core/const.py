@@ -37,6 +37,12 @@ class ROLE(Enum):
 leader   = ROLE.LEADER.value
 follower = ROLE.FOLLOWER.value
 
+def is_leader(role):
+    return role == leader
+
+def is_follower(role):
+    return role == follower
+
 @unique
 class STATUS(Enum):
     PUSH    = "PUSH"  # push data to the other end.
