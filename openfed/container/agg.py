@@ -54,7 +54,7 @@ class Agg(Package):
     .. note::
         Aggregator only calculate gradients for params, just like `loss.backward`.
     It is never to modify any parameters directly. The update operation is still
-    left for `optim` or `pipe`.
+    left for `optim` or `fed_optim`.
 
     .. note::
         Aggregator needs be coupled with ``Reducer``, which will reduce the received
@@ -74,7 +74,7 @@ class Agg(Package):
                 It is used to calculate the weight of each clients or any other statistic
                 information about each client.
             pipe_keys: The keys need to be returned in the `received_params`. 
-                It is used to calculate the inner state of pipe, such as `scaffold`.
+                It is used to calculate the inner state of fed_optim, such as `scaffold`.
             legacy: If `True`, stack received data into buffer directly. 
                 If `False`, merge received data into buffer. The latter one only take
                 const memory cost, but the formmer one will cost a O(n) memory cost.

@@ -250,9 +250,9 @@ class Aggregate(AtLast):
         """Aggregate received models.
         """
         task_info_list = []
-        for container, pipe in zip(leader.container, leader.pipe):
+        for container, fed_optim in zip(leader.container, leader.fed_optim):
             # Zero grad first
-            pipe.zero_grad()
+            fed_optim.zero_grad()
 
             task_info_list.append(container.reduce())
 
@@ -260,15 +260,15 @@ class Aggregate(AtLast):
             container.aggregate(clear_buffer=False)
 
             # Unpack state from agg
-            container.unpack_state(pipe)
+            container.unpack_state(fed_optim)
 
             # Update models
-            pipe.step()
+            fed_optim.step()
 
             # Clear buffers
             container.clear_buffer()
 
-            pipe.round()
+            fed_optim.round()
 
         leader.task_info_list = task_info_list
 
