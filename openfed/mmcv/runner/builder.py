@@ -5,8 +5,8 @@ import torch.distributed as dist
 from mmcv.runner import build_optimizer
 from mmcv.utils import Registry, build_from_cfg
 from openfed.container import build_container
-from openfed.core import is_leader, is_follower, leader
-from openfed.optim import build_fed_optim, penal
+from openfed.core import is_leader, leader
+from openfed.optim import build_fed_optim
 
 from .container import build_aggregator, build_reducer
 from .hooks import build_hook
