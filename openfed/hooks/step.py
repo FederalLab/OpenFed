@@ -30,9 +30,9 @@ from typing import Any, Dict, List, Tuple, Union
 import torch
 from openfed.common import TaskInfo, logger
 from openfed.common.logging import logger
-from openfed.utils import (convert_to_list, openfed_class_fmt, process_bar,
-                           tablist)
+from openfed.utils import convert_to_list, openfed_class_fmt, tablist
 from torch.optim.lr_scheduler import _LRScheduler
+from tqdm import trange
 
 from .hooks import Hooks
 
@@ -226,7 +226,7 @@ class Aggregate(AtLast):
     count: List[int]
 
     def __init__(self,
-                 count: Union[int, List[int]] = -1,
+                 count: Dict[str, int] = dict(train=-1),
                  period: timedelta = timedelta(hours=24),
                  checkpoint: str = None,
                  lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None):
@@ -238,13 +238,16 @@ class Aggregate(AtLast):
         """
         super().__init__()
         self.period = period
-        self.count = convert_to_list(count)
+        self.count = list(count.values())
+        self.count_name = list(count.keys())
         self.idx = 0
 
         self.tic = time.time()
         self.checkpoint = checkpoint
         self.lr_scheduler = convert_to_list(lr_scheduler)
         self.last_received_numbers = 0
+
+        self.process_bar = self._process_bar(self.count[self.idx], description=self.count_name[self.idx])
 
     def aggregate(self, leader, *args, **kwargs):
         """Aggregate received models.
@@ -286,17 +289,21 @@ class Aggregate(AtLast):
             path = f"{self.checkpoint}.{leader.version}"
             torch.save(leader.state_dict, path)
             logger.info(f"Save to {path}.")
+    
+    def _process_bar(self, count, description=''):
+        process_bar = trange(count)
+        for _ in process_bar:
+            yield
+            process_bar.set_description(description)
 
     def step(self, leader, *args, **kwargs) -> None:
         cnt = self.count[self.idx]
+
         if self.last_received_numbers != leader.received_numbers:
+            # indicate that received a new model.
+            # then, update the index.
             self.last_received_numbers = leader.received_numbers
-            logger.success('\n' +
-                           process_bar(
-                               self.last_received_numbers /
-                               self.count[self.idx],
-                               prefix=f"@{leader.version}",
-                           ))
+            next(self.process_bar)
 
         if cnt > 0 and leader.received_numbers >= cnt:
             self.aggregate(leader, *args, **kwargs)
@@ -304,6 +311,8 @@ class Aggregate(AtLast):
             if self.idx >= len(self.count):
                 self.idx = 0
                 leader.version += 1
+            self.process_bar = self._process_bar(
+                self.count[self.idx], description=self.count_name[self.idx])
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             self.aggregate(leader, *args, **kwargs)
