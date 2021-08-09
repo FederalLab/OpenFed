@@ -4,3 +4,4 @@ prettytable==2.1.0
 psutil==5.8.0
 RandomWords==0.3.0
 torch>=1.8.0
+tqdm
