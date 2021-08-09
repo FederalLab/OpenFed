@@ -47,9 +47,18 @@ def openfed_runner(model,
 
     def train(func_a, func_b):
         def _train(self, *args, **kwargs):
-            with openfed.openfed_api:
-                func_a(self, to=False,  *args, **kwargs)  # download a model
+            with self.openfed_api:
+                # download a model
+                func_a(self, to=False,  *args, **kwargs)
+                version = self.openfed_api.task_info.version
+
                 output = func_b(self, *args, **kwargs)
+                
+                self.optimizer.round()
+                # update version first
+                self.openfed_api.update_version(version + 1)
+
+                # upload trained model
                 func_a(self, to=True,  *args, **kwargs)  # upload a model
 
             return output
