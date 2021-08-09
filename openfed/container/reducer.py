@@ -41,6 +41,8 @@ class Reducer(object):
     def reduce(self) -> TaskInfo:
         """Reduce the `task_info_buffer`.
         """
+        # Clear buffers
+        self.task_info_buffer.clear()
         return TaskInfo()
 
 class AutoReducer(Reducer):
