@@ -245,7 +245,7 @@ class Aggregate(AtLast):
         self.tic = time.time()
         self.checkpoint = checkpoint
         self.lr_scheduler = convert_to_list(lr_scheduler)
-        self.last_received_numbers = 0
+        self.last_received_numbers = -1
 
         self.process_bar = self._process_bar(self.count[self.idx], description=self.count_name[self.idx])
 
@@ -283,7 +283,7 @@ class Aggregate(AtLast):
             [lr_sch.step() for lr_sch in self.lr_scheduler if lr_sch is not None]
 
         # Clear the received_numbers flag
-        leader.received_numbers = 0
+        leader.received_numbers = -1
 
         if self.checkpoint:
             path = f"{self.checkpoint}.{leader.version}"
@@ -303,8 +303,10 @@ class Aggregate(AtLast):
             # indicate that received a new model.
             # then, update the index.
             self.last_received_numbers = leader.received_numbers
-            next(self.process_bar)
-
+            try:
+                next(self.process_bar)
+            except StopIteration:
+                pass
         if cnt > 0 and leader.received_numbers >= cnt:
             self.aggregate(leader, *args, **kwargs)
             self.idx += 1

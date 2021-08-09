@@ -179,7 +179,7 @@ class TaskInfo(AttrDict):
             description=tablist(
                 list(self.keys()),
                 list(self.values()),
-                items_per_row=6,
+                items_per_row=10,
             )
         )
 
