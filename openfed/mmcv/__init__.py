@@ -10,4 +10,4 @@ if ENABLE_MMCV:
     from .runner import *
 else:
     warnings.warn(
-        "Run without MMCV support. If you want to using MMCV, please install build mmcv: https://github.com/open-mmlab/mmcv.")
+        "Run without `MMCV` support. If you want to use `MMCV`, please build it from https://github.com/open-mmlab/mmcv.")

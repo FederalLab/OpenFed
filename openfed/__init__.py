@@ -7,6 +7,7 @@ import openfed.data as data
 import openfed.optim as optim
 import openfed.topo as topo
 import openfed.hooks as hooks
+import openfed.mmcv as mmcv
 
 from .api import API
 from .common import *
