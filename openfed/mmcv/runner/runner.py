@@ -1,5 +1,5 @@
 from mmcv.runner.builder import RUNNERS, build_runner
-from openfed import glue
+from openfed.common.gluer import glue
 from typing import Any
 
 from .builder import build_openfed
