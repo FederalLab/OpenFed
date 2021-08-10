@@ -533,6 +533,7 @@ class Country(object):
             try:
                 callback(*init_store(rank, world_size))
             except Exception as e:
+                logger.debug(e)
                 return False
             return True
 
