@@ -40,7 +40,7 @@ class OpenFed(object):
             fed_optim_cfg['optimizer'] = optimizer
         fed_optim_cfg['role'] = role
         optimizer, aggregator = build_optim(
-            fed_optim_cfg.pop('type'), model, **fed_optim_cfg)
+            fed_optim_cfg.pop('type'), model.parameters(), **fed_optim_cfg)
 
         # Build World
         world = openfed.core.World(role=role, mtt=15)
