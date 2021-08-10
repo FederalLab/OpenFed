@@ -363,14 +363,7 @@ class Pipe(Attach, Package):
 
         # set version on task info
         self.set_upload_version(version)
-
-        if self.world.async_op:
-            # store the necessary message, and hang up begining time.
-            self._upload_hang_up = DelayHandler(self.push)
-            self.upload_hang_up = True
-            return False
-        else:
-            return self.transfer(to=True)
+        return self.transfer(to=True)
 
     def set_download_version(self, version: int):
         self.set("download_version", version)
@@ -384,12 +377,7 @@ class Pipe(Attach, Package):
         # set version
         self.set_download_version(version)
 
-        if self.world.async_op:
-            self._download_hang_up = DelayHandler(self.pull)
-            self.download_hang_up = True
-            return False
-        else:
-            return self.transfer(to=False)
+        return self.transfer(to=False)
 
     @classmethod
     def delivery_generator(cls) -> Any:
@@ -693,15 +681,9 @@ class Pipe(Attach, Package):
             received,
             dst      = rank,
             group    = self.pg,
-            async_op = self.world.async_op,
             country  = self.country)
 
-        if self.world.async_op:
-            handler, step_func = returns  # type: ignore
-            # lambda: before go into this layer's function, call step_func first.
-            return handler, lambda: _op_after_gather(step_func())
-        else:
-            return _op_after_gather()
+        return _op_after_gather()
 
     def push(self) -> Union[Tuple[Work, Callable], Any]:
         """Push data to the other end.
@@ -723,7 +705,6 @@ class Pipe(Attach, Package):
             None,
             dst      = rank,
             group    = self.pg,
-            async_op = self.world.async_op,
             country  = self.country)
 
     def __str__(self) -> str:

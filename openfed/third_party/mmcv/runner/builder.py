@@ -43,7 +43,7 @@ class OpenFed(object):
             fed_optim_cfg.pop('type'), model.parameters(), **fed_optim_cfg)
 
         # Build World
-        world = openfed.core.World(role=role, async_op='false', mtt=15)
+        world = openfed.core.World(role=role, mtt=15)
 
         # Build OpenFed API
         openfed_api = openfed.API(

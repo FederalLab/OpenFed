@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, '/Users/densechen/code/OpenFed')
 from openfed.core import Maintainer, World
 
-world = World(role='openfed_leader', async_op='false', dal=True)
+world = World(role='openfed_leader', dal=True)
 maintainer = Maintainer(world=world, address_file='tests/server.json')
 
 while True:

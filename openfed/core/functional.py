@@ -782,7 +782,6 @@ def gather_object(obj,
                   object_gather_list = None,
                   dst                = 0,
                   group              = None,
-                  async_op           = False,
                   country            = None
                   ) -> Union[Tuple[Work, Callable], Callable, Any]:
     """
@@ -895,12 +894,8 @@ def gather_object(obj,
     handle = all_gather(object_size_list, 
                         local_size,
                         group    = group,
-                        async_op = async_op,
                         country  = country)
-    if async_op:
-        return handle, _step_func
-    else:
-        return _step_func()
+    return _step_func()
 
 
 def broadcast_object_list(object_list, 

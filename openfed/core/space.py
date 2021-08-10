@@ -66,27 +66,14 @@ peeper.world_dict = dict()
 peeper.delivery_dict = ArrayDict() # type: ignore
 
 class World():
-    """Relation map between World, Country and Pipe:
-        World: n master, n roles (leader or follower).
-        ├── Country-a: singe role, n client
-        │   └── Pipe-1: single master, single client.
-        └── Country-b
-            ├── Pipe-1
-            └── Pipe-2
-    """
-
     def __init__(self, 
                 role    : str,
-                async_op: str = 'auto',
                 dal     : bool = True,
                 mtt     : int = 5,
                 ) -> None:
         """
         Args: 
             role: The role played in this world.
-            async_op: Using async op or not. 'true', 'false', 'auto'.
-                If true, use async op, If false,, do not use async op.
-                If auto, use async op if leader, otherwise do not use.
             dal: dynamic address loading. If `False`, it address will
                 be given at the beginning.
             mtt: max try times. Use for waiting new address connecting.
@@ -109,13 +96,6 @@ class World():
         self._delivery_dict = ArrayDict()  # [Pipe -> Create Time]
         self.current_pg    = NULL_PG
 
-        assert async_op in ['auto', 'true', 'false']
-        if async_op == 'auto':
-            self.async_op = True if role == leader else False
-        else:
-            if async_op == 'true' and role == follower:
-                raise RuntimeError("Forbiden to enable `async_op` for follower")
-            self.async_op = async_op == 'true'
         self.dal = dal
         self.mtt = mtt
     
@@ -168,8 +148,8 @@ class World():
         return openfed_class_fmt.format(
             class_name="World",
             description=tablist(
-                head=['role', 'alive', 'async_op', 'dal', 'mtt', 'pipe'],
-                data=[self.role, self.alive, self.async_op, self.dal, self.mtt, len(self._delivery_dict)],
+                head=['role', 'alive', 'dal', 'mtt', 'pipe'],
+                data=[self.role, self.alive, self.dal, self.mtt, len(self._delivery_dict)],
                 force_in_one_row=True,
             )
         )

@@ -187,69 +187,43 @@ class API(Thread, Attach):
             # Download data automatically.
             flag = self.pipe.download(self.version)
 
-        def callback():
-            # Define a callback to deal with chores after download
-            if not to:
-                # update task info
-                self.delivery_task_info = self.pipe.task_info
-                if self.follower:
-                    # Reset current version as downloaded version.
-                    self.version = self.delivery_task_info.version # type: ignore
-                    # As for follower, we will unpack the inner state from 
-                    # received tensor automatically.
-                    [self.unpack_state(fed_optim) for fed_optim in self.fed_optim]
-                elif self.leader:
-                    if self.delivery_task_info.mode == 'train': # type: ignore
-                        if self.upload_version <= self.version:
-                            # In federated learning, some device may upload the outdated model.
-                            # This is not desired, we should skip this invalid model.
-                            logger.warning(
-                                f"Received version of model is outdate."
-                                f"(Expected: > @{self.version}, Received: @{self.upload_version}).")
-                        else:
-                            # As for leader, we will increase the received numbers 
-                            # and catch received tensor to aggregator.
-                            self.received_numbers += 1
-                            packages = self.tensor_indexed_packages
-                            [aggregator.step(packages, self.delivery_task_info)
-                            for aggregator in self.aggregator]
+        if flag and not to:
+            # update task info
+            self.delivery_task_info = self.pipe.task_info
+            if self.follower:
+                # Reset current version as downloaded version.
+                self.version = self.delivery_task_info.version # type: ignore
+                # As for follower, we will unpack the inner state from 
+                # received tensor automatically.
+                [self.unpack_state(fed_optim) for fed_optim in self.fed_optim]
+            elif self.leader:
+                if self.delivery_task_info.mode == 'train': # type: ignore
+                    if self.upload_version <= self.version:
+                        # In federated learning, some device may upload the outdated model.
+                        # This is not desired, we should skip this invalid model.
+                        logger.warning(
+                            f"Received version of model is outdate."
+                            f"(Expected: > @{self.version}, Received: @{self.upload_version}).")
                     else:
-                        # If under test mode it is not necessary to do the aggregation operation.
                         # As for leader, we will increase the received numbers 
                         # and catch received tensor to aggregator.
                         self.received_numbers += 1
-                        [aggregator.step({}, self.delivery_task_info)
-                            for aggregator in self.aggregator]
-
-                if task_info is not None:
-                    # Update the task info if necessary.
-                    task_info.update(self.delivery_task_info)
-
-        # Handler
-        if flag:
-            # If success, callback() immediately and return.
-            callback()
-            return True
-        else:
-            # If failed, it depends the role it played.
-            if self.leader:
-                # As for leader, we wil not paid any time to wait for 
-                # other hand to prepare the state, just return flag.
-                # This request will be handled in the later.
-                return flag
-            else:
-                # As for follower, it can do anything without the latest
-                # model, so we have to wait until finished.
-                if self.world.async_op:
-                    while not self.pipe.deal_with_hang_up():
-                        if self.pipe.is_offline:
-                            return False
-                        time.sleep(0.1)
-                    else:
-                        callback()
-                        return True
+                        packages = self.tensor_indexed_packages
+                        [aggregator.step(packages, self.delivery_task_info)
+                        for aggregator in self.aggregator]
                 else:
-                    return False
+                    # If under test mode it is not necessary to do the aggregation operation.
+                    # As for leader, we will increase the received numbers 
+                    # and catch received tensor to aggregator.
+                    self.received_numbers += 1
+                    [aggregator.step({}, self.delivery_task_info)
+                        for aggregator in self.aggregator]
+
+            if task_info is not None:
+                # Update the task info if necessary.
+                task_info.update(self.delivery_task_info)
+
+        return flag
 
     def run(self):
         """
