@@ -72,7 +72,8 @@
         "**/*.egg-info": true,
         "**/__pycache__": true,
         "build": true,
-        "dist": true
+        "dist": true,
+        "**/.pytest_cache": true
     },
     "explorerExclude.backup": null
 }
