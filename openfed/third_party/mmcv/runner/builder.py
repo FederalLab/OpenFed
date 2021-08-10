@@ -72,7 +72,7 @@ class OpenFed(object):
         # Replace the original optimizer with pipe
         self.optimizer = optimizer
 
-    def train(self, to: bool, data_loader, **kwargs):
+    def train(self, to: bool, data_loader):
         if self.rank == 0:
             if to == True:
                 # We only need to update the version information when finished the training.

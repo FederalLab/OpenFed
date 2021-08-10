@@ -51,14 +51,14 @@ def openfed_runner(model,
         def _train(self, *args, **kwargs):
             with self.openfed_api:
                 # download a model
-                func_a(self, to=False,  *args, **kwargs)
+                func_a(self, to=False, data_loader=args[0])
 
                 output = func_b(self, *args, **kwargs)
 
                 self.optimizer.round()
 
                 # upload trained model
-                func_a(self, to=True,  *args, **kwargs)  # upload a model
+                func_a(self, to=True, data_loader=args[0])  # upload a model
 
             return output
         return _train
