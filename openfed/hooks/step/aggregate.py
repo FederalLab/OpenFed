@@ -133,7 +133,7 @@ class Aggregate(Step):
     def _process_bar(self, count, description=''):
         self._bar_round += 1
         process_bar = trange(count)
-        process_bar.set_description(f"Round: {self._bar_round}" + description)
+        process_bar.set_description(f"<Round: {self._bar_round}> " + description)
         for _ in process_bar:
             yield
 
