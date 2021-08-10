@@ -26,6 +26,8 @@ def build_fedavg(parameters, lr, role, **kwargs):
     Args:
         kwargs: other parameters for build optimizer.
     """
+    parameters = list(parameters)
+
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
     
     optimizer = optim.SGD(parameters, lr=lr, **kwargs)
@@ -45,6 +47,7 @@ def build_fedela(parameters, lr, role, **kwargs):
     Args:
         kwargs: other parameters for build optimizer.
     """
+    parameters = list(parameters)
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
     penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
     optimizer = optim.SGD(
@@ -67,6 +70,7 @@ def build_fedprox(parameters, lr, role, **kwargs):
     Args:
         kwargs: other parameters for build optimizer.
     """
+    parameters = list(parameters)
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
     penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
 
@@ -90,6 +94,7 @@ def build_fedscaffold(parameters, lr, role, **kwargs):
     Args:
         kwargs: other parameters for build optimizer.
     """
+    parameters = list(parameters)
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
     penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict(pack_set=['c_para'], unpack_set=['c_para'])
     optimizer = optim.SGD(
