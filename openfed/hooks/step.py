@@ -24,8 +24,7 @@
 import random
 import time
 from datetime import timedelta
-from enum import Enum, unique
-from typing import Any, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import torch
 from openfed.common import TaskInfo, logger
@@ -36,207 +35,92 @@ from tqdm import trange
 
 from .hooks import Hooks
 
+after_destroy = 'AFTER_DESTROY'
+after_download = 'AFTER_DOWNLOAD'
+after_upload = 'AFTER_UPLOAD'
 
-@unique
-class StepName(Enum):
-    # After
-    AFTER_DESTROY = 'AFTER_DESTROY'
-    AFTER_DOWNLOAD = 'AFTER_DOWNLOAD'
-    AFTER_UPLOAD = 'AFTER_UPLOAD'
+at_first = "AT_FIRST"
+at_failed = 'AT_FAILED'
+at_invalid_state = 'AT_INVALID_STATE'
+at_last = 'AT_LAST'
+at_new_episode = 'AT_NEW_EPISODE'
+at_zombie = 'AT_ZOMBIE'
 
-    # At
-    AT_FIRST = "AT_FIRST"
-    AT_FAILED = 'AT_FAILED'
-    AT_INVALID_STATE = 'AT_INVALID_STATE'
-    AT_LAST = 'AT_LAST'
-    AT_NEW_EPISODE = 'AT_NEW_EPISODE'
-    AT_ZOMBIE = 'AT_ZOMBIE'
-
-    # Before
-    BEFORE_DESTROY = 'BEFORE_DESTROY'
-    BEFORE_DOWNLOAD = 'BEFORE_DOWNLOAD'
-    BEFORE_UPLOAD = 'BEFORE_UPLOAD'
-
-
-after_destroy = StepName.AFTER_DESTROY.value
-after_download = StepName.AFTER_DOWNLOAD.value
-after_upload = StepName.AFTER_UPLOAD.value
-
-at_first = StepName.AT_FIRST.value
-at_failed = StepName.AT_FAILED.value
-at_invalid_state = StepName.AT_INVALID_STATE.value
-at_last = StepName.AT_LAST.value
-at_new_episode = StepName.AT_NEW_EPISODE.value
-at_zombie = StepName.AT_ZOMBIE.value
-
-before_destroy = StepName.BEFORE_DESTROY.value
-before_download = StepName.BEFORE_DOWNLOAD.value
-before_upload = StepName.BEFORE_UPLOAD.value
+before_destroy = 'BEFORE_DESTROY'
+before_download = 'BEFORE_DOWNLOAD'
+before_upload = 'BEFORE_UPLOAD'
 
 
 class Step(Hooks):
-    step_name: str
-    
-    def __call__(self, leader, *args, **kwargs) -> Union[None, bool]:
-        return self.step(leader, *args, **kwargs)
+    """Step hook used for openfed_api.
+    """
 
-    def step(self, leader, *args, **kwargs) -> Union[None, bool]:
-        raise NotImplementedError("Not implemented!")
+    def before_destroy(self, leader, *args, **kwargs) -> bool:
+        return True
 
+    def before_download(self, leader, *args, **kwargs) -> bool:
+        return True
 
-class AfterDestroy(Step):
-    step_name = after_destroy
-
-
-class AfterDownload(Step):
-    step_name = after_download
-
-
-class AfterUpload(Step):
-    step_name = after_upload
-
-
-class AtFirst(Step):
-    step_name = at_first
-
-
-class AtFailed(Step):
-    step_name = at_failed
-
-
-class AtInvalidState(Step):
-    step_name = at_invalid_state
-
-
-class AtLast(Step):
-    step_name = at_last
-
-
-class AtNewEpisode(Step):
-    step_name = at_new_episode
-
-
-class AtZombie(Step):
-    step_name = at_zombie
-
-
-class BeforeDestroy(Step):
-    step_name = before_destroy
-
-
-class BeforeDownload(Step):
-    step_name = before_download
-
-
-class BeforeUpload(Step):
-    step_name = before_upload
-
-
-class MultiStep(Step):
-    step_name: List[str] = []
-
-    def _after_destroy(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(after_destroy)
+    def before_upload(self, leader, *args, **kwargs) -> bool:
+        return True
 
     def after_destroy(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _after_download(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(after_download)
+        ...
 
     def after_download(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _after_upload(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append('after_upload')
+        ...
 
     def after_upload(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _at_failed(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(at_failed)
+        ...
 
     def at_failed(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _at_invalid_state(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(at_invalid_state)
+        ...
 
     def at_invalid_state(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _at_last(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(at_last)
+        ...
 
     def at_last(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
+        ...
 
-    def _at_new_episode(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(at_new_episode)
+    def at_first(self, leader, *args, **kwargs):
+        ...
 
     def at_new_episode(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _at_zombie(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(at_zombie)
+        ...
 
     def at_zombie(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
+        ...
 
-    def _before_destroy(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(before_destroy)
-
-    def before_destroy(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _before_download(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(before_download)
-
-    def before_download(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def _before_upload(self):
-        """Call this if necessary at subclass init process."""
-        self.step_name.append(before_upload)
-
-    def before_upload(self, leader, *args, **kwargs):
-        raise NotImplementedError("Not implemented!")
-
-    def __call__(self, leader, *args, **kwargs):
-        if leader.current_step in self.step_name:
-            func = getattr(self, leader.current_step.lower())
-            return func(leader, *args, **kwargs)
-        else:
-            return None
+    def __call__(self, leader, step_name, *args, **kwargs):
+        func = getattr(self, step_name.lower())
+        return func(leader, *args, **kwargs)
 
 
-class Aggregate(AtLast):
+class Aggregate(Step):
     checkpoint: Union[None, str]
     tic: float
     count: List[int]
+    max_version: int
+    max_loop_times: int
 
     def __init__(self,
                  count: Dict[str, int] = dict(train=-1),
                  period: timedelta = timedelta(hours=24),
                  checkpoint: str = None,
-                 lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None):
+                 lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+                 max_loop_times: int = -1,
+                 max_version: int = -1):
         """
         Args: 
             count: The circle times to do the aggregation operation.
             period: The period to agg received model.
             checkpoint: If specified, the new aggregated model will be saved as this checkpoint file.
+            max_loop_times: if loop times exceed this number, we will stop the server.
+            max_version: when inner version number achieves this number, we will stop server.
         """
         super().__init__()
+
+        # Aggregate
         self.period = period
         self.count = list(count.values())
         self.count_name = list(count.keys())
@@ -247,8 +131,15 @@ class Aggregate(AtLast):
         self.lr_scheduler = convert_to_list(lr_scheduler)
         self.last_received_numbers = 0
 
-        self.process_bar = self._process_bar(self.count[self.idx], description=self.count_name[self.idx])
+        self.process_bar = self._process_bar(
+            self.count[self.idx], description=self.count_name[self.idx])
         next(self.process_bar)
+
+        self.max_loop_times = max_loop_times
+        self.max_version = max_version
+
+    def before_upload(self, leader, *args, **kwargs) -> bool:
+        return leader.download_version <= leader.version
 
     def aggregate(self, leader, *args, **kwargs):
         """Aggregate received models.
@@ -290,14 +181,14 @@ class Aggregate(AtLast):
             path = f"{self.checkpoint}.{leader.version}"
             torch.save(leader.state_dict, path)
             logger.info(f"Save to {path}.")
-    
+
     def _process_bar(self, count, description=''):
         process_bar = trange(count)
         process_bar.set_description(description)
         for _ in process_bar:
             yield
 
-    def step(self, leader, *args, **kwargs) -> None:
+    def at_last(self, leader, *args, **kwargs) -> None:
         cnt = self.count[self.idx]
 
         if self.last_received_numbers != leader.received_numbers:
@@ -323,63 +214,55 @@ class Aggregate(AtLast):
             # Update tic times.
             self.tic = time.time()
 
+        # Terminate or not
+        if (self.max_version != -1 and leader.version >= self.max_version) or\
+                (self.max_loop_times != -1 and leader.loop_times >= self.max_loop_times):
+            leader.manual_stop()
 
-class Dispatch(MultiStep):
+
+class Dispatch(Aggregate):
     pending_queue: List[int]
 
     # part_id -> [nick name, time]
     running_queue: Dict[int, Tuple[str, float]]
     finished_queue: Dict[int, Tuple[str, float]]
 
+    timeout: float = -1
+
     def __init__(self,
-                 samples: int,
-                 parts_list: Union[int, List[Any]],
-                 test_samples: int = None,
-                 test_parts_list: Union[int, List[Any]] = None, 
-                 timeout: float = -1,
+                 samples: Dict[str, int],
+                 parts_list: Dict[str, List],
+                 *args, **kwargs
                  ):
         """
         Args:
+            *args: parameters for aggregate.
             samples: the total number of parts used in a train round.
             parts_list: a list contains all part ids.
             test_samples: the total number of parts used in a test round.
             test_parts_list: a list contains all part ids of test.
+            **kwargs: parameters for aggregate.
         """
+        super().__init__(*args, **kwargs)
+
         self.samples = samples
-        self.parts_list = list(range(parts_list)) if isinstance(
-            parts_list, int) else parts_list
-        self.test_samples = test_samples
-        self.test_parts_list = list(range(test_parts_list)) if isinstance(
-            test_parts_list, int) else test_parts_list
-        self.timeout = timeout
+        self.parts_list = parts_list
 
-        # Count the finished parts
-        # If finished all parts in this round, reset inner part buffer.
-        self._after_download()
-        # Dispatch a part to be finished.
-        self._before_upload()
-
-        # Support auto register method.
-        super().__init__()
-
-        self.train = False
+        self.sample_key_idx = -1
 
         # Initialize queue
         self.reset()
 
     def reset(self):
-        self.train = not self.train if self.test_samples is not None else True
+        self.sample_key_idx += 1
+        if self.sample_key_idx >= len(self.samples):
+            self.sample_key_idx = 0
+        key = list(self.samples.keys())[self.sample_key_idx]
 
-        if self.train:
-            self.pending_queue = random.sample(self.parts_list, self.samples)
-            self.running_queue = dict()
-            self.finished_queue = dict()
-        else:
-            if self.test_samples is not None and self.test_parts_list is not None:
-                self.pending_queue = random.sample(
-                    self.test_parts_list, self.test_samples)
-                self.running_queue = dict()
-                self.finished_queue = dict()
+        self.pending_queue = random.sample(
+            self.parts_list[key], self.samples[key])
+        self.finished_queue = dict()
+        self.running_queue = dict()
 
     def after_download(self, leader, flag: bool):
         if flag:
@@ -408,6 +291,10 @@ class Dispatch(MultiStep):
                 logger.debug(self)
 
     def before_upload(self, leader, *args, **kwargs) -> bool:
+        """Rewrite the before upload method. 
+        In dispatch mode, we will response to client requests by task schedules.
+        And the version information will be ignored. This is quiet different with Aggregate.
+        """
         # version is not used in dispatch mode
         if len(self.pending_queue) > 0:
             # assign a new part id
@@ -418,7 +305,7 @@ class Dispatch(MultiStep):
             task_info = TaskInfo(
                 part_id=part_id,
                 version=leader.version,
-                train=self.train,
+                mode=list(self.samples.keys())[self.sample_key_idx],
             )
             # set task_info
             leader.delivery_task_info.update(task_info)
@@ -426,12 +313,13 @@ class Dispatch(MultiStep):
             return True
 
         elif len(self.running_queue) > 0:
-            timeout_parts = [] # [part_id, nick_name, duration]
+            timeout_parts = []  # [part_id, nick_name, duration]
             for part_id, (nick_name, assign_time) in self.running_queue.items():
                 if self.timeout > 0 and time.time() - assign_time > self.timeout:
                     # resign this task
                     self.pending_queue.append(part_id)
-                    timeout_parts.append((part_id, nick_name, time.time() - assign_time))
+                    timeout_parts.append(
+                        (part_id, nick_name, time.time() - assign_time))
             for part, _, _ in timeout_parts:
                 del self.running_queue[part]
 
@@ -457,55 +345,6 @@ class Dispatch(MultiStep):
         )
 
 
-class Download(AfterDownload):
-
-    def step(self, leader, flag: bool) -> None:
-        if flag:  # Download success
-            # download is to check others upload version
-            logger.info(
-                f"{leader.received_numbers} at v.{leader.version} from {leader.nick_name}.")
-        else:
-            logger.debug(
-                f"Try to download {leader.received_numbers+1} from {leader.nick_name} failed.")
-
-
-class Terminate(AtLast):
-    max_version: int
-    max_loop_times: int
-
-    def __init__(self, max_loop_times: int = -1, max_version: int = -1):
-        """
-        Args:
-            max_loop_times: if loop times exceed this number, we will stop the server.
-            max_version: when inner version number achieves this number, we will stop server.
-        """
-        super().__init__()
-        self.max_loop_times = max_loop_times
-        self.max_version = max_version
-
-    def step(self, leader, *args, **kwargs) -> None:
-        if self.max_version != -1 and leader.version >= self.max_version:
-            logger.info("Terminate! Max version achieves.")
-            leader.manual_stop()
-        if self.max_loop_times != -1 and leader.loop_times >= self.max_loop_times:
-            logger.info("Terminate! Max loop times achieves.")
-            leader.manual_stop()
-
-
-class Upload(BeforeUpload):
-    def step(self, leader, *args, **kwargs) -> bool:
-
-        # Check version requirements
-        # upload is to check other download version.
-        if leader.download_version > leader.version:
-            logger.warning(
-                f"Version not aligned. (request @{leader.download_version}, but @{leader.version}).")
-            # Version is not satisfied.
-            return False
-
-        return True
-
-
 steps = [
-    Aggregate, Dispatch, Download, Terminate, Upload
+    Aggregate, Dispatch, Step
 ]

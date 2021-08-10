@@ -27,32 +27,11 @@ class OpenFed(object):
         model,
         optimizer,
         rank: int = -1,
+        role: str = leader,
+        init_method: str = 'tcp:///localhost:1994',
         address_file: str = '',
-        address_cfg: Dict[str, Any] = dict(
-            backend='gloo',
-            init_method='env:///',
-            group_name='',
-        ),
-        leader_optimizer: Dict[str, Any] = dict(
-            type='SGD',
-            lr=1.0,
-            momentum=0.9,
-            weight_decay=0.0001,
-        ),
-        penalizer_cfg_list: List[Dict[str, Any]] = [],
-        aggregator_cfg: Dict[str, Any] = dict(
-            other_keys=[],
-        ),
-        reducer_cfg: Dict[str, Any] = dict(
-        ),
-        world_cfg: Dict[str, Any] = dict(
-            role=leader,
-            async_op='auto',
-            dal=True,
-            mtt=5,
-        ),
+        fed_optim_cfg: Dict[str, Any] = dict(type='fedavg'),
         hook_cfg_list: List[Dict[str, Any]] = [],
-        api_cfg: Dict[str, Any] = dict(),
     ):
         super().__init__()
         if rank != 0:

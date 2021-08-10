@@ -294,7 +294,7 @@ class Delivery(Attach, Package):
                 [self.pushing() if to else self.pulling()]
 
         # Fetch task info
-        train = self.task_info.train # type: ignore
+        train = self.task_info.mode == 'train' # type: ignore
         
         # transfer
         # Fake download/upload or real download/upload

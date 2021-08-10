@@ -170,8 +170,8 @@ class TaskInfo(AttrDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Add a train flag to task info.
-        if 'train' not in self:
-            self.train = True
+        if 'mode' not in self:
+            self.mode = 'train'
 
     def __str__(self):
         return openfed_class_fmt.format(

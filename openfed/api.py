@@ -108,15 +108,8 @@ class API(Thread, Attach):
         """register hook to the corresponding class based on different hook types.
         """
         if isinstance(hook, Step):
-            step = hook
             """Register the step function to step possition call."""
-            for name in convert_to_list(step.step_name):
-                cnt = 0
-                for n in self.hook_dict.keys():
-                    if n.startswith(name):
-                        cnt = max(cnt, int(n.split(".")[-1]))
-                else:
-                    self.register_hook(f"{name}.{cnt+1}", step)
+            self.register_hook(hook)
         elif isinstance(hook, Collector):
             self._hooks_collector.append(hook)
         elif isinstance(hook, Cypher):
@@ -205,7 +198,7 @@ class API(Thread, Attach):
                     # received tensor automatically.
                     [self.unpack_state(fed_optim) for fed_optim in self.fed_optim]
                 elif self.leader:
-                    if self.delivery_task_info.train: # type: ignore
+                    if self.delivery_task_info.mode == 'train': # type: ignore
                         if self.upload_version <= self.version:
                             # In federated learning, some device may upload the outdated model.
                             # This is not desired, we should skip this invalid model.
@@ -278,16 +271,15 @@ class API(Thread, Attach):
                 You should directly store other variables in self object.
             """
             self.current_step = step_name
-            output = [hook(self, *args, **kwargs) for name,
-                      hook in self.hook_dict.items() if name.startswith(step_name)]
+            output = [hook(self, step_name, *args, **kwargs) for hook in self.hook_list]
 
             # reduce output
-            if None in output:
-                return None
-            elif False in output:
+            if False in output:
                 return False
-            else:
+            elif True in output:
                 return True
+            else:
+                return None
 
         try_times = 0
         while not self.stopped and try_times < self.world.mtt:
