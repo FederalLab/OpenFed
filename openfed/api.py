@@ -193,6 +193,8 @@ class API(Thread, Attach):
                 # update task info
                 self.delivery_task_info = self.pipe.task_info
                 if self.follower:
+                    # Reset current version as downloaded version.
+                    self.version = self.delivery_task_info.version # type: ignore
                     # As for follower, we will unpack the inner state from 
                     # received tensor automatically.
                     [self.unpack_state(fed_optim) for fed_optim in self.fed_optim]
