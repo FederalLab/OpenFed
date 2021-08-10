@@ -46,7 +46,6 @@ class Aggregate(Step):
                  count: Dict[str, int] = dict(train=-1),
                  period: timedelta = timedelta(hours=24),
                  checkpoint: str = None,
-                 lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
                  max_loop_times: int = -1,
                  max_version: int = -1):
         """
@@ -67,7 +66,6 @@ class Aggregate(Step):
 
         self.tic = time.time()
         self.checkpoint = checkpoint
-        self.lr_scheduler = convert_to_list(lr_scheduler)
         self.last_received_numbers = 0
 
         self.process_bar = self._process_bar(
@@ -108,10 +106,6 @@ class Aggregate(Step):
 
         for task_info in task_info_list:
             logger.success(task_info)
-
-        # update learning rate
-        if self.lr_scheduler is not None:
-            [lr_sch.step() for lr_sch in self.lr_scheduler if lr_sch is not None]
 
         # Clear the received_numbers flag
         leader.received_numbers = 0

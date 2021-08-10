@@ -1,17 +1,13 @@
 from typing import Any, Dict, List
+from warnings import warn
 
 import openfed
 import torch.distributed as dist
-from mmcv.runner import build_optimizer
 from mmcv.utils import Registry, build_from_cfg
-from openfed.container import build_container
-from openfed.core import is_leader, leader
-from openfed.optim import build_fed_optim
+from openfed.core import is_follower, is_leader, leader
+from openfed.tools import build_optim
 
-from .container import build_aggregator, build_reducer
 from .hooks import build_hook
-from .penal import build_penalizer
-from .api import build_api
 
 OPENFED = Registry('openfed')
 
@@ -28,9 +24,8 @@ class OpenFed(object):
         optimizer,
         rank: int = -1,
         role: str = leader,
-        init_method: str = 'tcp:///localhost:1994',
         address_file: str = '',
-        fed_optim_cfg: Dict[str, Any] = dict(type='fedavg'),
+        fed_optim_cfg: Dict[str, Any] = dict(type='fedavg', lr=1.0),
         hook_cfg_list: List[Dict[str, Any]] = [],
     ):
         super().__init__()
@@ -38,72 +33,55 @@ class OpenFed(object):
             # It is not necessary to build openfed core if rank > 0
             return
 
-        role = world_cfg["role"]
-
         # Build fed optimizer
-        if is_leader(role):
-            optimizer = build_optimizer(model, leader_optimizer)
+        if is_follower(role):
+            # if this process is a client, we will use the passed in optimizer
+            # else we will build a new optimizer for it.
+            fed_optim_cfg['optimizer'] = optimizer
 
-        for cfg in penalizer_cfg_list:
-            cfg['role'] = role
-
-        if aggregator_cfg['type'] == "ElasticAgg":
-            contains_elastic_penalizer = False
-            for cfg in penalizer_cfg_list:
-                if cfg['type'] == 'ElasticPenalizer':
-                    contains_elastic_penalizer = True
-                    break
-            else:
-                assert contains_elastic_penalizer, "You must specify the `ElasticPenalizer` for `ElasticAgg`"
-
-        if len(penalizer_cfg_list) == 0:
-            penalizer = None
-        else:
-            penalizer = openfed.optim.PenalizerList(
-                [build_penalizer(cfg) for cfg in penalizer_cfg_list]
-            )
-
-        fed_optim = build_fed_optim(optimizer, penalizer)
-
-        # Build Container
-        if is_leader(role):
-            aggregator = build_aggregator(model, aggregator_cfg)
-            reducer = build_reducer(reducer_cfg)
-            container = build_container(aggregator, reducer)
-        else:
-            container = None
+        optimizer, aggregator = build_optim(
+            fed_optim_cfg.pop('type'), model, **fed_optim_cfg)
 
         # Build World
-        world = openfed.core.World(**world_cfg)
+        world = openfed.core.World(role=role, mtt=15)
 
         # Build OpenFed API
-        openfed_api = build_api(world, model.state_dict(
-            keep_vars=True), fed_optim, container, api_cfg)
+        openfed_api = openfed.API(
+            world,
+            model.state_dict(keep_vars=True),
+            optimizer,
+            aggregator)
 
         # Register step function
         if is_leader(role):
             with openfed_api:
-                [build_hook(cfg) for cfg in hook_cfg_list]
-
-        # Build Address
-        address = openfed.build_address(
-            rank=openfed.core.leader_rank if is_leader(role) else openfed.core.follower_rank,
-            world_size=2,
-            **address_cfg
-        )
+                aggregate_in = False
+                for cfg in hook_cfg_list:
+                    if cfg['type'] == 'Aggregate':
+                        aggregate_in = True
+                    build_hook(cfg)
+                if not aggregate_in:
+                    warn(
+                        "Aggregate step function is not included in the hook config, which may cause a error.")
 
         # Connect to other end
-        openfed_api.build_connection(
-            address=address, address_file=address_file)
+        openfed_api.build_connection(address_file=address_file)
 
         self.openfed_api = openfed_api
+
         # Replace the original optimizer with pipe
-        self.optimizer = fed_optim
+        self.optimizer = optimizer
 
     def train(self, to: bool, data_loader, **kwargs):
         if self.rank == 0:
-            # Sync model with other end
+            if to == True:
+                # We only need to update the version information when finished the training.
+                # And at next time, it will automatically download the newer one.
+                self.openfed_api.update_version()
+
+            # Download or upload a model
             self.openfed_api.transfer(to=to)
+
 
         if not to:  # Download a model from the other end.
             # Broadcast new model to all nodes in distributed learning.

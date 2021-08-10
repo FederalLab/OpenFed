@@ -5,28 +5,30 @@ from typing import Any
 from .builder import build_openfed
 
 # HACK: Reconstruct https://github.com/open-mmlab/mmcv/pull/1238#issuecomment-893362673
+
+
 def openfed_runner(model,
-                   batch_processor = None,
-                   optimizer       = None,
-                   work_dir        = None,
-                   logger          = None,
-                   meta            = None,
-                   max_iters       = None,
-                   max_epochs      = None,
-                   runner_cfg      = None,
-                   openfed_cfg     = None):
+                   batch_processor=None,
+                   optimizer=None,
+                   work_dir=None,
+                   logger=None,
+                   meta=None,
+                   max_iters=None,
+                   max_epochs=None,
+                   runner_cfg=None,
+                   openfed_cfg=None):
     # Build Runner
     runner = build_runner(
         runner_cfg,
         default_args=dict(
-            model           = model,
-            batch_processor = batch_processor,
-            optimizer       = optimizer,
-            work_dir        = work_dir,
-            logger          = logger,
-            meta            = meta,
-            max_iters       = max_iters,
-            max_epochs      = max_epochs,
+            model=model,
+            batch_processor=batch_processor,
+            optimizer=optimizer,
+            work_dir=work_dir,
+            logger=logger,
+            meta=meta,
+            max_iters=max_iters,
+            max_epochs=max_epochs,
         )
     )
 
@@ -34,9 +36,9 @@ def openfed_runner(model,
     openfed = build_openfed(
         openfed_cfg,
         default_args=dict(
-            model     = model,
-            optimizer = optimizer,
-            rank      = runner.rank,
+            model=model,
+            optimizer=optimizer,
+            rank=runner.rank,
         )
     )
 
@@ -50,13 +52,10 @@ def openfed_runner(model,
             with self.openfed_api:
                 # download a model
                 func_a(self, to=False,  *args, **kwargs)
-                version = self.openfed_api.task_info.version
 
                 output = func_b(self, *args, **kwargs)
-                
+
                 self.optimizer.round()
-                # update version first
-                self.openfed_api.update_version(version + 1)
 
                 # upload trained model
                 func_a(self, to=True,  *args, **kwargs)  # upload a model
@@ -67,11 +66,11 @@ def openfed_runner(model,
     TypeA = type(openfed)
     TypeB = type(runner)
     openfed_runner = glue(
-        openfed,
-        runner,
+        openfed, runner,
         extra_func=dict(
-            train=train(getattr(TypeA, 'train'),
-                        getattr(TypeB, 'train'))))
+            train=train(
+                getattr(TypeA, 'train'),
+                getattr(TypeB, 'train'))))
 
     return openfed_runner
 

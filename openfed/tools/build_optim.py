@@ -46,9 +46,11 @@ def build_fedela(parameters, lr, role, **kwargs):
         kwargs: other parameters for build optimizer.
     """
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
+    penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
     optimizer = optim.SGD(
         parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
-    penalizer = fed_optim.ElasticPenalizer(role)
+    
+    penalizer = fed_optim.ElasticPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
@@ -66,9 +68,12 @@ def build_fedprox(parameters, lr, role, **kwargs):
         kwargs: other parameters for build optimizer.
     """
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
+    penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
+
     optimizer = optim.SGD(
         parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
-    penalizer = fed_optim.ProxPenalizer(role)
+    
+    penalizer = fed_optim.ProxPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
@@ -86,10 +91,11 @@ def build_fedscaffold(parameters, lr, role, **kwargs):
         kwargs: other parameters for build optimizer.
     """
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
+    penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict(pack_set=['c_para'], unpack_set=['c_para'])
     optimizer = optim.SGD(
         parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
-    penalizer = fed_optim.ScaffoldPenalizer(
-        role, pack_set=['c_para'], unpack_set=['c_para'])
+    
+    penalizer = fed_optim.ScaffoldPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
