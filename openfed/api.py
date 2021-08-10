@@ -30,7 +30,7 @@ from torch import Tensor
 
 from openfed.common import (Address, Attach, DeviceOffline, TaskInfo,
                             default_tcp_address, logger, peeper)
-from openfed.core import Delivery, Destroy, Maintainer, World, openfed_lock
+from openfed.core import Pipe, Destroy, Maintainer, World, openfed_lock
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,
@@ -66,7 +66,7 @@ class API(Thread, Attach):
 
     # Communication related
     maintainer: Maintainer
-    delivery: Delivery
+    pipe: Pipe
     current_step: str
 
     def __init__(self,
@@ -121,13 +121,13 @@ class API(Thread, Attach):
         # register a clone of informer hook.
         # informer hook may contain some inner variable, which is not allowed
         # to share with each other.
-        [self.delivery.register_collector(copy(
-            hook)) for hook in self._hooks_collector if hook.bounding_name not in self.delivery._hook_dict]
+        [self.pipe.register_collector(copy(
+            hook)) for hook in self._hooks_collector if hook.bounding_name not in self.pipe._hook_dict]
         # register the hook directly.
         # deliver hook is not allowed to have inner parameters.
-        # it can be used among all delivery.
-        [self.delivery.register_cypher(
-            hook) for hook in self._hooks_cypher if hook not in self.delivery._hook_list]
+        # it can be used among all pipe.
+        [self.pipe.register_cypher(
+            hook) for hook in self._hooks_cypher if hook not in self.pipe._hook_list]
 
     def build_connection(self, address: Union[Address, List[Address]] = None, address_file: str = None):
         world = self.world
@@ -142,7 +142,7 @@ class API(Thread, Attach):
             world, address=address, address_file=address_file)  # type: ignore
 
         if self.follower:
-            self.delivery = Delivery.default_delivery()
+            self.pipe = Pipe.default_delivery()
             self._add_hook_to_delivery()
 
     def update_version(self, version: int = None):
@@ -161,37 +161,37 @@ class API(Thread, Attach):
         """
         # Collect system information from other end.
         # Most of the collect function will only be called once.
-        self.delivery.collect()
+        self.pipe.collect()
         
         # Scatter system information to other end.
         # Most of the scatter function will only be called once.
-        self.delivery.scatter()
+        self.pipe.scatter()
 
         # Reset state
-        self.delivery.reset_state_dict(self.state_dict)
+        self.pipe.reset_state_dict(self.state_dict)
         
         # Push data to the other end.
         if to:
             # Assign task info to other end
             self.delivery_task_info = task_info or self.delivery_task_info
-            self.delivery.set_task_info(self.delivery_task_info)
+            self.pipe.set_task_info(self.delivery_task_info)
 
             # Pack related inner state of fed_optim.
             [self.pack_state(fed_optim) for fed_optim in self.fed_optim]
 
             # Upload data automatically.
-            flag = self.delivery.upload(self.version)
+            flag = self.pipe.upload(self.version)
 
         # Pull data from the other end.
         else:
             # Download data automatically.
-            flag = self.delivery.download(self.version)
+            flag = self.pipe.download(self.version)
 
         def callback():
             # Define a callback to deal with chores after download
             if not to:
                 # update task info
-                self.delivery_task_info = self.delivery.task_info
+                self.delivery_task_info = self.pipe.task_info
                 if self.follower:
                     # As for follower, we will unpack the inner state from 
                     # received tensor automatically.
@@ -239,8 +239,8 @@ class API(Thread, Attach):
                 # As for follower, it can do anything without the latest
                 # model, so we have to wait until finished.
                 if self.world.async_op:
-                    while not self.delivery.deal_with_hang_up():
-                        if self.delivery.is_offline:
+                    while not self.pipe.deal_with_hang_up():
+                        if self.pipe.is_offline:
                             return False
                         time.sleep(0.1)
                     else:
@@ -285,33 +285,33 @@ class API(Thread, Attach):
             with self.maintainer.pending_queue:
                 step(at_new_episode)
                 cnt = 0
-                for delivery in Delivery.delivery_generator():
+                for pipe in Pipe.delivery_generator():
                     if self.stopped:
                         break
-                    # assign delivery to self first.
-                    self.delivery = delivery
+                    # assign pipe to self first.
+                    self.pipe = pipe
 
-                    # register hook to delivery if necessary.
+                    # register hook to pipe if necessary.
                     self._add_hook_to_delivery()
 
                     cnt += 1
                     step(at_first)
-                    if delivery.is_offline:
-                        [step(after_destroy, Destroy.destroy_delivery(delivery)) if step(
+                    if pipe.is_offline:
+                        [step(after_destroy, Destroy.destroy_delivery(pipe)) if step(
                             before_destroy) else step(at_failed)]
-                    elif delivery.upload_hang_up:
+                    elif pipe.upload_hang_up:
                         step(after_upload,
-                             delivery.deal_with_hang_up())
-                    elif delivery.download_hang_up:
+                             pipe.deal_with_hang_up())
+                    elif pipe.download_hang_up:
                         step(after_download,
-                             delivery.deal_with_hang_up())
-                    elif delivery.is_zombie:
+                             pipe.deal_with_hang_up())
+                    elif pipe.is_zombie:
                         step(at_zombie)
-                    elif delivery.is_pushing:
+                    elif pipe.is_pushing:
                         # Follower want to push data to leader, we need to download.
                         [step(after_download, self.transfer(to=False)) if step(
                             before_download) else step(at_failed)]
-                    elif delivery.is_pulling:
+                    elif pipe.is_pulling:
                         # Follower want to pull data from leader, we need to upload
                         [step(after_upload, self.transfer(to=True)) if step(
                             before_upload) else step(at_failed)]
@@ -330,17 +330,17 @@ class API(Thread, Attach):
                 try_times = 0
 
     def finish(self, auto_exit: bool = False):
-        """Kill all delivery in this world as soon as possible.
+        """Kill all pipe in this world as soon as possible.
         """
         if self.maintainer:
             # Stop maintainer first
             self.maintainer.manual_stop()
             self.maintainer.join()
 
-            # Delete the delivery in world
+            # Delete the pipe in world
             world = self.maintainer.world
-            for delivery in list(world._delivery_dict.keys()):
-                Destroy.destroy_delivery(delivery)
+            for pipe in list(world._delivery_dict.keys()):
+                Destroy.destroy_delivery(pipe)
 
         if auto_exit and self.leader:
             exit(15)
@@ -362,27 +362,27 @@ class API(Thread, Attach):
 
     @property
     def tensor_indexed_packages(self) -> Any:
-        return self.delivery.tensor_indexed_packages
+        return self.pipe.tensor_indexed_packages
 
     @property
     def pack_state(self):
-        return self.delivery.pack_state
+        return self.pipe.pack_state
 
     @property
     def nick_name(self):
-        return self.delivery.nick_name
+        return self.pipe.nick_name
 
     @property
     def unpack_state(self):
-        return self.delivery.unpack_state
+        return self.pipe.unpack_state
 
     @property
     def upload_version(self):
-        return self.delivery.upload_version
+        return self.pipe.upload_version
     
     @property
     def download_version(self):
-        return self.delivery.download_version
+        return self.pipe.download_version
 
     def __str__(self):
         return openfed_class_fmt.format(

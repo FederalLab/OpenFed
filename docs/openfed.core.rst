@@ -15,10 +15,10 @@ Subpackages
 Submodules
 ----------
 
-openfed\.core\.delivery module
+openfed\.core\.pipe module
 ---------------------------
 
-.. automodule:: openfed.core.delivery
+.. automodule:: openfed.core.pipe
     :members:
     :undoc-members:
     :show-inheritance:

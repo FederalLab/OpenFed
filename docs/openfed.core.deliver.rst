@@ -12,10 +12,10 @@ openfed\.core\.deliver\.cypher module
     :undoc-members:
     :show-inheritance:
 
-openfed\.core\.deliver\.delivery module
+openfed\.core\.deliver\.pipe module
 ---------------------------------------
 
-.. automodule:: openfed.core.deliver.delivery
+.. automodule:: openfed.core.deliver.pipe
     :members:
     :undoc-members:
     :show-inheritance:

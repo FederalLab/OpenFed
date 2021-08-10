@@ -60,19 +60,19 @@ except ImportError as e:
 
 
 peeper.world_dict = dict()
-# the delivery dictionary in world only to record the new delivery under 
-# corresponding world, but the delivery dict in peeper will record all
-# delivery in openfed.
+# the pipe dictionary in world only to record the new pipe under 
+# corresponding world, but the pipe dict in peeper will record all
+# pipe in openfed.
 peeper.delivery_dict = ArrayDict() # type: ignore
 
 class World():
-    """Relation map between World, Country and Delivery:
+    """Relation map between World, Country and Pipe:
         World: n master, n roles (leader or follower).
         ├── Country-a: singe role, n client
-        │   └── Delivery-1: single master, single client.
+        │   └── Pipe-1: single master, single client.
         └── Country-b
-            ├── Delivery-1
-            └── Delivery-2
+            ├── Pipe-1
+            └── Pipe-2
     """
 
     def __init__(self, 
@@ -106,7 +106,7 @@ class World():
         self.alive = True
         self.role  = role
 
-        self._delivery_dict = ArrayDict()  # [Delivery -> Create Time]
+        self._delivery_dict = ArrayDict()  # [Pipe -> Create Time]
         self.current_pg    = NULL_PG
 
         assert async_op in ['auto', 'true', 'false']
@@ -117,32 +117,32 @@ class World():
         self.dal = dal
         self.mtt = mtt
     
-    def register_delivery(self, delivery):
-        """Register a delivery to both world and peeper dictionary.
+    def register_delivery(self, pipe):
+        """Register a pipe to both world and peeper dictionary.
         """
         time_str = time_string()
-        # Register to world delivery dict.
+        # Register to world pipe dict.
         with self._delivery_dict:
-            self._delivery_dict[delivery] = time_str
-        # Register to peeper delivery dict.
+            self._delivery_dict[pipe] = time_str
+        # Register to peeper pipe dict.
         with peeper.delivery_dict:
-            peeper.delivery_dict[delivery] = time_str
-        logger.success(f'Capture a new Delivery: {delivery.nick_name}\n{self}')
+            peeper.delivery_dict[pipe] = time_str
+        logger.success(f'Capture a new Pipe: {pipe.nick_name}\n{self}')
     
-    def delete_delivery(self, delivery):
-        """Delete the delivery from both world and peeper dictionary.
+    def delete_delivery(self, pipe):
+        """Delete the pipe from both world and peeper dictionary.
         """
         with self._delivery_dict:
-            del self._delivery_dict[delivery]
+            del self._delivery_dict[pipe]
         with peeper.delivery_dict:
-            del peeper.delivery_dict[delivery]
+            del peeper.delivery_dict[pipe]
 
     def kill(self) -> None:
         """Shout down this world with force. 
-        If any delivery still uses, make them offline directly.
+        If any pipe still uses, make them offline directly.
         """
-        for delivery in self._delivery_dict:
-            delivery[0].offline()
+        for pipe in self._delivery_dict:
+            pipe[0].offline()
         else:
             self.alive = False
 
@@ -166,7 +166,7 @@ class World():
         return openfed_class_fmt.format(
             class_name="World",
             description=tablist(
-                head=['role', 'alive', 'async_op', 'dal', 'mtt', 'delivery'],
+                head=['role', 'alive', 'async_op', 'dal', 'mtt', 'pipe'],
                 data=[self.role, self.alive, self.async_op, self.dal, self.mtt, len(self._delivery_dict)],
                 force_in_one_row=True,
             )

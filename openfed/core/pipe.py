@@ -99,18 +99,18 @@ class DelayHandler(object):
     def is_completed(self) -> bool:
         return self.handler.is_completed() # type: ignore
 
-class Delivery(Attach, Package):
-    """Delivery is responsible for transfer tensors and any other short information
-    to the other hand. You can pack state dict of Aggregator, Pipe to Delivery. Vise via,
-    You can unpack inner state from Delivery to Aggregator or Pipe.
+class Pipe(Attach, Package):
+    """Pipe is responsible for transfer tensors and any other short information
+    to the other hand. You can pack state dict of Aggregator, Pipe to Pipe. Vise via,
+    You can unpack inner state from Pipe to Aggregator or Pipe.
 
-    Delivery is the unified API that provided for user to access.
+    Pipe is the unified API that provided for user to access.
 
     .. warn::
         In federated learning, the tensor transfer between each node may be varied significantly.
         And it may be diffcult to maintain all the received data previously like Distributed Learing.
         (In distributed learning, each node will transfer certain tensor.)
-        In Delivery, we will organize all data as a dictionary which using a unifed string name 
+        In Pipe, we will organize all data as a dictionary which using a unifed string name 
         across all nodes. Then, we use the `gather_object` method to transfer tensors. This also 
         requires that all the data transferred should be picklable.
     """
@@ -155,7 +155,7 @@ class Delivery(Attach, Package):
             pg: The process group belong to. In fact, the process group always
                 contains two process, the leader and follower.
             country: The pg belongs to. Country also contains all global variables
-                that shared among different delivery.
+                that shared among different pipe.
         """
         self.pg      = pg
         self.store   = store
@@ -223,7 +223,7 @@ class Delivery(Attach, Package):
         self.download_hang_up: bool = False
         self.upload_hang_up  : bool = False
 
-        # Register delivery to world and peeper dictionary
+        # Register pipe to world and peeper dictionary
         self.world.register_delivery(self)
 
     @property
@@ -395,29 +395,29 @@ class Delivery(Attach, Package):
     def delivery_generator(cls) -> Any:
         """Return a generator to iterate over all deliveries.
         """
-        for delivery, _ in peeper.delivery_dict: # type: ignore
-            yield [] if delivery is None else delivery
-            if delivery is not None:
-                delivery.world.current_pg = delivery.pg
+        for pipe, _ in peeper.delivery_dict: # type: ignore
+            yield [] if pipe is None else pipe
+            if pipe is not None:
+                pipe.world.current_pg = pipe.pg
         else:
             return []
 
     @classmethod
     def default_delivery(cls) -> Any:
-        """Return the fist delivery.
+        """Return the fist pipe.
         """
-        for delivery, _ in peeper.delivery_dict: # type: ignore
-            return delivery
+        for pipe, _ in peeper.delivery_dict: # type: ignore
+            return pipe
 
     @property
     def _i_key(self) -> str:
-        """Delivery will write information to `i_key`.
+        """Pipe will write information to `i_key`.
         """
         return openfed_identity + "_" + ("LEADER" if self.world.leader else "FOLLOWER")
 
     @property
     def _u_key(self) -> str:
-        """Delivery will read information from `u_key`.
+        """Pipe will read information from `u_key`.
         """
         return openfed_identity + "_" + ("LEADER" if not self.world.leader else "FOLLOWER")
 
@@ -661,7 +661,7 @@ class Delivery(Attach, Package):
         You can specify :param:auto_load_param as ``False`` to disable it.
         """
         assert self.country._get_group_size(
-            self.pg) == 2, "Delivery is only designed for group with size 2"
+            self.pg) == 2, "Pipe is only designed for group with size 2"
 
         received = [None for _ in range(self.country.get_world_size())]
 
@@ -707,7 +707,7 @@ class Delivery(Attach, Package):
         """Push data to the other end.
         """
         assert self.country._get_group_size(
-            self.pg) == 2, "Delivery is only designed for group with size 2"
+            self.pg) == 2, "Pipe is only designed for group with size 2"
 
         rank = follower_rank if self.world.leader else leader_rank
         rank = self.country._get_global_rank(self.pg, rank) if self.country.get_world_size() > 2 else rank
@@ -728,7 +728,7 @@ class Delivery(Attach, Package):
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
-            class_name="Delivery",
+            class_name="Pipe",
             description=tablist(
                 head=["Nick Name", 
                       "Upload Version",
@@ -746,33 +746,33 @@ class Destroy(object):
     """Automatically destroy a process group along with its world.
     """
     @classmethod
-    def destroy_delivery(cls, delivery: Delivery):
-        world   = delivery.world
-        pg      = delivery.pg
-        country = delivery.country
+    def destroy_delivery(cls, pipe: Pipe):
+        world   = pipe.world
+        pg      = pipe.pg
+        country = pipe.country
 
         if pg == world.current_pg:
             world.current_pg = NULL_PG
 
-        delivery.offline()
+        pipe.offline()
         # NOTE:
-        # world._delivery_dict only recording the delivery defined under 
+        # world._delivery_dict only recording the pipe defined under 
         # the same world. 
-        # peeper.delivery_dict contains all defined delivery under all world.
-        world.delete_delivery(delivery)
+        # peeper.delivery_dict contains all defined pipe under all world.
+        world.delete_delivery(pipe)
         
         country.destroy_process_group(pg)
 
         if country._group_count == 1:
             # If the country contains many deliveries, the group_count should be larger than 1
-            # after delete a delivery. If equals to one, it means that only the world group is left.
+            # after delete a pipe. If equals to one, it means that only the world group is left.
             # So, we need to delete it manually.
             country.destroy_process_group()
 
     @classmethod
     def destroy_all_deliveries(cls):
-        for delivery, _ in peeper.delivery_dict: # type: ignore
-            cls.destroy_delivery(delivery)
+        for pipe, _ in peeper.delivery_dict: # type: ignore
+            cls.destroy_delivery(pipe)
 
 
 class Joint(Thread):
@@ -822,8 +822,8 @@ class Joint(Thread):
 
         # bound pg with the country
         for sub_pg in sub_pg_list:
-            # Delivery will automatically register to the corresponding world dictionary.
-            Delivery(
+            # Pipe will automatically register to the corresponding world dictionary.
+            Pipe(
                 store   = country.get_store(sub_pg),
                 pg      = sub_pg,
                 country = country)
@@ -964,7 +964,7 @@ class Maintainer(Thread):
         return f"Build connection to {len(self.finished_queue)} addresses."
 
     def manual_stop(self, kill_world: bool = True) -> None:
-        """Kill current delivery as soon as possible.
+        """Kill current pipe as soon as possible.
         """
         if kill_world:
             self.world.kill()

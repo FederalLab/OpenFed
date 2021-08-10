@@ -322,7 +322,7 @@ class Agg(Package):
     def step(self, received_params: Dict[Tensor, Dict[str, Tensor]], received_info: TaskInfo) -> None:
         """Called once received a new data.
         Args:
-            received_params: A tensor indexed dictionary, which usually returned by `delivery.indexed_tensor_packages`. Each items must contain all `pipe_keys`.
+            received_params: A tensor indexed dictionary, which usually returned by `pipe.indexed_tensor_packages`. Each items must contain all `pipe_keys`.
             received_info: The received task information, which must contain all `info_keys`.
 
         .. note::

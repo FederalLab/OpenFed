@@ -1,7 +1,7 @@
 from .const import *
-from .delivery import *
+from .pipe import *
 from .space import *
 
-del delivery
+del pipe
 del space
 del const
