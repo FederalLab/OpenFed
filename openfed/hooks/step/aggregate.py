@@ -64,6 +64,7 @@ class Aggregate(Step):
         self.tic = time.time()
         self.checkpoint = checkpoint
         self.last_received_numbers = 0
+        self._bar_round = 0
 
         self.process_bar = self._process_bar(
             self.count[self.idx], description=self.count_name[self.idx])
@@ -130,8 +131,9 @@ class Aggregate(Step):
             logger.info(f"Save to {path}.")
 
     def _process_bar(self, count, description=''):
+        self._bar_round += 1
         process_bar = trange(count)
-        process_bar.set_description(description)
+        process_bar.set_description(f"Round: {self._bar_round}" + description)
         for _ in process_bar:
             yield
 
