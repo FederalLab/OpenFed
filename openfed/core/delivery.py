@@ -101,8 +101,8 @@ class DelayHandler(object):
 
 class Delivery(Attach, Package):
     """Delivery is responsible for transfer tensors and any other short information
-    to the other hand. You can pack state dict of Container, Pipe to Delivery. Vise via,
-    You can unpack inner state from Delivery to Container or Pipe.
+    to the other hand. You can pack state dict of Aggregator, Pipe to Delivery. Vise via,
+    You can unpack inner state from Delivery to Aggregator or Pipe.
 
     Delivery is the unified API that provided for user to access.
 

@@ -28,23 +28,7 @@ from typing import List
 from openfed.common import TaskInfo
 from openfed.utils import convert_to_list
 
-
-class Reducer(object):
-    """The base class for different reducers.
-    It will reduce the ``task_info_buffer`` and return the final result.
-
-    .. note::
-        ``task_info_buffer`` will be automatically cleared after reduce.
-    It is not necessary to do clear it in aggregator.
-    """
-    task_info_buffer: List[TaskInfo]  # access from aggregator
-
-    def reduce(self) -> TaskInfo:
-        """Reduce the `task_info_buffer`.
-        """
-        # Clear buffers
-        self.task_info_buffer.clear()
-        return TaskInfo()
+from .reducer import Reducer
 
 
 class AutoReducer(Reducer):
@@ -52,7 +36,7 @@ class AutoReducer(Reducer):
     """
 
     def __init__(self,
-                 reduce_keys: List[str],
+                 reduce_keys: List[str] = ['accuracy'],
                  weight_key: str = None,
                  ignore_keys: List[str] = None,
                  log_file: str = None):
@@ -119,6 +103,3 @@ class AutoReducer(Reducer):
                 json.dump(r_task_info, f)
 
         return r_task_info
-
-
-reducers = [Reducer, AutoReducer]

@@ -145,23 +145,23 @@ class Aggregate(Step):
         """Aggregate received models.
         """
         task_info_list = []
-        for container, fed_optim in zip(leader.container, leader.fed_optim):
+        for aggregator, fed_optim in zip(leader.aggregator, leader.fed_optim):
             # Zero grad first
             fed_optim.zero_grad()
 
-            task_info_list.append(container.reduce())
+            task_info_list.append(aggregator.reduce())
 
             # Aggregate
-            container.aggregate(clear_buffer=False)
+            aggregator.aggregate(clear_buffer=False)
 
             # Unpack state from agg
-            container.unpack_state(fed_optim)
+            aggregator.unpack_state(fed_optim)
 
             # Update models
             fed_optim.step()
 
             # Clear buffers
-            container.clear_buffer()
+            aggregator.clear_buffer()
 
             fed_optim.round()
 

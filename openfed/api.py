@@ -30,7 +30,6 @@ from torch import Tensor
 
 from openfed.common import (Address, Attach, DeviceOffline, TaskInfo,
                             default_tcp_address, logger, peeper)
-from openfed.container import Container
 from openfed.core import Delivery, Destroy, Maintainer, World, openfed_lock
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
@@ -39,7 +38,7 @@ from openfed.hooks.step import (Step, after_destroy, after_download,
                                 at_invalid_state, at_last, at_new_episode,
                                 at_zombie, before_destroy, before_download,
                                 before_upload)
-from openfed.optim import FedOptim
+from openfed.optim import FedOptim, Aggregator
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
 
@@ -74,7 +73,7 @@ class API(Thread, Attach):
                  world: World,
                  state_dict: Dict[str, Tensor],
                  fed_optim: FedOptim,
-                 container: Container = None,
+                 aggregator: Aggregator = None,
                  ):
         """Whether act as a role.
         Frontend is always in sync mode, which will ease the coding burden.
@@ -101,7 +100,7 @@ class API(Thread, Attach):
 
         # Data handle
         self.state_dict: Dict[str, Tensor] = state_dict
-        self.container: List[Container] = convert_to_list(container)
+        self.aggregator: List[Aggregator] = convert_to_list(aggregator)
         self.fed_optim: List[FedOptim] = convert_to_list(fed_optim)
 
     def register_everything(self, hook: Union[Step, Collector, Cypher]):
@@ -207,18 +206,18 @@ class API(Thread, Attach):
                                 f"(Expected: > @{self.version}, Received: @{self.upload_version}).")
                         else:
                             # As for leader, we will increase the received numbers 
-                            # and catch received tensor to container.
+                            # and catch received tensor to aggregator.
                             self.received_numbers += 1
                             packages = self.tensor_indexed_packages
-                            [container.step(packages, self.delivery_task_info)
-                            for container in self.container]
+                            [aggregator.step(packages, self.delivery_task_info)
+                            for aggregator in self.aggregator]
                     else:
                         # If under test mode it is not necessary to do the aggregation operation.
                         # As for leader, we will increase the received numbers 
-                        # and catch received tensor to container.
+                        # and catch received tensor to aggregator.
                         self.received_numbers += 1
-                        [container.step({}, self.delivery_task_info)
-                            for container in self.container]
+                        [aggregator.step({}, self.delivery_task_info)
+                            for aggregator in self.aggregator]
 
                 if task_info is not None:
                     # Update the task info if necessary.

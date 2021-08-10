@@ -21,16 +21,18 @@
 # SOFTWARE.
 
 
-from typing import Any, Dict, List, Set, Union
 import gc
+from copy import deepcopy
+from typing import Any, Dict, List, Set, Union
+
+import torch
 from openfed.utils import convert_to_list
 from torch import Tensor
-import torch
-from copy import deepcopy
+
 
 class Package(object):
-    """Pack Optimizer, Penalizer and Container state to state dict. 
-    Unpack received state dict to Optimizer, Penalizer and Container.
+    """Pack Optimizer, Penalizer and Aggregator state to state dict. 
+    Unpack received state dict to Optimizer, Penalizer and Aggregator.
     """
     _pack_set   : Set[str]
     _unpack_set : Set[str]
@@ -40,7 +42,7 @@ class Package(object):
     def pack_state(self, obj, keys=None) -> None:
         """Pack ``obj.state_dict`` to ``self.state_dict``.
         Args:
-            obj (Penalizer, Pipe, Container): The object contains state dict to fetch data.
+            obj (Penalizer, Pipe, Aggregator): The object contains state dict to fetch data.
             keys: The extra keys want to pack to Package.
         """
         keys     = convert_to_list(keys) or []
@@ -60,7 +62,7 @@ class Package(object):
         """Unpack ``self.state_dict`` to ``obj.state_dict``. 
         This is the reverse process of `self.pack_state`.
         Args:
-            obj (Penalizer, Pipe, Container): The object contains state dict to fill data.
+            obj (Penalizer, Pipe, Aggregator): The object contains state dict to fill data.
             keys: The extra keys want to unpack to obj.
         """
         keys     = convert_to_list(keys) or []
