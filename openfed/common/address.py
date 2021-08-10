@@ -140,7 +140,7 @@ def load_address_from_file(file: Union[None, str]) -> List[Address]:
         return []
     with open(file, 'r') as f:
         address_dict_list = json.load(f)
-    return [build_address(**address) for address in address_dict_list]
+    return [build_address(*address) for address in address_dict_list]
 
 
 def dump_address_to_file(file: str, address_list: List[Address]):
