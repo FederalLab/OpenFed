@@ -50,15 +50,21 @@ def openfed_runner(model,
     def train(func_a, func_b):
         def _train(self, *args, **kwargs):
             with self.openfed_api:
+                data_loader = args[0]
+
                 # download a model
-                func_a(self, to=False, data_loader=args[0])
+                func_a(self, to=False, data_loader=data_loader)
 
                 output = func_b(self, *args, **kwargs)
 
                 self.optimizer.round()
 
+                instances = len(data_loader.dataset)
+                # collect training instances
+                self.openfed_api.delivery_task_info.instances = instances
+
                 # upload trained model
-                func_a(self, to=True, data_loader=args[0])  # upload a model
+                func_a(self, to=True)  # upload a model
 
             return output
         return _train
