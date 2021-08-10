@@ -19,36 +19,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
- 
+
 
 from typing import Dict, Union
 
 from torch import Tensor
 
-from .hooks import Hooks
+from .cypher import Cypher
 
 
-class Cypher(Hooks):
-    r"""Cypher: encrypt/decrypt data in pairs.
-    The encrypt and decrypt functions will be called in two ends respectively.
-    You can store the inner operation in the returned dictionary directly, but not 
-    specify then as self.xxx=yyy.
-    """
-
-    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
-        """<key, value> pair in the package before transfer to the other end.
-        """
-        raise NotImplementedError(
-            "You must implement the encrypt function for Cypher.")
-
-    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
-        """<key, value> pair in the package received from the other end.
-        """
-        raise NotImplementedError(
-            "You must implement the decrypt function for Cypher.")
-
-
-class FormatCheck(Cypher):
+class FormatChecker(Cypher):
     """Format Check.
     1. Convert `value` to {'param': value} if value is a Tensor.
     2. Align all other tensor in value to `param`'s device. 
@@ -77,5 +57,3 @@ class FormatCheck(Cypher):
         for k, v in value.items():
             value[k] = v.to(key.device)
         return value
-
-cyphers = [Cypher, FormatCheck]

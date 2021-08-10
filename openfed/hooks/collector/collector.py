@@ -22,17 +22,14 @@
  
 
 import json
-import platform
 from abc import abstractmethod
 from collections import defaultdict
 from typing import Any, Callable, Dict, Type
 
-import torch
 from openfed.common import logger
-from openfed.utils import openfed_class_fmt, tablist
-from torch.optim.lr_scheduler import _LRScheduler
+from openfed.utils import openfed_class_fmt
 
-from .hooks import Hooks
+from ..hooks import Hooks
 
 
 class Recorder(object):
@@ -143,138 +140,3 @@ class Collector(Hooks):
 # do not register them here.
 # Such as the lr_scheduler, which must be initialized at both ends.
 Collector()
-
-
-@Recorder.register
-class SystemInfo(Collector):
-    """Collect some basic system info.
-    """
-    bounding_name: str = "Collector.SystemInfo"
-
-    message: Any = None
-
-    leader_collector: bool = True
-    follower_collector: bool = False
-
-    leader_scatter: bool = False
-    follower_scatter: bool = True
-
-    def __init__(self) -> None:
-        super().__init__(True)
-
-    def collect(self) -> Any:
-        if self.scattered is False:
-            self.scattered = True
-            self.my_message = dict(
-                system=platform.system(),
-                platform=platform.system(),
-                version=platform.version(),
-                architecture=platform.architecture(),
-                machine=platform.machine(),
-                node=platform.node(),
-                processor=platform.processor(),
-            )
-        return self.my_message
-
-    def better_read(self):
-        if self.message is None:
-            logger.debug("Empty message received.")
-            return ""
-        else:
-            return tablist(
-                head=["System", "Platform", "Version",
-                      "Architecture", 'Machine', "Node",
-                      "Processor"],
-                data=[self.message["system"],
-                      self.message["platform"],
-                      self.message["version"],
-                      self.message["architecture"],
-                      self.message["machine"],
-                      self.message["node"],
-                      self.message["processor"]],
-                force_in_one_row=True,
-            )
-
-
-SystemInfo()
-
-
-@Recorder.register
-class GPUInfo(Collector):
-    """Collect some basic GPU information if GPU is available.
-    """
-    bounding_name: str = "Collector.GPUInfo"
-
-    message: Any = None
-    leader_collector: bool = True
-    follower_collector: bool = False
-
-    leader_scatter: bool = False
-    follower_scatter: bool = True
-
-    def __init__(self) -> None:
-        super().__init__(True)
-
-    def collect(self) -> Any:
-        if self.scattered is False:
-            if torch.cuda.is_available():
-                self.my_message = dict(
-                    device_count=torch.cuda.device_count(),
-                    arch_list=torch.cuda.get_arch_list(),
-                    device_capability=torch.cuda.get_device_capability(),
-                    device_name=torch.cuda.get_device_name(),
-                    current_device=torch.cuda.current_device(),
-                )
-            else:
-                self.my_message = None
-        return self.my_message
-
-    def better_read(self):
-        if self.message is None:
-            logger.debug("Empty message received.")
-            return ""
-        else:
-            return tablist(
-                head=["Count", "Arch", "Capability",
-                      "Name", "Current"],
-                data=[self.message['device_count'],
-                      self.message['arch_list'],
-                      self.message['device_capability'],
-                      self.message['device_name'],
-                      self.message['current_device']],
-                force_in_one_row=True
-            )
-
-
-GPUInfo()
-
-
-@Recorder.register
-class LRTracker(Collector):
-    """Keep tack of learning rate during training.
-    """
-    bounding_name: str = "Collector.LRTracker"
-    leader_collector: bool = False
-    follower_collector: bool = True
-
-    leader_scatter: bool = True
-    follower_scatter: bool = False
-
-    def __init__(self, lr_scheduler: _LRScheduler):
-        super().__init__(False)
-        self.lr_scheduler = lr_scheduler
-
-    def collect(self) -> Dict:
-        return self.lr_scheduler.state_dict()
-
-    def load_message(self, message: Dict):
-        self.lr_scheduler.load_state_dict(message)
-
-    def better_read(self):
-        return (
-            "Lastest Learing Rate: "
-            f"{self.lr_scheduler.get_last_lr()[0]}"
-        )
-
-
-collectors = [Collector, SystemInfo, GPUInfo, LRTracker]

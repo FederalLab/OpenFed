@@ -34,7 +34,7 @@ from openfed.common import (Address, ArrayDict, Attach, ConnectTimeout,
                             InvalidStoreWriting, Package, TaskInfo,
                             load_address_from_file, logger, peeper)
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
-from openfed.hooks.cypher import Cypher, FormatCheck
+from openfed.hooks.cypher import Cypher, FormatChecker
 from openfed.utils import openfed_class_fmt, tablist, time_string
 from random_words import RandomWords
 from torch import Tensor
@@ -213,9 +213,9 @@ class Delivery(Attach, Package):
         # Packages use the string name as dictionary.
         self.packages = defaultdict(dict)
         
-        # FormatCheck is a necessary cypher, which will move the tensor to 
+        # FormatChecker is a necessary cypher, which will move the tensor to 
         # CPU, and then convert back to corresponding GPU.
-        self.register_cypher(FormatCheck())
+        self.register_cypher(FormatChecker())
 
         # download and upload hang up indicate that whether it is dealling
         # with a download or upload event.

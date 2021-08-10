@@ -10,5 +10,5 @@ if ENABLE_MMCV:
     from .runner import *
 else:
     warnings.warn(
-        "`openfed.mmcv` module requires `mmcv` package, but not found. "
-        "Disable `openfed.mmcv`.")
+        "`openfed.third_party.mmcv` module requires `mmcv` package, but not found. "
+        "You can install it from https://github.com/open-mmlab/mmcv.")
