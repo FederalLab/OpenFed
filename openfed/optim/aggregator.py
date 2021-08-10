@@ -23,11 +23,11 @@
 
 from openfed.common import glue
 
-from .agg import Agg
-from .red import Reducer
+from .agg_op import AggOp
+from .red_op import ReduceOp
 
 
-class Aggregator(Agg, Reducer):
+class Aggregator(AggOp, ReduceOp):
     """Glue Agg and Reducer into a single class, named Aggregator.
 
     .. warn::
@@ -37,13 +37,13 @@ class Aggregator(Agg, Reducer):
         raise RuntimeError("Call `build_container` to create a aggregator.")
 
 
-def build_aggregator(agg: Agg, reducer: Reducer = None) -> Aggregator:
-    """Build a aggregator to glue aggregator and reducer.
+def build_aggregator(agg_op: AggOp, reduce_op: ReduceOp = None) -> Aggregator:
+    """Build a aggregator to glue agg_op and reducer.
 
     Args:
         agg: The agg to aggregate tensor.
         reducer: The reducer to reduce task information.
     """
     # An empty reducer is needed.
-    reducer = Reducer() if reducer is None else reducer
-    return glue(agg, reducer)
+    reduce_op = ReduceOp() if reduce_op is None else reduce_op
+    return glue(agg_op, reduce_op)

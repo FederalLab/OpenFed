@@ -27,9 +27,9 @@ from openfed.common import TaskInfo
 from openfed.utils import convert_to_list
 from torch import Tensor
 
-from .agg import Agg
+from .agg_op import AggOp
 
-class ElasticAgg(Agg):
+class ElasticOp(AggOp):
     """Elastic Aggregation: Aggregate received tensor in a data-aware way.
 
     .. warn::

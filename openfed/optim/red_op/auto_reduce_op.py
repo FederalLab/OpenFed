@@ -28,10 +28,10 @@ from typing import List
 from openfed.common import TaskInfo
 from openfed.utils import convert_to_list
 
-from .reducer import Reducer
+from .reduce_op import ReduceOp
 
 
-class AutoReducer(Reducer):
+class AutoReduceOp(ReduceOp):
     """Auto reducer based on specified keys.
     """
 

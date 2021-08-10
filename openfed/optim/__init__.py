@@ -1,11 +1,11 @@
-from .agg import *
+from .agg_op import *
 from .aggregator import *
 from .fed_optim import *
 from .penal import *
-from .red import *
+from .red_op import *
 
-del agg
+del agg_op
 del aggregator
 del fed_optim
 del penal
-del red
+del red_op

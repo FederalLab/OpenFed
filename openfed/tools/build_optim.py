@@ -13,7 +13,7 @@ def build_fedsgd(parameters, lr, role, **kwargs):
         parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
     fed_optimizer = fed_optim.build_fed_optim(optimizer)
     if openfed.core.is_leader(role):
-        agg = fed_optim.AverageAgg(parameters)
+        agg = fed_optim.AverageOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
         aggregator = None
@@ -32,7 +32,7 @@ def build_fedavg(parameters, lr, role, **kwargs):
     fed_optimizer = fed_optim.build_fed_optim(
         optimizer) if 'optimizer' not in kwargs else kwargs['optimizer']
     if openfed.core.is_leader(role):
-        agg = fed_optim.NaiveAgg(parameters)
+        agg = fed_optim.NaiveOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
         aggregator = None
@@ -52,7 +52,7 @@ def build_fedela(parameters, lr, role, **kwargs):
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
-        agg = fed_optim.ElasticAgg(parameters)
+        agg = fed_optim.ElasticOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
         aggregator = None
@@ -72,7 +72,7 @@ def build_fedprox(parameters, lr, role, **kwargs):
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
-        agg = fed_optim.NaiveAgg(parameters)
+        agg = fed_optim.NaiveOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
         aggregator = None
@@ -93,7 +93,7 @@ def build_fedscaffold(parameters, lr, role, **kwargs):
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
-        agg = fed_optim.NaiveAgg(parameters)
+        agg = fed_optim.NaiveOp(parameters)
         aggregator = fed_optim.build_aggregator( agg, reducer)
     else:
         aggregator = None

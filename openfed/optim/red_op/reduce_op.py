@@ -25,7 +25,7 @@ from typing import List
 from openfed.common import TaskInfo
 
 
-class Reducer(object):
+class ReduceOp(object):
     """The base class for different reducers.
     It will reduce the ``task_info_buffer`` and return the final result.
 

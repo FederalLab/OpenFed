@@ -44,7 +44,7 @@ class _RequiredParameter(object):
 required = _RequiredParameter()
 
 
-class Agg(Package):
+class AggOp(Package):
     r"""Base class for Aggregation.
 
     Aggregator collects all received tensor and related task information.
