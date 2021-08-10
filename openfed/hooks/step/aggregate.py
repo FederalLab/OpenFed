@@ -64,10 +64,9 @@ class Aggregate(Step):
         self.tic = time.time()
         self.checkpoint = checkpoint
         self.last_received_numbers = 0
-        self._bar_round = 0
+        self._bar_round = 1
 
-        self.process_bar = self._process_bar(
-            self.count[self.idx], description=self.count_name[self.idx])
+        self.process_bar = self._process_bar()
         next(self.process_bar)
 
         self.max_loop_times = max_loop_times
@@ -130,8 +129,9 @@ class Aggregate(Step):
             torch.save(leader.state_dict, path)
             logger.info(f"Save to {path}.")
 
-    def _process_bar(self, count, description=''):
-        self._bar_round += 1
+    def _process_bar(self):
+        count, description = self.count[self.idx], self.count_name[self.idx]
+
         process_bar = trange(count)
         process_bar.set_description(f"<Round: {self._bar_round}> " + description)
         for _ in process_bar:
@@ -155,8 +155,8 @@ class Aggregate(Step):
             if self.idx >= len(self.count):
                 self.idx = 0
                 leader.version += 1
-            self.process_bar = self._process_bar(
-                self.count[self.idx], description=self.count_name[self.idx])
+                self._bar_round += 1
+            self.process_bar = self._process_bar()
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             self.aggregate(leader, *args, **kwargs)
