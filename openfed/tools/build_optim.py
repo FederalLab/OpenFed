@@ -30,9 +30,9 @@ def build_fedavg(parameters, lr, role, **kwargs):
 
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
     
-    optimizer = optim.SGD(parameters, lr=lr, **kwargs)
-    fed_optimizer = fed_optim.build_fed_optim(
-        optimizer) if 'optimizer' not in kwargs else kwargs['optimizer']
+    optimizer = optim.SGD(parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
+    
+    fed_optimizer = fed_optim.build_fed_optim(optimizer) 
     if openfed.core.is_leader(role):
         agg = fed_optim.NaiveOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
