@@ -113,6 +113,8 @@ class World():
         if async_op == 'auto':
             self.async_op = True if role == leader else False
         else:
+            if async_op == 'true' and role == follower:
+                raise RuntimeError("Forbiden to enable `async_op` for follower")
             self.async_op = async_op == 'true'
         self.dal = dal
         self.mtt = mtt
