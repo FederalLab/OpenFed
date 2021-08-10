@@ -38,7 +38,7 @@ class OpenFed(object):
             # if this process is a client, we will use the passed in optimizer
             # else we will build a new optimizer for it.
             fed_optim_cfg['optimizer'] = optimizer
-
+        fed_optim_cfg['role'] = role
         optimizer, aggregator = build_optim(
             fed_optim_cfg.pop('type'), model, **fed_optim_cfg)
 

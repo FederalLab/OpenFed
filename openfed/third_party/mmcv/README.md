@@ -21,8 +21,8 @@ runner = dict(type='OpenFedRunner',
                   hook_cfg_list=[
                       dict(type='Aggregate', 
                            count=dict(train=-1), # the count to trigger the aggregate operation
-                           checkpoint: str = None, # save aggregated model
-                           max_version: int = -1, # terminate if max version is achieved
+                           checkpoint= None, # save aggregated model
+                           max_version= -1, # terminate if max version is achieved
                            )
                   ],
               )
