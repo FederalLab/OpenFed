@@ -865,9 +865,6 @@ class Maintainer(Thread):
         super().__init__(daemon=True)
         self.address_file = address_file
         self.pending_queue = ArrayDict()
-        if address is not None:
-            self.pending_queue[address] = [time.time(), 0]
-
         self.finished_queue  = dict()
         self.discard_queue   = dict()
         self.abnormal_exited = False
@@ -878,6 +875,9 @@ class Maintainer(Thread):
         add_mt_lock(self)
 
         self.world = world
+
+        if address is not None:
+            self.pending_queue[address] = [time.time(), 0]
 
         self.read_address_from_file()
 
