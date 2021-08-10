@@ -172,6 +172,8 @@ class TaskInfo(AttrDict):
         # Add a train flag to task info.
         if 'mode' not in self:
             self.mode = 'train'
+        if 'version' not in self:
+            self.version = '-1'
 
     def __str__(self):
         return openfed_class_fmt.format(

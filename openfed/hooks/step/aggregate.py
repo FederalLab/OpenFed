@@ -26,10 +26,7 @@ from datetime import timedelta
 from typing import Dict, List, Union
 
 import torch
-from openfed.common import logger
-from openfed.common.logging import logger
-from openfed.utils import convert_to_list
-from torch.optim.lr_scheduler import _LRScheduler
+from openfed.common import logger, TaskInfo
 from tqdm import trange
 
 from .step import Step
@@ -76,7 +73,24 @@ class Aggregate(Step):
         self.max_version = max_version
 
     def before_upload(self, leader, *args, **kwargs) -> bool:
-        return leader.download_version <= leader.version
+        """Rewrite the before upload method. 
+        In dispatch mode, we will response to client requests by task schedules.
+        And the version information will be ignored. This is quiet different with Aggregate.
+        """
+        # version is not used in dispatch mode
+        if leader.download_version <= leader.version:
+            # generate task_info
+            task_info = TaskInfo(
+                version=leader.version,
+                mode="federated learning",
+            )
+            # set task_info
+            leader.delivery_task_info.update(task_info)
+
+            return True
+        else:
+            # unknown case.
+            return False
 
     def aggregate(self, leader, *args, **kwargs):
         """Aggregate received models.
