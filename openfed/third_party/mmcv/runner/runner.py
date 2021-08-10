@@ -4,9 +4,6 @@ from typing import Any
 
 from .builder import build_openfed
 
-# HACK: Reconstruct https://github.com/open-mmlab/mmcv/pull/1238#issuecomment-893362673
-
-
 def openfed_runner(model,
                    batch_processor=None,
                    optimizer=None,
