@@ -43,6 +43,7 @@ class Dispatch(Aggregate):
     timeout: float = -1
 
     def __init__(self,
+                 activated_parts: Dict[str, int],
                  parts_list: Dict[str, List],
                  period: timedelta = timedelta(hours=24),
                  checkpoint: str = None,
@@ -52,32 +53,28 @@ class Dispatch(Aggregate):
         """
         Args:
             *args: parameters for aggregate.
-            samples: the total number of parts used in a train round.
             parts_list: a list contains all part ids.
             test_samples: the total number of parts used in a test round.
             test_parts_list: a list contains all part ids of test.
             **kwargs: parameters for aggregate.
         """
-        count = {k: len(v) for k, v in parts_list.items()}
+        for k in activated_parts:
+            if k not in parts_list:
+                raise KeyError(f"parts_list must contain {k}")
+
         super().__init__(
-            count, period, checkpoint, max_loop_times, max_version)
+            activated_parts, period, checkpoint, max_loop_times, max_version)
 
-        self.samples = count
         self.parts_list = parts_list
-
-        self.sample_key_idx = -1
 
         # Initialize queue
         self.reset()
 
     def reset(self):
-        self.sample_key_idx += 1
-        if self.sample_key_idx >= len(self.samples):
-            self.sample_key_idx = 0
-        key = list(self.samples.keys())[self.sample_key_idx]
+        key = self.stage_name
 
         self.pending_queue = random.sample(
-            self.parts_list[key], self.samples[key])
+            self.parts_list[key], self.activated_parts[key])
         self.finished_queue = dict()
         self.running_queue = dict()
 
@@ -122,7 +119,7 @@ class Dispatch(Aggregate):
             task_info = TaskInfo(
                 part_id=part_id,
                 version=leader.version,
-                mode=list(self.samples.keys())[self.sample_key_idx],
+                mode=self.stage_name,
             )
             # set task_info
             leader.delivery_task_info.update(task_info)

@@ -40,7 +40,7 @@ class Aggregate(Step):
     max_loop_times: int
 
     def __init__(self,
-                 count: Dict[str, int] = dict(train=-1),
+                 activated_parts = dict(train=-1),
                  period: timedelta = timedelta(hours=24),
                  checkpoint: str = None,
                  max_loop_times: int = -1,
@@ -57,8 +57,7 @@ class Aggregate(Step):
 
         # Aggregate
         self.period = period
-        self.count_name = list(count.keys())
-        self.count = list(count.values())
+        self.activated_parts = activated_parts
         self.idx = 0
 
         self.tic = time.time()
@@ -128,17 +127,22 @@ class Aggregate(Step):
             path = f"{self.checkpoint}.{leader.version}"
             torch.save(leader.state_dict, path)
             logger.info(f"Save to {path}.")
+    
+    @property
+    def stage_name(self):
+        return list(self.activated_parts.keys())[self.idx]
 
     def _process_bar(self):
-        count, description = self.count[self.idx], self.count_name[self.idx]
+        description = self.stage_name
+        activated_parts = self.activated_parts[description]
 
-        process_bar = trange(count)
+        process_bar = trange(activated_parts)
         process_bar.set_description(f"<Round: {self._bar_round}> " + description)
         for _ in process_bar:
             yield
 
     def at_last(self, leader, *args, **kwargs) -> None:
-        cnt = self.count[self.idx]
+        activated_parts = self.activated_parts[self.stage_name]
 
         if self.last_received_numbers != leader.received_numbers:
             # indicate that received a new model.
@@ -149,10 +153,10 @@ class Aggregate(Step):
             except StopIteration:
                 pass
 
-        if cnt > 0 and leader.received_numbers >= cnt:
+        if activated_parts > 0 and leader.received_numbers >= activated_parts:
             self.aggregate(leader, *args, **kwargs)
             self.idx += 1
-            if self.idx >= len(self.count):
+            if self.idx >= len(self.activated_parts):
                 self.idx = 0
                 leader.version += 1
                 self._bar_round += 1
