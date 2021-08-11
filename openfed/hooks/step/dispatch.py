@@ -58,7 +58,7 @@ class Dispatch(Aggregate):
             test_parts_list: a list contains all part ids of test.
             **kwargs: parameters for aggregate.
         """
-        count = {k: len(v) for k, v in parts_list}
+        count = {k: len(v) for k, v in parts_list.items()}
         super().__init__(
             count, period, checkpoint, max_loop_times, max_version)
 
