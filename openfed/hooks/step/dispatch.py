@@ -28,7 +28,7 @@ from typing import Dict, List, Tuple
 from openfed.common import TaskInfo, logger
 from openfed.common.logging import logger
 from openfed.utils import openfed_class_fmt, tablist
-
+from datetime import timedelta
 
 from .aggregate import Aggregate
 
@@ -43,9 +43,11 @@ class Dispatch(Aggregate):
     timeout: float = -1
 
     def __init__(self,
-                 samples: Dict[str, int],
                  parts_list: Dict[str, List],
-                 *args, **kwargs
+                 period: timedelta = timedelta(hours=24),
+                 checkpoint: str = None,
+                 max_loop_times: int = -1,
+                 max_version: int = -1
                  ):
         """
         Args:
@@ -56,9 +58,11 @@ class Dispatch(Aggregate):
             test_parts_list: a list contains all part ids of test.
             **kwargs: parameters for aggregate.
         """
-        super().__init__(*args, **kwargs)
+        count = {k: len(v) for k, v in parts_list}
+        super().__init__(
+            count, period, checkpoint, max_loop_times, max_version)
 
-        self.samples = samples
+        self.samples = count
         self.parts_list = parts_list
 
         self.sample_key_idx = -1

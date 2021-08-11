@@ -137,7 +137,7 @@ class AverageOp(AggOp):
                         # NOTE: The received parameters are the updated one.
                         # We should use the original p to sub the received one, yielding the
                         # correct gradient.
-                        grad = p-r_p
+                        grad = p - r_p
                         if p.grad is None:
                             p.grad = grad
                         else:

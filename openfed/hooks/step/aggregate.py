@@ -57,8 +57,8 @@ class Aggregate(Step):
 
         # Aggregate
         self.period = period
-        self.count = list(count.values())
         self.count_name = list(count.keys())
+        self.count = list(count.values())
         self.idx = 0
 
         self.tic = time.time()
