@@ -96,7 +96,7 @@ def build_fedscaffold(parameters, lr, role, **kwargs):
     """
     parameters = list(parameters)
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
-    penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict(pack_set=['c_para'], unpack_set=['c_para'])
+    penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
     optimizer = optim.SGD(
         parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
     
@@ -104,7 +104,7 @@ def build_fedscaffold(parameters, lr, role, **kwargs):
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
-        agg = fed_optim.NaiveOp(parameters)
+        agg = fed_optim.NaiveOp(parameters, other_keys=['c_para'])
         aggregator = fed_optim.build_aggregator( agg, reducer)
     else:
         aggregator = None

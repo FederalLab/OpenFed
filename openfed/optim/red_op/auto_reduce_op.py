@@ -58,6 +58,10 @@ class AutoReduceOp(ReduceOp):
         assert self.reduce_keys, "Attempt to reduce empty list of keys."
 
         self.log_file = log_file
+        # Clear file
+        if self.log_file is not None:
+            with open(self.log_file, 'w') as f:
+                f.write('')
 
     def reduce(self) -> TaskInfo:
         """Reduce the task_info_buffer and then clear it.

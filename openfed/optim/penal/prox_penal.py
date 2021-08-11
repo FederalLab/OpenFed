@@ -21,14 +21,9 @@
 # SOFTWARE.
 
 
-from typing import List, Callable, Union
+from typing import List
 
 import torch
-from openfed.core import follower, leader
-from openfed.common import Package
-from openfed.utils import convert_to_list
-from typing_extensions import final
-import torch.nn.functional as F
 
 from .penal import Penalizer
 
@@ -56,7 +51,6 @@ class ProxPenalizer(Penalizer):
                 loss = closure()
 
         for group in self.param_groups:
-            mu = group['mu']
             for p in group['params']:
                 if p.grad is not None:
                     state = self.state[p]
@@ -64,6 +58,6 @@ class ProxPenalizer(Penalizer):
                         init_p = state["init_p"] = p.clone().detach()
                     else:
                         init_p = state["init_p"]
-                    p.grad.add_(p-init_p, alpha=mu)
+                    p.grad.add_(p-init_p, alpha=self.mu)
 
         return loss

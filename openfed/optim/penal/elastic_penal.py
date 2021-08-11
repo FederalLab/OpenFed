@@ -21,13 +21,10 @@
 # SOFTWARE.
 
 
-from typing import List, Callable, Union
+from typing import List
 
 import torch
-from openfed.core import follower, leader
-from openfed.common import Package
 from openfed.utils import convert_to_list
-from typing_extensions import final
 import torch.nn.functional as F
 
 from .penal import Penalizer

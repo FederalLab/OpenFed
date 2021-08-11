@@ -104,16 +104,16 @@ class Aggregate(Step):
             # Aggregate
             aggregator.aggregate(clear_buffer=False)
 
-            # Unpack state from agg
-            aggregator.unpack_state(fed_optim)
+            if self.stage_name == 'train':
+                # Unpack state from agg
+                aggregator.unpack_state(fed_optim)
 
             # Update models
             fed_optim.step()
+            fed_optim.round()
 
             # Clear buffers
             aggregator.clear_buffer()
-
-            fed_optim.round()
 
         leader.task_info_list = task_info_list
 

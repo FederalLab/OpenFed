@@ -129,9 +129,10 @@ class Package(object):
 
         for group in self.param_groups:
             if 'keep_keys' in group:
-                keys = group['keep_keys'] or keep_keys
+                group_keep_keys = convert_to_list(group['keep_keys']) or []
             else:
-                keys = keep_keys
+                group_keep_keys = []
+            keys = keep_keys + group_keep_keys
             for p in group["params"]:
                 state = self.state[p]
                 del_keys = [key for key in state.keys() if key not in keys]

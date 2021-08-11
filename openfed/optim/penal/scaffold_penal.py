@@ -24,10 +24,7 @@
 from typing import List, Callable, Union
 
 import torch
-from openfed.core import follower, leader
-from openfed.common import Package
 from openfed.utils import convert_to_list
-from typing_extensions import final
 import torch.nn.functional as F
 
 from .penal import Penalizer
@@ -37,22 +34,21 @@ class ScaffoldPenalizer(Penalizer):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
 
-    def __init__(self, 
-        role      : str,
-        lr        : float = None,
-        pack_set  : List[str] = None,
-        unpack_set: List[str] = None, 
-        max_acg_step: int = -1, 
-        acg_loss_fn: Union[Callable, str] = 'mse_loss'): 
+    def __init__(self,
+                 role: str,
+                 pack_set: List[str] = None,
+                 unpack_set: List[str] = None,
+                 max_acg_step: int = -1,
+                 acg_loss_fn: Union[Callable, str] = 'cross_entropy'):
         """Scaffold needs to run on both leader and follower.
-        If lr is given, we will use the second way provided in the paper to update c.
-        Otherwise, we will use the first way provided in the paper.
-        If lr is not given, acg_step is needed.
+        If acg_loss_fn is not None, we will use the second way described in the
+        paper to do the acg step.
 
         Args:
             acg_loss_fn: The callable loss function used to calculate acg operation.
                 At most of time, it should be the consit with the loss function used 
                 in the task itself, such as BCE, MSE...,
+
         """
         pack_set = convert_to_list(pack_set) or []
         unpack_set = convert_to_list(unpack_set) or []
@@ -61,11 +57,11 @@ class ScaffoldPenalizer(Penalizer):
 
         super().__init__(role, pack_set, unpack_set, max_acg_step)
 
-        self.lr = lr
         if isinstance(acg_loss_fn, str):
             acg_loss_fn = getattr(F, acg_loss_fn)
 
         self.acg_loss_fn = acg_loss_fn
+        self.init_c_para_flag = False
 
     def init_c_para(self):
         """Call this function after glue operation.
@@ -74,6 +70,7 @@ class ScaffoldPenalizer(Penalizer):
             for p in group["params"]:
                 if p.requires_grad:
                     self.state[p]["c_para"] = torch.zeros_like(p)
+        self.init_c_para_flag = True
 
     def acg(self, model, dataloader):
         """Accumulate gradients for SCAFFOLD.
@@ -85,10 +82,13 @@ class ScaffoldPenalizer(Penalizer):
             This function only be called if you do not specify the `lr` in 
             `__init__` process.
         """
-        if self.lr is not None:
+        if self.init_c_para_flag == False:
+            self.init_c_para()
+
+        if self.acg_loss_fn is None:
             # It is not necessary to accumulate gradient with respect to the
             # second update rule described in the paper.
-            return 
+            return
 
         # accumulate gradient
         model.train()
@@ -98,7 +98,7 @@ class ScaffoldPenalizer(Penalizer):
             input, target = data
             input, target = input.to(device), target.to(device)
             model.zero_grad()
-            self.acg_loss_fn(model(input), target).backward() # type: ignore
+            self.acg_loss_fn(model(input), target).backward()  # type: ignore
             self._acg_step()
             if self.max_acg_step > 0 and i > self.max_acg_step:
                 break
@@ -143,8 +143,8 @@ class ScaffoldPenalizer(Penalizer):
                     state["init_p"] = p.clone().detach()
                 if 'step' not in state:
                     state["step"] = 0
-                else:
-                    state["step"] += 1
+
+                state["step"] += 1
                 # Modifed gradients
                 if "c_para_i" not in state:
                     c_para_i = state["c_para_i"] = torch.zeros_like(p)
@@ -196,21 +196,20 @@ class ScaffoldPenalizer(Penalizer):
         """
 
         for group in self.param_groups:
-            lr = group['lr']
             for p in group["params"]:
                 if p.grad is None:
                     continue
                 state = self.state[p]
                 c_para_i = state["c_para_i"]
                 # Update follower
-                if lr is None:
+                if self.acg_loss_fn is not None:
                     # Use the first way to update c_para
                     assert "init_p_g" in state, "You should accumulate init_p_g first!"
                     c_para_i.copy_(state["init_p_g"])
                 else:
                     # Use the second way to update c_para
                     c_para_i.copy_(
-                        c_para_i - state["c_para"] + 1 / (state["step"] * lr) * (state["init_p"] - p))
+                        c_para_i - state["c_para"] + 1 / (state["step"] * group['lr']) * (state["init_p"] - p))
                 if 'c_para' not in state:
                     state["c_para"] = c_para_i
                 else:
