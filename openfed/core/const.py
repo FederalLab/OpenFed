@@ -29,13 +29,8 @@ DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
 # null progress group
 NULL_PG = None
 
-@unique
-class ROLE(Enum):
-    LEADER   = 'openfed_leader'
-    FOLLOWER = 'openfed_follower'
-
-leader   = ROLE.LEADER.value
-follower = ROLE.FOLLOWER.value
+leader   = 'openfed_leader'
+follower = 'openfed_follower'
 
 def is_leader(role):
     return role == leader
@@ -43,33 +38,14 @@ def is_leader(role):
 def is_follower(role):
     return role == follower
 
-@unique
-class STATUS(Enum):
-    PUSH    = "PUSH"  # push data to the other end.
-    PULL    = "PULL"  # pull data from the other end.
-    ZOMBIE  = "ZOMBIE"  # when there is no request.
-    OFFLINE = "OFFLINE"  # offline.
+push    = 'PUSH'
+pull    = 'PULL'
+zombie  = 'ZOMBIE'
+offline = 'OFFLINE'
 
-
-push    = STATUS.PUSH.value
-pull    = STATUS.PULL.value
-zombie  = STATUS.ZOMBIE.value
-offline = STATUS.OFFLINE.value
-
-@unique
-class CONST(Enum):
-    """The following keys will used as the key of store.
-    """
-    OPENFED_IDENTIFY  = "OPENFED_IDENTIFY"
-    OPENFED_STATUS    = "OPENFED_STATUS"
-    OPENFED_TASK_INFO = 'OPENFED_TASK_INFO'
-    NICK_NAME         = 'NICK_NAME'
-    LEADER_RANK       = 0
-    FOLLOWER_RANK     = 1
-
-openfed_identity  = CONST.OPENFED_IDENTIFY.value
-openfed_status    = CONST.OPENFED_STATUS.value
-openfed_task_info = CONST.OPENFED_TASK_INFO.value
-nick_name         = CONST.NICK_NAME.value
-leader_rank       = CONST.LEADER_RANK.value
-follower_rank     = CONST.FOLLOWER_RANK.value
+openfed_identity  = 'OPENFED_IDENTIFY'
+openfed_status    = 'OPENFED_STATUS'
+openfed_task_info = 'OPENFED_TASK_INFO'
+nick_name     = 'NICK_NAME'
+leader_rank   = 0
+follower_rank = 1

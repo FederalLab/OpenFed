@@ -20,16 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-from typing import Any, Callable, Tuple, Union
-
 import torch
 from torch._C._distributed_c10d import (AllreduceCoalescedOptions,
                                         AllreduceOptions, AllToAllOptions,
                                         BroadcastOptions, GatherOptions,
                                         ReduceOp, ReduceOptions,
-                                        ReduceScatterOptions, ScatterOptions,
-                                        Work)
+                                        ReduceScatterOptions, ScatterOptions)
 from torch.distributed.distributed_c10d import (Backend, _batch_p2p_manager,
                                                 _check_single_tensor,
                                                 _check_tensor_list,
