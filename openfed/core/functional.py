@@ -780,10 +780,10 @@ def all_gather_object(object_list,
 
 def gather_object(obj,
                   object_gather_list = None,
-                  dst                = 0,
-                  group              = None,
-                  country            = None
-                  ) -> Union[Tuple[Work, Callable], Callable, Any]:
+                  dst     = 0,
+                  group   = None,
+                  country = None
+                  ) -> None:
     """
     Gathers picklable objects from the whole group in a single process.
     Similar to :func:`gather`, but Python objects can be passed in. Note that the
@@ -853,50 +853,48 @@ def gather_object(obj,
         object_sizes_tensor[i].unsqueeze(dim=0) for i in range(group_size)
     ]
 
-    def _step_func() -> Any:
-        max_object_size = int(max(object_size_list).item())  # type: ignore
-        # Resize tensor to max size across all ranks.
-        input_tensor.resize_(max_object_size)
-        # Avoid populating output tensors if the result won't be gathered on this rank.
-        if my_rank == dst:
-            coalesced_output_tensor = torch.empty(
-                max_object_size * group_size, 
-                dtype  = torch.uint8,
-                device = current_device
-            )
-            # Output tensors are nonoverlapping views of coalesced_output_tensor
-            output_tensors = [
-                coalesced_output_tensor[max_object_size *
-                                        i: max_object_size * (i + 1)]
-                for i in range(group_size)
-            ]
-        # All ranks call gather with equal-sized tensors.
-        gather(
-            input_tensor,
-            gather_list = output_tensors if my_rank == dst else None, # type: ignore
-            dst         = dst,
-            group       = group,
-            async_op    = False,
-            country     = country
-        )
-
-        if my_rank != dst:
-            return
-        for i, tensor in enumerate(output_tensors):  # type: ignore
-            # type: ignore[call-overload]
-            tensor      = tensor.type(torch.ByteTensor)  # type: ignore
-            tensor_size = object_size_list[i]
-            object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
 
     # Allgather tensor sizes. An all-gather is needed here despite this being a
     # gather, since each rank needs to broadcast a tensor of the same (maximal)
     # size.
-    handle = all_gather(object_size_list, 
-                        local_size,
-                        group    = group,
-                        country  = country)
-    return _step_func()
+    all_gather(object_size_list, 
+            local_size,
+            group    = group,
+            country  = country)
+            
+    max_object_size = int(max(object_size_list).item())  # type: ignore
+    # Resize tensor to max size across all ranks.
+    input_tensor.resize_(max_object_size)
+    # Avoid populating output tensors if the result won't be gathered on this rank.
+    if my_rank == dst:
+        coalesced_output_tensor = torch.empty(
+            max_object_size * group_size, 
+            dtype  = torch.uint8,
+            device = current_device
+        )
+        # Output tensors are nonoverlapping views of coalesced_output_tensor
+        output_tensors = [
+            coalesced_output_tensor[max_object_size *
+                                    i: max_object_size * (i + 1)]
+            for i in range(group_size)
+        ]
+    # All ranks call gather with equal-sized tensors.
+    gather(
+        input_tensor,
+        gather_list = output_tensors if my_rank == dst else None, # type: ignore
+        dst         = dst,
+        group       = group,
+        async_op    = False,
+        country     = country
+    )
 
+    if my_rank != dst:
+        return
+    for i, tensor in enumerate(output_tensors):  # type: ignore
+        # type: ignore[call-overload]
+        tensor      = tensor.type(torch.ByteTensor)  # type: ignore
+        tensor_size = object_size_list[i]
+        object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
 
 def broadcast_object_list(object_list, 
                           src     = 0,

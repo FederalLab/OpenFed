@@ -26,7 +26,7 @@ import time
 from collections import defaultdict
 from datetime import timedelta
 from threading import Lock, Thread
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 from bidict import bidict
 from openfed.common import (Address, ArrayDict, Attach, ConnectTimeout,
@@ -38,12 +38,10 @@ from openfed.hooks.cypher import Cypher, FormatChecker
 from openfed.utils import openfed_class_fmt, tablist, time_string
 from random_words import RandomWords
 from torch import Tensor
-from torch._C._distributed_c10d import Work
-
 from .const import *
 from .functional import gather_object
 from .space import (Country, ProcessGroup, Store, World, add_mt_lock,
-                    del_mt_lock)
+                    del_mt_lock, EasyRole)
 
 rw = RandomWords()
 
@@ -99,7 +97,8 @@ class DelayHandler(object):
     def is_completed(self) -> bool:
         return self.handler.is_completed() # type: ignore
 
-class Pipe(Attach, Package):
+
+class Pipe(Attach, Package, EasyRole):
     """Pipe is responsible for transfer tensors and any other short information
     to the other hand. You can pack state dict of Aggregator, Pipe to Pipe. Vise via,
     You can unpack inner state from Pipe to Aggregator or Pipe.
@@ -118,13 +117,6 @@ class Pipe(Attach, Package):
     country: Country
     pg     : ProcessGroup
     store  : Store
-
-    # handler, step function, timestamp
-    _download_hang_up: DelayHandler
-    _upload_hang_up  : DelayHandler
-
-    download_hang_up: bool
-    upload_hang_up  : bool
 
     # Sometimes, the read operation will be failed for unknown reasons.
     # Essentially when we do simulation experiments on a single node.
@@ -167,7 +159,7 @@ class Pipe(Attach, Package):
         # With this nick name, we can have a better identification
         # of each follower.
         # warn: the nick name may be not unique.
-        if self.world.leader:
+        if self.leader:
             safe_store_set(
                 store = self.store,
                 key   = nick_name,
@@ -217,22 +209,8 @@ class Pipe(Attach, Package):
         # CPU, and then convert back to corresponding GPU.
         self.register_cypher(FormatChecker())
 
-        # download and upload hang up indicate that whether it is dealling
-        # with a download or upload event.
-        # Only used while async is enable.
-        self.download_hang_up: bool = False
-        self.upload_hang_up  : bool = False
-
         # Register pipe to world and peeper dictionary
         self.world.register_delivery(self)
-
-    @property
-    def follower(self):
-        return self.world.follower
-    
-    @property
-    def leader(self):
-        return self.world.leader
 
     @property
     def upload_version(self) -> int:
@@ -242,38 +220,19 @@ class Pipe(Attach, Package):
     def download_version(self) -> int:
         return self.get("download_version")
 
-    def transfer(self,
-                 to       : bool,
-                 handler  : Union[DelayHandler, None] = None) -> bool: 
+    def transfer(self, to: bool) -> bool: 
         """
         Args:
             to: If `True`, transfer data to other end. Otherwise, download 
                 data from the other end.
-            handler: If not None, call handler.wait(). Otherwise, call `pull()`
-                or `push` directly.
-            tic: start counting time.
         """
         if self.is_offline: raise DeviceOffline(self)
 
         def _state():
             return self.is_pulling if to else self.is_pushing
 
-        # HACK: In order to reduce the unnecessary tensor transfer between 
-        # follower and leader, we will not upload tensor if the model has not changed.
-        # In other word, if you are under the test mode, it is unnecessary to upload
-        # the unmodified tensor to leader. However, this feature improvement will
-        # bring a new hack: HACK-0 will listen to the other end's state with a short
-        # time sleep. At general case, leader will set the state and waiting to 
-        # transfer data from follower. So, everything goes well.
-        # But if we skip the download process, the state in leader will only be setted 
-        # as pulling or pushing for quiet short time, that HACK-0 may miss the state 
-        # change signal, and always keep wait. This hack will cause the error of 
-        # `Invalid part ID`. (The leader read the task info again and again, but the 
-        # follower is never able to capture the statue change.)
-        # It is vital to add a sleep if leader do not transfer data at HACK-1 and HACK-2.
-
         # logic judge
-        if self.world.follower:
+        if self.follower:
             # set state first
             [self.pushing() if to else self.pulling()]
 
@@ -284,8 +243,6 @@ class Pipe(Attach, Package):
                 toc = time.time()
                 if timedelta(seconds=toc-tic) > timedelta(minutes=30):
                     raise ConnectTimeout(self)
-                # HACK-0
-                time.sleep(0.01)
         else:
             # check state first
             if not _state():
@@ -294,63 +251,10 @@ class Pipe(Attach, Package):
                 [self.pushing() if to else self.pulling()]
 
         # Fetch task info
-        train = self.task_info.mode == 'train' # type: ignore
-        
-        # transfer
-        # Fake download/upload or real download/upload
-        # 1. follower will always download the data
-        # 2. follower will only upload data if train == True
-        # 3. leader will always upload data
-        # 4. leader will only download data if train == True
-        def callback():
-            if handler:
-                handler.wait()
-            else:
-                [self.push() if to else self.pull()]
-
-        if self.follower:
-            if not to or train:
-                callback()
-            else:
-                # HACK-1
-                time.sleep(0.1)
-        elif self.leader:
-            if to or train:
-                callback()
-            else:
-                # HACK-2
-                time.sleep(0.1)
+        [self.push() if to else self.pull()]
 
         self.zombie()
         return True
-
-    def deal_with_hang_up(self) -> bool:
-        """Dealing with the handler for hang up operations.
-        """
-        if self.upload_hang_up:
-            handler = self._upload_hang_up
-            to = True
-        elif self.download_hang_up:
-            handler = self._download_hang_up
-            to = False
-        else:
-            return False
-
-        if not self.transfer(
-            to        = to,
-            handler   = handler):
-            return False
-
-        if handler.is_completed():
-            if self.upload_hang_up:
-                del self._upload_hang_up
-                self.upload_hang_up = False
-            elif self.download_hang_up:
-                del self._download_hang_up
-                self.download_hang_up = False
-            return True
-        else:
-            return False
 
     def set_upload_version(self, version: int):
         self.set("upload_version", version)
@@ -401,13 +305,13 @@ class Pipe(Attach, Package):
     def _i_key(self) -> str:
         """Pipe will write information to `i_key`.
         """
-        return openfed_identity + "_" + ("LEADER" if self.world.leader else "FOLLOWER")
+        return openfed_identity + "_" + ("LEADER" if self.leader else "FOLLOWER")
 
     @property
     def _u_key(self) -> str:
         """Pipe will read information from `u_key`.
         """
-        return openfed_identity + "_" + ("LEADER" if not self.world.leader else "FOLLOWER")
+        return openfed_identity + "_" + ("LEADER" if not self.leader else "FOLLOWER")
 
     def _write(self, info: Dict[str, str]) -> bool:
         """Write info to self._i_key.
@@ -439,7 +343,7 @@ class Pipe(Attach, Package):
             # The server is quiet stable, if read failed, we think it is offline.
             # But client sometimes may be unstable, if read failed, we will assume it
             # go into offline.
-            self._u_backup_info[openfed_status] = offline if self.world.follower else zombie
+            self._u_backup_info[openfed_status] = offline if self.follower else zombie
             self.fresh_read = False
         finally:
             return self._u_backup_info[key] if key else self._u_backup_info
@@ -536,8 +440,8 @@ class Pipe(Attach, Package):
                 # don't forget () operation.
                 obj: Collector = Recorder(key, self)()
                 if obj is not None:
-                    if (self.world.leader and obj.leader_collector) or \
-                        (self.world.follower and obj.follower_collector):
+                    if (self.leader and obj.leader_collector) or \
+                        (self.follower and obj.follower_collector):
                         if not obj.once_only or not obj.collected:
                             obj.load_message(value)
                             logger.debug(obj)
@@ -547,8 +451,8 @@ class Pipe(Attach, Package):
         """
         cdict = {}
         for k, f in self.hook_dict.items():
-            if self.world.leader and f.leader_scatter or\
-                    self.world.follower and f.follower_scatter:
+            if self.leader and f.leader_scatter or\
+                    self.follower and f.follower_scatter:
                 if not f.once_only or not f.scattered:
                     cdict[k] = f()
         self._update(cdict)
@@ -642,8 +546,7 @@ class Pipe(Attach, Package):
         """
         return {self.key_tensor(k): v for k, v in self.packages.items()}
 
-    def pull(self, 
-        auto_load_param: bool = True) -> Union[Dict[str, Dict[str, Tensor]], Tuple[Work, Callable]]:
+    def pull(self, auto_load_param: bool = True) -> None:
         """Pull data from the other end. 
         After received data, Follower will load `param` to Tensor by an in-place operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
@@ -653,45 +556,41 @@ class Pipe(Attach, Package):
 
         received = [None for _ in range(self.country.get_world_size())]
 
-        rank       = leader_rank if self.world.leader else follower_rank
-        other_rank = follower_rank if self.world.leader else leader_rank
+        rank       = leader_rank if self.leader else follower_rank
+        other_rank = follower_rank if self.leader else leader_rank
 
         rank       = self.country._get_global_rank(self.pg, rank) if self.country.get_world_size() > 2 else rank
         other_rank = self.country._get_global_rank(self.pg, other_rank) if self.country.get_world_size() > 2 else other_rank
 
-        def _op_after_gather(*args):
-            r_packages = [r for r in received if r is not None][0]
-            assert r_packages is not None
-
-            # NOTE: decrypt data in the reverse order.
-            for hook in self.hook_list[::-1]:
-                r_packages = {k: hook.decrypt(self.key_tensor(k), v)
-                              for k, v in r_packages.items()}
-
-            # Follower will load `param` to Tensor by an in-place operation.
-            if auto_load_param and self.world.follower:
-                for k, v in r_packages.items():
-                    if 'param' in v:
-                        self.key_tensor_bidict[k].data.copy_(v['param'])
-            self.packages.update(r_packages)
-            return r_packages
-
-        returns = gather_object(
+        gather_object(
             None,
             received,
-            dst      = rank,
-            group    = self.pg,
-            country  = self.country)
+            dst     = rank,
+            group   = self.pg,
+            country = self.country)
 
-        return _op_after_gather()
+        r_packages = [r for r in received if r is not None][0]
+        assert r_packages is not None
 
-    def push(self) -> Union[Tuple[Work, Callable], Any]:
+        # NOTE: decrypt data in the reverse order.
+        for hook in self.hook_list[::-1]:
+            r_packages = {k: hook.decrypt(self.key_tensor(k), v)
+                            for k, v in r_packages.items()}
+
+        # Follower will load `param` to Tensor by an in-place operation.
+        if auto_load_param and self.follower:
+            for k, v in r_packages.items():
+                if 'param' in v:
+                    self.key_tensor_bidict[k].data.copy_(v['param'])
+        self.packages.update(r_packages)
+
+    def push(self) -> None:
         """Push data to the other end.
         """
         assert self.country._get_group_size(
             self.pg) == 2, "Pipe is only designed for group with size 2"
 
-        rank = follower_rank if self.world.leader else leader_rank
+        rank = follower_rank if self.leader else leader_rank
         rank = self.country._get_global_rank(self.pg, rank) if self.country.get_world_size() > 2 else rank
 
         # encrypt data
@@ -700,12 +599,12 @@ class Pipe(Attach, Package):
             packages = {k: hook.encrypt(self.key_tensor(k), v)
                         for k, v in packages.items()}
 
-        return gather_object(
+        gather_object(
             packages,
             None,
-            dst      = rank,
-            group    = self.pg,
-            country  = self.country)
+            dst     = rank,
+            group   = self.pg,
+            country = self.country)
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(
@@ -756,7 +655,7 @@ class Destroy(object):
             cls.destroy_delivery(pipe)
 
 
-class Joint(Thread):
+class Joint(Thread, EasyRole):
     """A thread to build connection among specified ends.
     """
 
@@ -774,13 +673,14 @@ class Joint(Thread):
             raise InvalidAddress(
                 "Use `init_method=file:///tmp/openfed.sharefile` instead when `world_size > 10`.")
 
-        self.address       = address
+        self.address = address
+        self.world   = world
+
         self.build_success = False
-        self.world         = world
 
         self.start()
 
-        if self.world.follower:
+        if self.follower:
             self.join()
 
     def run(self):
@@ -805,12 +705,12 @@ class Joint(Thread):
         for sub_pg in sub_pg_list:
             # Pipe will automatically register to the corresponding world dictionary.
             Pipe(
-                store   = country.get_store(sub_pg),
-                pg      = sub_pg,
+                store = country.get_store(sub_pg),
+                pg    = sub_pg,
                 country = country)
         self.build_success = True
 
-class Maintainer(Thread):
+class Maintainer(Thread, EasyRole):
     """
     Dynamic build the connection.
     """
@@ -835,11 +735,11 @@ class Maintainer(Thread):
     stopped: bool
 
     def __init__(self,
-                 world           : World,
-                 address         : Address = None,
-                 address_file    : str      = None,
-                 mtt   : int      = 5,
-                 interval_seconds: float    = 10) -> None: 
+                 world  : World,
+                 address: Address = None,
+                 address_file : str = None,
+                 mtt          : int = 5,
+                 interval_seconds: float = 10) -> None: 
         """
             Only a single valid address is allowed in client.
         """
@@ -849,10 +749,9 @@ class Maintainer(Thread):
         self.finished_queue  = dict()
         self.discard_queue   = dict()
         self.abnormal_exited = False
-
-        self.mtt    = mtt
         self.interval_seconds = interval_seconds
 
+        self.mtt = mtt
         add_mt_lock(self)
 
         self.world = world
@@ -864,7 +763,7 @@ class Maintainer(Thread):
 
         self.stopped = False
 
-        if self.world.leader:
+        if self.leader:
             self.start()
             if not self.world.dal:
                 self.join()
@@ -953,10 +852,10 @@ class Maintainer(Thread):
         self.stopped = True
 
     def manual_joint(self, address: Address) -> None:
-        if not self.world.dal and self.world.leader:
+        if not self.world.dal and self.leader:
             raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
 
-        if self.world.leader:
+        if self.leader:
             with self.pending_queue:
                 self.pending_queue[address] = (time.time(), 0)
         else:

@@ -30,7 +30,7 @@ from torch import Tensor
 
 from openfed.common import (Address, Attach, DeviceOffline, TaskInfo,
                             default_tcp_address, logger, peeper)
-from openfed.core import Pipe, Destroy, Maintainer, World, openfed_lock
+from openfed.core import Pipe, Destroy, Maintainer, World, openfed_lock, EasyRole
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,
@@ -60,7 +60,7 @@ def device_offline_care(func):
     return _device_offline_care
 
 
-class API(Thread, Attach):
+class API(Thread, Attach, EasyRole):
     """Provide a unified api for leader and role.
     """
 
@@ -275,12 +275,6 @@ class API(Thread, Attach):
                     if pipe.is_offline:
                         [step(after_destroy, Destroy.destroy_delivery(pipe)) if step(
                             before_destroy) else step(at_failed)]
-                    elif pipe.upload_hang_up:
-                        step(after_upload,
-                             pipe.deal_with_hang_up())
-                    elif pipe.download_hang_up:
-                        step(after_download,
-                             pipe.deal_with_hang_up())
                     elif pipe.is_zombie:
                         step(at_zombie)
                     elif pipe.is_pushing:
@@ -323,18 +317,6 @@ class API(Thread, Attach):
 
     def manual_stop(self):
         self.stopped = True
-
-    @property
-    def role(self) -> str:
-        return self.world.role
-
-    @property
-    def leader(self) -> bool:
-        return self.world.leader
-
-    @property
-    def follower(self) -> bool:
-        return self.world.follower
 
     @property
     def tensor_indexed_packages(self) -> Any:

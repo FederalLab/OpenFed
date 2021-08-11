@@ -154,6 +154,19 @@ class World():
             )
         )
 
+class EasyRole(object):
+    world: World
+    @property
+    def leader(self) -> bool:
+        return self.world.leader
+    
+    @property
+    def follower(self) -> bool:
+        return self.world.follower
+    
+    @property
+    def role(self) -> str:
+        return self.world.role
 
 class Country(object):
     """Warper all variables as a privacy namespace.
