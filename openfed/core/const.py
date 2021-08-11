@@ -22,7 +22,6 @@
 
 
 from datetime import timedelta
-from enum import Enum, unique
 
 # communication timeout
 DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
