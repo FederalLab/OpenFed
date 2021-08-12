@@ -1,4 +1,4 @@
-# OpenFed
+# OpenFed: An Open-Source AI Safety and Security Guaranteed Deep Learning Framework
 
 ## Features
 
