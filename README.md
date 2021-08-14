@@ -1,8 +1,8 @@
-# OpenFed: An Open-Source AI Safety and Security Guaranteed Deep Learning Framework
-
 <div align=center>
 <img src="docs/logo-long.png" width="432" height="183" />
 </div>
+
+# OpenFed: An Open-Source AI Safety and Security Guaranteed Deep Learning Framework
 
 ## Features
 
