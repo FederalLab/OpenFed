@@ -25,13 +25,29 @@ class OpenFed(object):
         rank: int = -1,
         role: str = leader,
         address_file: str = '',
-        fed_optim_cfg: Dict[str, Any] = dict(type='fedavg', lr=1.0),
-        hook_cfg_list: List[Dict[str, Any]] = [],
+        fed_optim_cfg: Dict[str, Any] = dict(),
+        hook_cfg_list: List[Dict[str, Any]] = []
     ):
         super().__init__()
         if rank != 0:
             # It is not necessary to build openfed core if rank > 0
             return
+
+        if len(hook_cfg_list) == 0:
+            hook_cfg_list = [
+                dict(
+                    type        = 'Aggregate',
+                    count       = dict(train=-1),
+                    checkpoint  = None,
+                    max_version = -1,
+                )
+            ]
+        
+        if len(fed_optim_cfg) == 0:
+            fed_optim_cfg = dict(
+                type = 'fedavg',
+                lr   = 1.0,
+            )
 
         # Build fed optimizer
         if is_follower(role):
