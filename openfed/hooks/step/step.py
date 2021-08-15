@@ -22,20 +22,20 @@
 
 from ..hooks import Hooks
 
-after_destroy = 'AFTER_DESTROY'
-after_download = 'AFTER_DOWNLOAD'
-after_upload = 'AFTER_UPLOAD'
+after_destroy = 'after_destroy'
+after_download = 'after_download'
+after_upload = 'after_upload'
 
-at_first = "AT_FIRST"
-at_failed = 'AT_FAILED'
-at_invalid_state = 'AT_INVALID_STATE'
-at_last = 'AT_LAST'
-at_new_episode = 'AT_NEW_EPISODE'
-at_zombie = 'AT_ZOMBIE'
+at_first = "at_first"
+at_failed = 'at_failed'
+at_invalid_state = 'at_invalid_state'
+at_last = 'at_last'
+at_new_episode = 'at_new_episode'
+at_zombie = 'at_zombie'
 
-before_destroy = 'BEFORE_DESTROY'
-before_download = 'BEFORE_DOWNLOAD'
-before_upload = 'BEFORE_UPLOAD'
+before_destroy = 'before_destroy'
+before_download = 'before_download'
+before_upload = 'before_upload'
 
 
 class Step(Hooks):
