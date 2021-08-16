@@ -95,7 +95,7 @@ class PowerLawPartitioner(Partitioner):
 
 
 class DirichletPartitioner(Partitioner):
-    _MAX_LOOP = 1000
+    _MAX_LOOP = 10000
 
     def __init__(self, alpha: float = 100, min_samples: int = 10):
         """

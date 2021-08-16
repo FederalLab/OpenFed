@@ -44,7 +44,8 @@ class Aggregate(Step):
                  period: timedelta = timedelta(hours=24),
                  checkpoint: str = None,
                  max_loop_times: int = -1,
-                 max_version: int = -1):
+                 max_version: int = -1,
+                 **kwargs):
         """
         Args: 
             count: The circle times to do the aggregation operation.
@@ -70,6 +71,8 @@ class Aggregate(Step):
 
         self.max_loop_times = max_loop_times
         self.max_version = max_version
+
+        self.kwargs = kwargs
 
     def before_upload(self, leader, *args, **kwargs) -> bool:
         """Rewrite the before upload method. 
@@ -108,6 +111,10 @@ class Aggregate(Step):
                 # Unpack state from agg
                 aggregator.unpack_state(fed_optim)
 
+            # Clip grad norm if necessary
+            if 'clip_grad_norm' in self.kwargs:
+                torch.nn.utils.clip_grad_norm_(
+                    leader.state_dict.values(), self.kwargs['clip_grad_norm'])
             # Update models
             fed_optim.step()
             fed_optim.round()
@@ -123,6 +130,10 @@ class Aggregate(Step):
         # Clear the received_numbers flag
         leader.received_numbers = 0
 
+        # Step lr at each round
+        if "lr_scheduler" in self.kwargs:
+            self.kwargs["lr_scheduler"].step()
+
         if self.checkpoint:
             path = f"{self.checkpoint}.{leader.version}"
             torch.save(leader.state_dict, path)
@@ -131,6 +142,9 @@ class Aggregate(Step):
     @property
     def stage_name(self):
         return list(self.activated_parts.keys())[self.idx]
+    
+    def reset(self):
+        pass
 
     def _process_bar(self):
         description = self.stage_name
@@ -161,6 +175,7 @@ class Aggregate(Step):
                 leader.version += 1
                 self._bar_round += 1
             self.process_bar = self._process_bar()
+            self.reset()
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             self.aggregate(leader, *args, **kwargs)

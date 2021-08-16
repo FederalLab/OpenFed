@@ -48,7 +48,8 @@ class Dispatch(Aggregate):
                  period: timedelta = timedelta(hours=24),
                  checkpoint: str = None,
                  max_loop_times: int = -1,
-                 max_version: int = -1
+                 max_version: int = -1,
+                 **kwargs
                  ):
         """
         Args:
@@ -63,7 +64,7 @@ class Dispatch(Aggregate):
                 raise KeyError(f"parts_list must contain {k}")
 
         super().__init__(
-            activated_parts, period, checkpoint, max_loop_times, max_version)
+            activated_parts, period, checkpoint, max_loop_times, max_version, **kwargs)
 
         self.parts_list = parts_list
 
@@ -98,8 +99,6 @@ class Dispatch(Aggregate):
 
             # All finished
             if len(self.running_queue) == 0 and len(self.pending_queue) == 0:
-                # Reset
-                self.reset()
                 logger.info(f"Start a new round.")
             else:
                 logger.debug(self)

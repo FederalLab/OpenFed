@@ -39,7 +39,7 @@ class FederatedDataset(Dataset):
     total_parts: int = 1
 
     def set_part_id(self, part_id):
-        assert 0 <= part_id <= self.total_parts
+        assert 0 <= part_id < self.total_parts, f"part_id({part_id}) out of range [0, {self.total_parts}])"
         self.part_id = part_id
 
     @property
