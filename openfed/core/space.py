@@ -221,7 +221,7 @@ class Country(object):
         # doesn't work well with 'get'. Ideally the store implementations should
         # be fixed, but for backward compatibility reasons it is risky to change
         # the store implementations. Once, we completely migrate away from these
-        # legacy stores, we can use 'get' here instead.
+        # stack stores, we can use 'get' here instead.
         worker_count = store.add(store_key, 0)
         start = time.time()
         log_time = time.time()

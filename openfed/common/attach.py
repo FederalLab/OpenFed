@@ -58,12 +58,30 @@ class Attach(object):
             func = args[0]
             if func in self.hook_list:
                 raise RuntimeError(f"{func} is already registered.")
-            self._hook_list.append(func)
+
+            index = -1
+            for i, hook in enumerate(self.hook_list):
+                if func.nice < hook.nice:
+                    index = i
+                    break
+            if index == -1:
+                self._hook_list.append(func)
+            else:
+                self._hook_list.insert(index, func)
         elif len(args) == 2:
             key, func = args
             if key in self.hook_dict:
                 raise RuntimeError(f"{key} already registered.")
-            self.hook_dict[key] = func
+            new_hook_dict = OrderedDict()
+            not_set = True
+            for k, v in self.hook_dict.items():
+                if func.nice < v.nice and not_set:
+                    new_hook_dict[key] = func
+                    not_set = False
+                new_hook_dict[k] = v
+            if not_set:
+                new_hook_dict[key] = func
+            self._hook_dict = new_hook_dict
         else:
             raise RuntimeError("Too many parameters.")
 

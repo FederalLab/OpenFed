@@ -36,7 +36,7 @@ class AverageOp(AggOp):
     def __init__(self,
                  params,
                  other_keys: List[str] = None,
-                 legacy: bool = False):
+                 stack: bool = False):
         """
         Args:
             other_keys: The keys you want to track, like `momentum_buffer`, `exp_avg`, `exp_avg_sq`.
@@ -47,7 +47,7 @@ class AverageOp(AggOp):
 
         defaults = dict(
             pipe_keys=pipe_keys,
-            legacy=legacy,
+            stack=stack,
         )
         super().__init__(params, defaults)
 

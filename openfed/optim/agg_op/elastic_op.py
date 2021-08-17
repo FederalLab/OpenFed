@@ -39,7 +39,7 @@ class ElasticOp(AggOp):
     def __init__(self,
                  params,
                  quantile: float = 0.5,
-                 legacy: bool = False,
+                 stack: bool = False,
                  other_keys: List[str] = None):
         """
         Args:
@@ -59,7 +59,7 @@ class ElasticOp(AggOp):
             quantile=quantile,
             info_keys=info_keys,
             pipe_keys=pipe_keys,
-            legacy=legacy
+            stack=stack
         )
         super().__init__(params, defaults)
 

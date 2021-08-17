@@ -75,7 +75,7 @@ class AggOp(Package):
                 information about each client.
             pipe_keys: The keys need to be returned in the `received_params`. 
                 It is used to calculate the inner state of fed_optim, such as `scaffold`.
-            legacy: If `True`, stack received data into buffer directly. 
+            stack: If `True`, stack received data into buffer directly. 
                 If `False`, merge received data into buffer. The latter one only take
                 const memory cost, but the formmer one will cost a O(n) memory cost.
                 However, the merge way will discard the accurate value of each received model,
@@ -84,7 +84,7 @@ class AggOp(Package):
         # add info_keys to defaults
         defaults['info_keys'] = defaults.get('info_keys', [])
         defaults['pipe_keys'] = defaults.get('pipe_keys', [])
-        defaults['legacy'] = defaults.get('legacy', False)
+        defaults['stack'] = defaults.get('stack', False)
 
         self.defaults = defaults
 
@@ -312,10 +312,10 @@ class AggOp(Package):
         """
         if not self.empty_state_cache:
             for group in self.param_groups:
-                legacy = group['legacy']
+                stack = group['stack']
                 for p in group["params"]:
                     [self._stack_aggregate(
-                        p, group) if legacy else self._merge_aggregate(p, group)]
+                        p, group) if stack else self._merge_aggregate(p, group)]
         if clear_buffer:
             self.clear_buffer()
 
@@ -338,7 +338,7 @@ class AggOp(Package):
 
                 for p in group["params"]:
                     if p in received_params:
-                        if group['legacy']:
+                        if group['stack']:
                             self.stack(
                                 p,
                                 received_params[p],

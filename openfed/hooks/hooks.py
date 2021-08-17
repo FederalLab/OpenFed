@@ -24,6 +24,10 @@
 from openfed.common import peeper
 
 class Hooks(object):
+    # nice is the order to call the hook.
+    # The hook list is like [nice_0, nice24, nice_50]
+    nice: int = 50
+
     def __init__(self):
         if peeper.api is not None: # type: ignore
             peeper.api.register_everything(self) # type: ignore

@@ -178,6 +178,8 @@ class API(Thread, Attach, EasyRole):
 
             # Pack related inner state of fed_optim.
             [self.pack_state(fed_optim) for fed_optim in self.fed_optim]
+            if self.leader:
+                [self.pack_state(agg) for agg in self.aggregator]
 
             # Upload data automatically.
             flag = self.pipe.upload(self.version)

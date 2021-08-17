@@ -34,7 +34,7 @@ from openfed.common import (Address, ArrayDict, Attach, ConnectTimeout,
                             InvalidStoreWriting, Package, TaskInfo,
                             load_address_from_file, logger, peeper)
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
-from openfed.hooks.cypher import Cypher, FormatChecker
+from openfed.hooks.cypher import Cypher, FormatChecker, DeviceAlign
 from openfed.utils import openfed_class_fmt, tablist, time_string
 from random_words import RandomWords
 from torch import Tensor
@@ -208,6 +208,7 @@ class Pipe(Attach, Package, EasyRole):
         # FormatChecker is a necessary cypher, which will move the tensor to 
         # CPU, and then convert back to corresponding GPU.
         self.register_cypher(FormatChecker())
+        self.register_cypher(DeviceAlign())
 
         # Register pipe to world and peeper dictionary
         self.world.register_delivery(self)

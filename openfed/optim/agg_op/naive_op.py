@@ -40,7 +40,7 @@ class NaiveOp(AggOp):
     def __init__(self,
                  params,
                  other_keys: List[str] = None,
-                 legacy: bool = False):
+                 stack: bool = False):
         other_keys = convert_to_list(other_keys) or []
         info_keys = ['instances']
         pipe_keys = list(
@@ -49,7 +49,7 @@ class NaiveOp(AggOp):
         defaults = dict(
             info_keys=info_keys,
             pipe_keys=pipe_keys,
-            legacy=legacy,
+            stack=stack,
         )
         super().__init__(params, defaults)
 

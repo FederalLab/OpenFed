@@ -36,6 +36,7 @@
         "isend",
         "itertools",
         "logdir",
+        "matmul",
         "mmcv",
         "nargs",
         "nccl",

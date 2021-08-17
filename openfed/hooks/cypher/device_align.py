@@ -28,19 +28,14 @@ from torch import Tensor
 from .cypher import Cypher
 
 
-class FormatChecker(Cypher):
-    """Format Check.
-    1. Convert `value` to {'param': value} if value is a Tensor.
+class DeviceAlign(Cypher):
+    """Device align
+        Align all other tensor in value to `param`'s device. 
     """
-    nice = 0 # the fist to call
+    nice = 99 # last to apply
 
     def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         assert isinstance(key, Tensor)
-        # Convert to dict
-        if isinstance(value, Tensor):
-            value = dict(param=value)
-        assert isinstance(value, dict)
-
         # Align device
         for k, v in value.items():
             value[k] = v.cpu()
@@ -48,11 +43,6 @@ class FormatChecker(Cypher):
 
     def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         assert isinstance(key, Tensor)
-        # Convert to dict
-        if isinstance(value, Tensor):
-            value = dict(param=value)
-        assert isinstance(value, dict)
-
         # Align device
         for k, v in value.items():
             value[k] = v.to(key.device)

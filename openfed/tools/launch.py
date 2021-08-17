@@ -200,7 +200,7 @@ def parse_args():
                         default = False,
                         action  = "store_true",
                         help    = "Use environment variable to pass "
-                             "'local rank'. For legacy reasons, the default value is False. "
+                             "'local rank'. For stack reasons, the default value is False. "
                              "If set to True, the script will not pass "
                              "--local_rank as argument, and will instead set LOCAL_RANK.")
     parser.add_argument("-m", "--module",  
