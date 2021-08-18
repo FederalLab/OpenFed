@@ -30,6 +30,7 @@ from openfed.common import logger, TaskInfo
 from tqdm import trange
 
 from .step import Step
+from openfed.utils import openfed_class_fmt, tablist
 
 
 class Aggregate(Step):
@@ -186,3 +187,10 @@ class Aggregate(Step):
         if (self.max_version != -1 and leader.version >= self.max_version) or\
                 (self.max_loop_times != -1 and leader.loop_times >= self.max_loop_times):
             leader.manual_stop()
+    
+    def __str__(self) -> str:
+        return openfed_class_fmt.format(
+            class_name="AggregateStep",
+            description=f"period: {self.period}, activated_parts: {self.activated_parts}, checkpoint: {self.checkpoint}\n"
+            f"max_loop_tiems: {self.max_loop_times}, max_version: {self.max_version}"
+        )
