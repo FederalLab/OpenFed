@@ -147,8 +147,8 @@ class API(Thread, Attach, EasyRole):
             # otherwise, it may interrupt the process and cause error before you go into loop()
             openfed_lock.acquire()
         self.maintainer = Maintainer(world,
-                                     address=address,
-                                     address_file=address_file)  # type: ignore
+                                     address=address, # type: ignore
+                                     address_file=address_file)  
 
         if self.follower:
             self.pipe = Pipe.default_delivery()
