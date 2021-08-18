@@ -84,7 +84,7 @@ class Aggregate(Step):
             # generate task_info
             task_info = TaskInfo(
                 version=leader.version,
-                mode="federated learning",
+                mode="train",
             )
             # set task_info
             leader.delivery_task_info.update(task_info)

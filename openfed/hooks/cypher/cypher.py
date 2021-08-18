@@ -19,7 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
- 
 
 from typing import Dict, Union
 
@@ -34,14 +33,15 @@ class Cypher(Hooks):
     You can store the inner operation in the returned dictionary directly, but not 
     specify then as self.xxx=yyy.
     """
-
-    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def encrypt(self, key: Union[str, Tensor],
+                value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package before transfer to the other end.
         """
         raise NotImplementedError(
             "You must implement the encrypt function for Cypher.")
 
-    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def decrypt(self, key: Union[str, Tensor],
+                value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """<key, value> pair in the package received from the other end.
         """
         raise NotImplementedError(

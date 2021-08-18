@@ -33,7 +33,8 @@ class SignGrad(Cypher):
     """
     epsilon = 0.001
 
-    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def encrypt(self, key: Union[str, Tensor],
+                value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         assert isinstance(key, Tensor)
 
         assert "param" in value, "SignGrad should be called after `FormatChecker`"
@@ -42,7 +43,8 @@ class SignGrad(Cypher):
 
         return value
 
-    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def decrypt(self, key: Union[str, Tensor],
+                value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         assert isinstance(key, Tensor)
         assert 'param' in value
 

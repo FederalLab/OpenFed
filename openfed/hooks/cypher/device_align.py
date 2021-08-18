@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 from typing import Dict, Union
 
 from torch import Tensor
@@ -32,16 +31,18 @@ class DeviceAlign(Cypher):
     """Device align
         Align all other tensor in value to `param`'s device. 
     """
-    nice = 99 # last to apply
+    nice = 99  # last to apply
 
-    def encrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def encrypt(self, key: Union[str, Tensor],
+                value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         assert isinstance(key, Tensor)
         # Align device
         for k, v in value.items():
             value[k] = v.cpu()
         return value
 
-    def decrypt(self, key: Union[str, Tensor], value: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def decrypt(self, key: Union[str, Tensor],
+                value: Dict[str, Tensor]) -> Dict[str, Tensor]:
         assert isinstance(key, Tensor)
         # Align device
         for k, v in value.items():

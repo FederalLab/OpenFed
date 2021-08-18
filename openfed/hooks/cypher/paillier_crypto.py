@@ -7,12 +7,14 @@ from torch import Tensor
 from .cypher import Cypher
 from openfed.utils import openfed_class_fmt
 
+
 class PublicKey(object):
     def __init__(self, A, P, n_lwe, bits, l, bound):
         self.A = A
         self.P = P
         self.n_lwe = n_lwe
         self.bits = bits
+        self.bits_safe = bits - 8
         self.l = l
         self.bound = bound
 
@@ -21,14 +23,18 @@ class PublicKey(object):
 
     def __repr__(self):
         return openfed_class_fmt.format(
-            class_name="PublicKey", 
-            description=f'n_lwe: {self.n_lwe}, bits: {self.bits}, l: {self.l}, bound: {self.bound}, p: {self.p}, q: {self.q}')
+            class_name="PublicKey",
+            description=
+            f'n_lwe: {self.n_lwe}, bits: {self.bits}, bits_safe: {self.bits_safe}, '
+            f'l: {self.l}, bound: {self.bound}, p: {self.p}, q: {self.q}')
+
 
 class PrivateKey(object):
     def __init__(self, S, n_lwe, bits, l, bound):
         self.S = S
         self.n_lwe = n_lwe
         self.bits = bits
+        self.bits_safe = bits - 8
         self.l = l
         self.bound = bound
 
@@ -37,8 +43,10 @@ class PrivateKey(object):
 
     def __repr__(self):
         return openfed_class_fmt.format(
-            class_name="PrivateKey", 
-            description=f'n_lwe: {self.n_lwe}, bits: {self.bits}, l: {self.l}, bound: {self.bound}, p: {self.p}, q: {self.q}')
+            class_name="PrivateKey",
+            description=
+            f'n_lwe: {self.n_lwe}, bits: {self.bits}, bits_safe: {self.bits_safe}, '
+            f'l: {self.l}, bound: {self.bound}, p: {self.p}, q: {self.q}')
 
 
 class Ciphertext(object):
@@ -91,27 +99,33 @@ def enc(public_key: PublicKey, m) -> Ciphertext:
     A = public_key.A.to(m)
     P = public_key.P.to(m)
 
-    if m.size(0) < public_key.l:
-        m = torch.cat((m, torch.zeros(public_key.l - m.size(0)).type_as(m)), 0)
+    if len(m) % public_key.l != 0:
+        m = torch.cat(
+            (m, torch.zeros(public_key.l - len(m) % public_key.l).type_as(m)),
+            0)
+
+    m = m.reshape(-1, public_key.l)
 
     c1 = torch.matmul(e1, A) + public_key.p * e2
-    c2 = torch.matmul(e1, P) + public_key.p * e3 + m
+    c2 = torch.matmul(e1, P) + public_key.p * e3
+    c2 = c2.unsqueeze(dim=0) + m
 
     return Ciphertext(c1, c2)
 
 
 def dec(private_key, c) -> Tensor:
     S = private_key.S.to(c.c1)
-    return (torch.matmul(c.c1, S) + c.c2) % private_key.p
+    return (torch.matmul(c.c1, S).unsqueeze(0) +
+            c.c2).reshape(-1) % private_key.p
 
 
 def float_to_long(public_key: PublicKey, tensor):
-    return ((tensor + public_key.bound) * 2**public_key.bits).long()
+    return ((tensor + public_key.bound) * 2**(public_key.bits_safe)).long()
 
 
 def long_to_float(private_key: PrivateKey, tensor, denominator):
     return tensor.float() / (
-        2**private_key.bits) / denominator - private_key.bound
+        2**private_key.bits_safe) / denominator - private_key.bound
 
 
 class PaillierCrypto(Cypher):
@@ -123,6 +137,7 @@ class PaillierCrypto(Cypher):
         Args: 
             public_key: PublicKey or the path to load it.
         """
+        super().__init__()
         if isinstance(public_key, str):
             public_key = torch.load(public_key)
         self.public_key: PublicKey = public_key  # type: ignore
@@ -152,14 +167,11 @@ if __name__ == "__main__":
     public_key, private_key = key_gen(l=l)
     print("KeyGen Time: %.6f bits" % (time.time() - st))
 
-    m1 = []
-    m2 = []
-    for i in range(l):
-        m1.append(i * i)
-        m2.append(i)
+    _m1 = torch.randn(l)
+    _m2 = torch.randn(l)
 
-    m1 = torch.tensor(m1).long()
-    m2 = torch.tensor(m2).long()
+    m1 = float_to_long(public_key, _m1)
+    m2 = float_to_long(public_key, _m2)
 
     st = time.time()
     c1 = enc(public_key, m1)
@@ -173,4 +185,11 @@ if __name__ == "__main__":
     st = time.time()
     m = dec(private_key, c)
     print("Decrypt Time: %.6f ms/op" % ((time.time() - st) * 1000 / l))
-    print(m)
+
+    acc = torch.mean(torch.eq(m, m1 + m2).float())
+    print('Accuracy: %.2f%%' % (acc * 100))
+
+    m = long_to_float(private_key, m, 2)
+
+    acc = torch.mean((torch.abs(m - (_m1 + _m2) / 2) < 1e-5).float())
+    print('Accuracy: %.2f%%' % (acc * 100))

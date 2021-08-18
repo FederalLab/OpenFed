@@ -70,14 +70,17 @@ class PaillierOp(AggOp):
         # If will be more flexible if you want to do anything else.
         state['received_params'].append(r_p)
 
-    def _decode(self, state: Dict[str, Tensor], steps: int):
+    def _decode(self, p, state: Dict[str, Tensor], steps: int):
         keys = [k[:-3] for k in state.keys() if k.endswith("_c1")]
         for k in keys:
             c = Ciphertext(state[f'{k}_c1'], state[f'{k}_c2'])
             del state[f"{k}_c1"]
             del state[f"{k}_c2"]
             v = dec(self.private_key, c)
-            state[k] = long_to_float(self.private_key, v, steps)
+            raw_data = long_to_float(self.private_key, v, steps)
+            # recover shape
+            data = raw_data[:p.numel()].reshape_as(p)
+            state[k] = data
         return state
 
     def _stack_aggregate(self, p: Tensor, group: Dict):
@@ -91,12 +94,11 @@ class PaillierOp(AggOp):
         pipe_keys = group['pipe_keys']
         aggregate_state = dict()
 
-        for key in pipe_keys:
-            if key in state['received_params'][0]:
-                r_p = aggregate(state["received_params"], key)
-                aggregate_state[key] = r_p
+        for key in state['received_params'][0].keys():
+            r_p = aggregate(state["received_params"], key)
+            aggregate_state[key] = r_p
 
-        decode_state = self._decode(
+        decode_state = self._decode(p,
             aggregate_state, len(state['received_params']))
 
         for key in decode_state.keys():

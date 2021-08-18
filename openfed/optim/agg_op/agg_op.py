@@ -316,6 +316,8 @@ class AggOp(Package):
                 for p in group["params"]:
                     [self._stack_aggregate(
                         p, group) if stack else self._merge_aggregate(p, group)]
+        else:
+            warnings.warn("Do not cache any valid parameters for aggregating op!")
         if clear_buffer:
             self.clear_buffer()
 
