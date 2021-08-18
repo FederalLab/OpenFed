@@ -19,8 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-
 r"""
 `openfed.tools.helper` is a module that assists you better manage federated address file.
 
@@ -171,7 +169,7 @@ class Helper(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
-        self.config_file  = None
+        self.config_file = None
         self.address_list = []
 
     # Config file manage
@@ -203,14 +201,14 @@ class Helper(cmd.Cmd):
         """Cd other directory.
         """
         args = self.parseline(args)
-        os.chdir(args[1]) # type: ignore
+        os.chdir(args[1])  # type: ignore
 
     def do_exit(self, args):
         """Write file and exit.
         """
         if self.config_file is not None:
             self.do_save()
-            self.config_file  = None
+            self.config_file = None
             self.address_list = []
         else:
             exit(0)
@@ -247,25 +245,24 @@ class Helper(cmd.Cmd):
     def do_add(self, args):
         """Add a new address to json file.
         """
-        backend     = input("Backend (gloo, mpi, nccl): ")
+        backend = input("Backend (gloo, mpi, nccl): ")
         init_method = input(
             "Init method (tcp://IP:PORT, file://PATH_TO_FILE, env://): ")
         if not init_method.startswith("env://"):
             group_name = input("Group name: ")
             world_size = int(input("World size: "))
-            rank       = int(input("Rank: "))
+            rank = int(input("Rank: "))
         else:
             group_name = ''
             world_size = 0
-            rank       = -1
+            rank = -1
 
         try:
-            address = Address(
-                backend     = backend,
-                group_name  = group_name,
-                init_method = init_method,
-                world_size  = world_size,
-                rank        = rank)
+            address = Address(backend=backend,
+                              group_name=group_name,
+                              init_method=init_method,
+                              world_size=world_size,
+                              rank=rank)
         except InvalidAddress as e:
             print(e)
             return

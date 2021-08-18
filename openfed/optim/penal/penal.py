@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 from typing import List
 
 import torch
@@ -58,10 +57,10 @@ class Penalizer(Package):
         self.role = role
         # Torch optimizer has no pack and unpack attributes,
         # So, we left this pack_key and unpack_key to compatible
-        # with the torch optimizer. 
+        # with the torch optimizer.
         self.add_pack_key(pack_set or [])
         self.add_unpack_key(unpack_set or [])
-        
+
         self.max_acg_step = max_acg_step
 
     @property
@@ -89,7 +88,8 @@ class Penalizer(Package):
     def step(self, closure=None):
         """Like `optimizer.step()`.
         """
-        return self._follower_step(closure) if self.follower else self._leader_step(closure)
+        return self._follower_step(
+            closure) if self.follower else self._leader_step(closure)
 
     def _follower_step(self, closure):
         """inner access only.
@@ -106,7 +106,8 @@ class Penalizer(Package):
     def round(self):
         """Called after each round is finished.
         """
-        return self._follower_round() if self.follower else self._leader_round()
+        return self._follower_round() if self.follower else self._leader_round(
+        )
 
     def _follower_round(self):
         """inner access only.
@@ -117,6 +118,7 @@ class Penalizer(Package):
         """inner access only.
         """
         ...
+
 
 class PenalizerList(Penalizer):
     """You can chain different penalizers in a PenalizerList.
@@ -134,7 +136,9 @@ class PenalizerList(Penalizer):
     def __init__(self, penalizer_list: List[Penalizer]):
         self.penalizer_list = penalizer_list
 
-        assert len(set([p.role for p in self.penalizer_list])) == 1, 'The chained penalizer must have the same role.'
+        assert len(set([
+            p.role for p in self.penalizer_list
+        ])) == 1, 'The chained penalizer must have the same role.'
 
         # Merge pack and unpack set for each penalizer.
         for p in self.penalizer_list:
@@ -144,7 +148,7 @@ class PenalizerList(Penalizer):
     @property
     def leader(self):
         return self.penalizer_list[0].leader
-    
+
     @property
     def follower(self):
         return self.penalizer_list[0].follower
@@ -176,11 +180,8 @@ class PenalizerList(Penalizer):
         for p in self.penalizer_list:
             self.dynamic_build_penalizer(p)
             p._follower_round()
-    
+
     def _leader_round(self):
         for p in self.penalizer_list:
             self.dynamic_build_penalizer(p)
             p._leader_round()
-
-
-

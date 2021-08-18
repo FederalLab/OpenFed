@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 # type: ignore[call-overload]
 import logging
 import threading
@@ -58,19 +57,20 @@ try:
 except ImportError as e:
     ProcessGroupNCCL = None
 
-
 peeper.world_dict = dict()
-# the pipe dictionary in world only to record the new pipe under 
+# the pipe dictionary in world only to record the new pipe under
 # corresponding world, but the pipe dict in peeper will record all
 # pipe in openfed.
-peeper.delivery_dict = ArrayDict() # type: ignore
+peeper.delivery_dict = ArrayDict()  # type: ignore
+
 
 class World():
-    def __init__(self, 
-                role    : str,
-                dal     : bool = True,
-                mtt     : int = 5,
-                ) -> None:
+    def __init__(
+        self,
+        role: str,
+        dal: bool = True,
+        mtt: int = 5,
+    ) -> None:
         """
         Args: 
             role: The role played in this world.
@@ -91,14 +91,14 @@ class World():
         """
         peeper.world_dict[self] = time_string()
         self.alive = True
-        self.role  = role
+        self.role = role
 
         self._delivery_dict = ArrayDict()  # [Pipe -> Create Time]
-        self.current_pg    = NULL_PG
+        self.current_pg = NULL_PG
 
         self.dal = dal
         self.mtt = mtt
-    
+
     def register_delivery(self, pipe):
         """Register a pipe to both world and peeper dictionary.
         """
@@ -110,7 +110,7 @@ class World():
         with peeper.delivery_dict:
             peeper.delivery_dict[pipe] = time_str
         logger.success(f'Capture a new Pipe: {pipe.nick_name}\n{self}')
-    
+
     def delete_delivery(self, pipe):
         """Delete the pipe from both world and peeper dictionary.
         """
@@ -149,29 +149,33 @@ class World():
             class_name="World",
             description=tablist(
                 head=['role', 'alive', 'dal', 'mtt', 'pipe'],
-                data=[self.role, self.alive, self.dal, self.mtt, len(self._delivery_dict)],
+                data=[
+                    self.role, self.alive, self.dal, self.mtt,
+                    len(self._delivery_dict)
+                ],
                 force_in_one_row=True,
-            )
-        )
+            ))
+
 
 class EasyRole(object):
     world: World
+
     @property
     def leader(self) -> bool:
         return self.world.leader
-    
+
     @property
     def follower(self) -> bool:
         return self.world.follower
-    
+
     @property
     def role(self) -> str:
         return self.world.role
 
+
 class Country(object):
     """Warper all variables as a privacy namespace.
     """
-
     def __init__(self, world: World) -> None:
         """
         Args:
@@ -203,17 +207,18 @@ class Country(object):
 
         self.STORE_BASED_BARRIER_PREFIX = "store_based_barrier_key"
 
-    def _store_based_barrier(self, rank: int, store: Store, timeout: timedelta):
+    def _store_based_barrier(self, rank: int, store: Store,
+                             timeout: timedelta):
         """
         Barrier based on store which is used for synchronizing processes after
         ``init_process_group`` or ``new_group``. Intended to be used only with
         those two methods and is not a generic alternative to ``barrier()``.
         """
-        store_key = "{}:{}".format(
-            self.STORE_BASED_BARRIER_PREFIX, self._group_count)
+        store_key = "{}:{}".format(self.STORE_BASED_BARRIER_PREFIX,
+                                   self._group_count)
         store.add(store_key, 1)
-        logging.info(
-            'Added key: {} to store for rank: {}'.format(store_key, rank))
+        logging.info('Added key: {} to store for rank: {}'.format(
+            store_key, rank))
 
         # Now wait for all workers to check in with the store.
         world_size = self.get_world_size()
@@ -230,18 +235,21 @@ class Country(object):
             worker_count = store.add(store_key, 0)
 
             # Print status periodically to keep track.
-            if timedelta(seconds=(time.time() - log_time)) > timedelta(seconds=10):
+            if timedelta(seconds=(time.time() -
+                                  log_time)) > timedelta(seconds=10):
                 logging.info(
                     "Waiting in store based barrier to initialize process group for "
-                    "rank: {}, key: {} (world_size={}, worker_count={}, timeout={})".format(
-                        rank, store_key, world_size, worker_count, timeout))
+                    "rank: {}, key: {} (world_size={}, worker_count={}, timeout={})"
+                    .format(rank, store_key, world_size, worker_count,
+                            timeout))
                 log_time = time.time()
 
             if timedelta(seconds=(time.time() - start)) > timeout:
                 raise RuntimeError(
                     "Timed out initializing process group in store based barrier on "
-                    "rank: {}, for key: {} (world_size={}, worker_count={}, timeout={})".format(
-                        rank, store_key, world_size, worker_count, timeout))
+                    "rank: {}, for key: {} (world_size={}, worker_count={}, timeout={})"
+                    .format(rank, store_key, world_size, worker_count,
+                            timeout))
 
     def _rank_not_in_group(self, group: ProcessGroup) -> bool:
         """
@@ -265,7 +273,8 @@ class Country(object):
             group_rank = self._pg_group_ranks[group][rank]
         except KeyError:
             raise RuntimeError(
-                f"The global rank {rank} is not part of the group {group}") from None
+                f"The global rank {rank} is not part of the group {group}"
+            ) from None
         return group_rank
 
     def _get_global_rank(self, group: ProcessGroup, group_rank: int) -> int:
@@ -301,11 +310,13 @@ class Country(object):
         """
         if not isinstance(p2p_op_list, list) or \
                 not all(isinstance(p2p_op, P2POp) for p2p_op in p2p_op_list):
-            raise RuntimeError("Invalid ``p2p_op_list``. Each op is expected to "
-                               "to be of type ``torch.distributed.P2POp``.")
+            raise RuntimeError(
+                "Invalid ``p2p_op_list``. Each op is expected to "
+                "to be of type ``torch.distributed.P2POp``.")
 
         backend = self.get_backend(p2p_op_list[0].group)
-        if not all(backend == self.get_backend(p2p_op.group) for p2p_op in p2p_op_list):
+        if not all(backend == self.get_backend(p2p_op.group)
+                   for p2p_op in p2p_op_list):
             raise RuntimeError("All groups need to use the same backend.")
 
     def is_initialized(self) -> bool:
@@ -319,8 +330,9 @@ class Country(object):
         Getting the default process group created by init_process_group
         """
         if not self.is_initialized():
-            raise RuntimeError("Default process group has not been initialized, "
-                               "please make sure to call init_process_group.")
+            raise RuntimeError(
+                "Default process group has not been initialized, "
+                "please make sure to call init_process_group.")
         return self.WORLD  # type: ignore
 
     def _get_default_store(self) -> Store:
@@ -328,8 +340,9 @@ class Country(object):
         Getting the default store created by init_process_group
         """
         if not self.is_initialized():
-            raise RuntimeError("Default process group has not been initialized, "
-                               "please make sure to call init_process_group.")
+            raise RuntimeError(
+                "Default process group has not been initialized, "
+                "please make sure to call init_process_group.")
         default_pg = self._get_default_group()
         _, default_store = self._pg_map[default_pg]
         return default_store  # type: ignore
@@ -382,14 +395,15 @@ class Country(object):
         assert pg_store is not None
         return pg_store[1]  # type: ignore
 
-    def init_process_group(self,
-                           backend    : Union[str, Backend],
-                           init_method: str = None,
-                           world_size : int = -1,
-                           rank       : int = -1,
-                           store      : Store = None,
-                           group_name : str = '',
-                           timeout    : timedelta = DEFAULT_PG_TIMEOUT) -> Callable         : 
+    def init_process_group(
+            self,
+            backend: Union[str, Backend],
+            init_method: str = None,
+            world_size: int = -1,
+            rank: int = -1,
+            store: Store = None,
+            group_name: str = '',
+            timeout: timedelta = DEFAULT_PG_TIMEOUT) -> Callable:
         """
         Initializes the default distributed process group, and this will also
         initialize the distributed package.
@@ -453,8 +467,9 @@ class Country(object):
                                "datetime.timedelta")
 
         if self.WORLD is not None:
-            raise RuntimeError("trying to initialize the default process group "
-                               "twice!")
+            raise RuntimeError(
+                "trying to initialize the default process group "
+                "twice!")
 
         assert (store is None) or (init_method is None), \
             "Cannot specify both init_method and store."
@@ -475,26 +490,26 @@ class Country(object):
                         "are ignored since they are assigned by the "
                         "MPI runtime.".format(world_size, rank))
 
-                self._update_default_pg(self._new_process_group_helper(
-                    -1,
-                    -1,
-                    [],
-                    Backend.MPI,
-                    None,
-                    group_name=group_name,
-                    timeout=timeout))
+                self._update_default_pg(
+                    self._new_process_group_helper(-1,
+                                                   -1, [],
+                                                   Backend.MPI,
+                                                   None,
+                                                   group_name=group_name,
+                                                   timeout=timeout))
             else:
-                self._update_default_pg(self._new_process_group_helper(
-                    world_size,
-                    rank,
-                    [],
-                    backend,
-                    store,
-                    group_name=group_name,
-                    timeout=timeout))
+                self._update_default_pg(
+                    self._new_process_group_helper(world_size,
+                                                   rank, [],
+                                                   backend,
+                                                   store,
+                                                   group_name=group_name,
+                                                   timeout=timeout))
 
             self._pg_group_ranks[self.WORLD] = {
-                i: i for i in range(self.WORLD.size())}  # type: ignore
+                i: i
+                for i in range(self.WORLD.size())
+            }  # type: ignore
             self._default_pg_init_method = init_method
 
             # barrier at the end to ensure that once we return from this method, all
@@ -512,13 +527,14 @@ class Country(object):
             callback(store, rank, world_size)
             return lambda: True
 
-        tmp_timeout = timedelta(
-            seconds=0.5) if rank == 1 else timedelta(minutes=30)
+        tmp_timeout = timedelta(seconds=0.5) if rank == 1 else timedelta(
+            minutes=30)
 
         def init_store(rank, world_size):
-            rendezvous_iterator = rendezvous(
-                init_method, rank, world_size, timeout=tmp_timeout
-            )
+            rendezvous_iterator = rendezvous(init_method,
+                                             rank,
+                                             world_size,
+                                             timeout=tmp_timeout)
             store, rank, world_size = next(rendezvous_iterator)
             store.set_timeout(timeout)
             return store, rank, world_size
@@ -534,14 +550,15 @@ class Country(object):
 
         return handler
 
-    def _new_process_group_helper(self,
-                                  world_size : int,
-                                  rank       : int,
-                                  group_ranks: int,
-                                  backend    : Union[str, Backend],
-                                  store      : Store,
-                                  group_name : str = None,
-                                  timeout    : timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup: 
+    def _new_process_group_helper(
+            self,
+            world_size: int,
+            rank: int,
+            group_ranks: int,
+            backend: Union[str, Backend],
+            store: Store,
+            group_name: str = None,
+            timeout: timedelta = DEFAULT_PG_TIMEOUT) -> ProcessGroup:
         """
         Create a new distributed process group.
 
@@ -596,11 +613,10 @@ class Country(object):
 
             if backend == Backend.GLOO:
                 acquire_all()
-                pg = ProcessGroupGloo(
-                    prefix_store,
-                    rank,
-                    world_size,
-                    timeout=timeout)
+                pg = ProcessGroupGloo(prefix_store,
+                                      rank,
+                                      world_size,
+                                      timeout=timeout)
                 release_all()
                 self._pg_map[pg] = (Backend.GLOO, prefix_store)
                 self._pg_names[pg] = group_name
@@ -609,21 +625,14 @@ class Country(object):
                     raise RuntimeError("Distributed package doesn't have NCCL "
                                        "built in")
                 acquire_all()
-                pg = ProcessGroupNCCL(
-                    prefix_store,
-                    rank,
-                    world_size,
-                    timeout)
+                pg = ProcessGroupNCCL(prefix_store, rank, world_size, timeout)
                 release_all()
                 self._pg_map[pg] = (Backend.NCCL, prefix_store)
                 self._pg_names[pg] = group_name
             else:
                 acquire_all()
-                pg = getattr(Backend, backend.upper())(
-                    prefix_store,
-                    rank,
-                    world_size,
-                    timeout)
+                pg = getattr(Backend, backend.upper())(prefix_store, rank,
+                                                       world_size, timeout)
                 release_all()
                 self._pg_map[pg] = (backend, prefix_store)
                 self._pg_names[pg] = group_name
@@ -723,22 +732,21 @@ class Country(object):
 
         return self._get_group_size(group)
 
-    def _validate_output_list_for_rank(self, my_rank: int, dst: int, gather_list: List[Any]) -> None:
+    def _validate_output_list_for_rank(self, my_rank: int, dst: int,
+                                       gather_list: List[Any]) -> None:
         if dst == my_rank:
             if not gather_list:
                 raise ValueError(
                     "Argument ``gather_list`` must be specified on destination rank."
                 )
         elif gather_list:
-            raise ValueError(
-                "Argument ``gather_list`` must NOT be specified "
-                "on non-destination ranks."
-            )
+            raise ValueError("Argument ``gather_list`` must NOT be specified "
+                             "on non-destination ranks.")
 
     def barrier(self,
-                group     : ProcessGroup = None,
-                async_op  : bool         = False,
-                device_ids: int          = None):
+                group: ProcessGroup = None,
+                async_op: bool = False,
+                device_ids: int = None):
         """
         Synchronizes all processes.
 
@@ -764,8 +772,10 @@ class Country(object):
         opts = BarrierOptions()
         if device_ids is not None:
             if self.get_backend(group) != Backend.NCCL:
-                raise RuntimeError("Function argument device_ids not supported "
-                                   "for the selected backend {}".format(self.get_backend(group)))
+                raise RuntimeError(
+                    "Function argument device_ids not supported "
+                    "for the selected backend {}".format(
+                        self.get_backend(group)))
             if isinstance(device_ids, list):
                 opts.device_ids = device_ids
             else:
@@ -784,10 +794,10 @@ class Country(object):
             work.wait()
 
     def new_group(self,
-                  ranks     : int                 = None,
-                  timeout   : timedelta           = DEFAULT_PG_TIMEOUT,
-                  backend   : Union[str, Backend] = None,
-                  group_name: str                 = None) -> ProcessGroup:
+                  ranks: int = None,
+                  timeout: timedelta = DEFAULT_PG_TIMEOUT,
+                  backend: Union[str, Backend] = None,
+                  group_name: str = None) -> ProcessGroup:
         """
         Creates a new distributed group.
 
@@ -839,14 +849,16 @@ class Country(object):
             ranks = sorted(ranks)
             group_world_size = len(ranks)
             if group_world_size > global_world_size:
-                raise RuntimeError("the new group's world size should be less or "
-                                   "equal to the world size set by "
-                                   "init_process_group")
+                raise RuntimeError(
+                    "the new group's world size should be less or "
+                    "equal to the world size set by "
+                    "init_process_group")
             # check ranks' sanity
             for rank in ranks:
                 if rank < 0 or rank >= global_world_size:
-                    raise RuntimeError("The new group's rank should be within the "
-                                       "the world_size set by init_process_group")
+                    raise RuntimeError(
+                        "The new group's rank should be within the "
+                        "the world_size set by init_process_group")
             if global_rank in ranks:
                 group_rank = ranks.index(global_rank)
             else:
@@ -857,13 +869,15 @@ class Country(object):
             group_rank = global_rank
 
         backend = Backend(backend)
-        pg = self._new_process_group_helper(group_world_size,
-                                            group_rank,
-                                            ranks,
-                                            backend,
-                                            default_store,
-                                            timeout=timeout,
-                                            group_name=group_name, )
+        pg = self._new_process_group_helper(
+            group_world_size,
+            group_rank,
+            ranks,
+            backend,
+            default_store,
+            timeout=timeout,
+            group_name=group_name,
+        )
 
         # Create the global rank to group rank mapping
         self._pg_group_ranks[pg] = {
@@ -884,10 +898,11 @@ class Country(object):
 
         return pg
 
-    def build_point2point_group(self,
-                                rank   : int                 = 0,
-                                timeout: timedelta           = DEFAULT_PG_TIMEOUT,
-                                backend: Union[str, Backend] = None) -> List[ProcessGroup]:
+    def build_point2point_group(
+            self,
+            rank: int = 0,
+            timeout: timedelta = DEFAULT_PG_TIMEOUT,
+            backend: Union[str, Backend] = None) -> List[ProcessGroup]:
         """Build point2point group, :param:rank will be regarded as new rank=leader_rank and connect to other rank in this world.
 
         .. note::
@@ -909,7 +924,8 @@ class Country(object):
                     ranks=ranks,
                     timeout=timeout,
                     backend=backend,
-                    group_name=f"point2point-{rank}-{other}", )
+                    group_name=f"point2point-{rank}-{other}",
+                )
                 # backup
                 if pg is not self.NON_GROUP_MEMBER:
                     self._point2point_groups[pg] = self._pg_map[pg]
@@ -917,10 +933,8 @@ class Country(object):
         return pg_list
 
     def __str__(self) -> str:
-        return openfed_class_fmt.format(
-            class_name="Country",
-            description=f"Belongs to {self.world}"
-        )
+        return openfed_class_fmt.format(class_name="Country",
+                                        description=f"Belongs to {self.world}")
 
 
 peeper.mt_locks = dict()

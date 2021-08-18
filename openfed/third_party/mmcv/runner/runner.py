@@ -4,6 +4,7 @@ from typing import Any
 
 from .builder import build_openfed
 
+
 def openfed_runner(model,
                    batch_processor=None,
                    optimizer=None,
@@ -15,29 +16,25 @@ def openfed_runner(model,
                    runner_cfg=None,
                    openfed_cfg=None):
     # Build Runner
-    runner = build_runner(
-        runner_cfg,
-        default_args=dict(
-            model=model,
-            batch_processor=batch_processor,
-            optimizer=optimizer,
-            work_dir=work_dir,
-            logger=logger,
-            meta=meta,
-            max_iters=max_iters,
-            max_epochs=max_epochs,
-        )
-    )
+    runner = build_runner(runner_cfg,
+                          default_args=dict(
+                              model=model,
+                              batch_processor=batch_processor,
+                              optimizer=optimizer,
+                              work_dir=work_dir,
+                              logger=logger,
+                              meta=meta,
+                              max_iters=max_iters,
+                              max_epochs=max_epochs,
+                          ))
 
     # Build OpenFed on rank 0 only.
-    openfed = build_openfed(
-        openfed_cfg,
-        default_args=dict(
-            model=model,
-            optimizer=optimizer,
-            rank=runner.rank,
-        )
-    )
+    openfed = build_openfed(openfed_cfg,
+                            default_args=dict(
+                                model=model,
+                                optimizer=optimizer,
+                                rank=runner.rank,
+                            ))
 
     if openfed.openfed_api.leader:
         # if leader, go to backthread
@@ -64,16 +61,16 @@ def openfed_runner(model,
                 func_a(self, to=True)  # upload a model
 
             return output
+
         return _train
 
     TypeA = type(openfed)
     TypeB = type(runner)
     openfed_runner = glue(
-        openfed, runner,
+        openfed,
+        runner,
         extra_func=dict(
-            train=train(
-                getattr(TypeA, 'train'),
-                getattr(TypeB, 'train'))))
+            train=train(getattr(TypeA, 'train'), getattr(TypeB, 'train'))))
 
     return openfed_runner
 

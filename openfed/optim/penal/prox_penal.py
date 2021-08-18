@@ -20,18 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 from typing import List
 
 import torch
 
 from .penal import Penalizer
 
+
 class ProxPenalizer(Penalizer):
     """https://arxiv.org/pdf/1812.06127.pdf
     """
-
-    def __init__(self, role: str, mu: float = 0.9, pack_set: List[str] = None, unpack_set: List[str] = None):
+    def __init__(self,
+                 role: str,
+                 mu: float = 0.9,
+                 pack_set: List[str] = None,
+                 unpack_set: List[str] = None):
         if not 0.0 < mu < 1.0:
             raise ValueError(f"Invalid mu value: {mu}")
 
@@ -58,6 +61,6 @@ class ProxPenalizer(Penalizer):
                         init_p = state["init_p"] = p.clone().detach()
                     else:
                         init_p = state["init_p"]
-                    p.grad.add_(p-init_p, alpha=self.mu)
+                    p.grad.add_(p - init_p, alpha=self.mu)
 
         return loss

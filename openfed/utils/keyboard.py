@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import sys
 
 
@@ -40,4 +39,5 @@ def keyboard_interrupt_handle():
             logger.warning("Force Quit!")
             Destroy.destroy_all_deliveries()
             old_excepthook(type, value, traceback)
+
     sys.excepthook = keyboard_interrupt_hook

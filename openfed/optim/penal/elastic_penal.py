@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 from typing import List
 
 import torch
@@ -28,6 +27,7 @@ from openfed.utils import convert_to_list
 import torch.nn.functional as F
 
 from .penal import Penalizer
+
 
 class ElasticPenalizer(Penalizer):
     r"""Elastic Penalizer is used for collecting some training statics 
@@ -39,7 +39,6 @@ class ElasticPenalizer(Penalizer):
         the methods are not conflict. ElasticPenalizer only use the `acg_step`, 
         which make it couple well with other penalizers.
     """
-
     def __init__(self,
                  role: str,
                  momentum: float = 0.9,
@@ -60,7 +59,7 @@ class ElasticPenalizer(Penalizer):
             raise ValueError(f"Invalid momentum value: {momentum}")
 
         # Do not record momentum to defaults.
-        # It will make conflict with the momentum in other optimizer, 
+        # It will make conflict with the momentum in other optimizer,
         # such as SGD.
         self.momentum = momentum
 
@@ -103,5 +102,5 @@ class ElasticPenalizer(Penalizer):
                 if 'importance' not in state:
                     state["importance"] = torch.zeros_like(
                         p, memory_format=torch.preserve_format)
-                state["importance"].mul_(momentum).add_(grad, alpha=1-momentum)
-
+                state["importance"].mul_(momentum).add_(grad,
+                                                        alpha=1 - momentum)

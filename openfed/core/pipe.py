@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import json
 import time
 from collections import defaultdict
@@ -44,6 +43,7 @@ from .space import (Country, ProcessGroup, Store, World, add_mt_lock,
                     del_mt_lock, EasyRole)
 
 rw = RandomWords()
+
 
 def safe_store_set(store: Store, key: str, value: Dict) -> bool:
     """Write key to store safely.
@@ -71,12 +71,13 @@ def fresh_read(func):
     """A decorate function that will raise error if the data is not fresh.
     If read key value from the store is failed, we will use the cached info.
     """
-
     def _fresh_read(self, *args, **kwargs):
         output = func(self, *args, **kwargs)
         assert self.fresh_read, "Data out of date."
         return output
+
     return _fresh_read
+
 
 class DelayHandler(object):
     """An empty handler to skip the upload/download function. 
@@ -87,15 +88,15 @@ class DelayHandler(object):
         self.func = func
         self.handler = None
         self.step_func = None
-    
+
     def wait(self):
         if self.handler is None and self.step_func is None:
             self.handler, self.step_func = self.func()
-        self.handler.wait() # type: ignore
-        self.step_func() # type: ignore
+        self.handler.wait()  # type: ignore
+        self.step_func()  # type: ignore
 
     def is_completed(self) -> bool:
-        return self.handler.is_completed() # type: ignore
+        return self.handler.is_completed()  # type: ignore
 
 
 class Pipe(Attach, Package, EasyRole):
@@ -113,10 +114,10 @@ class Pipe(Attach, Package, EasyRole):
         across all nodes. Then, we use the `gather_object` method to transfer tensors. This also 
         requires that all the data transferred should be picklable.
     """
-    world  : World
+    world: World
     country: Country
-    pg     : ProcessGroup
-    store  : Store
+    pg: ProcessGroup
+    store: Store
 
     # Sometimes, the read operation will be failed for unknown reasons.
     # Essentially when we do simulation experiments on a single node.
@@ -131,15 +132,16 @@ class Pipe(Attach, Package, EasyRole):
     fresh_read: bool
 
     # do not set this manually!
-    _nick_name       : str
+    _nick_name: str
     key_tensor_bidict: bidict
-    packages         : Dict[str, Dict[str, Tensor]]
+    packages: Dict[str, Dict[str, Tensor]]
 
-    def __init__(self,
-                 store  : Store,
-                 pg     : ProcessGroup,
-                 country: Country,
-                 ) -> None:
+    def __init__(
+        self,
+        store: Store,
+        pg: ProcessGroup,
+        country: Country,
+    ) -> None:
         """
         Args:
             store: It is a long-time connection, we can transfer information
@@ -149,10 +151,10 @@ class Pipe(Attach, Package, EasyRole):
             country: The pg belongs to. Country also contains all global variables
                 that shared among different pipe.
         """
-        self.pg      = pg
-        self.store   = store
+        self.pg = pg
+        self.store = store
         self.country = country
-        self.world   = country.world
+        self.world = country.world
 
         # Set nick name on leader end.
         # Nick name is always assigned by leader.
@@ -160,27 +162,20 @@ class Pipe(Attach, Package, EasyRole):
         # of each follower.
         # warn: the nick name may be not unique.
         if self.leader:
-            safe_store_set(
-                store = self.store,
-                key   = nick_name,
-                value = rw.random_word()
-            )
+            safe_store_set(store=self.store,
+                           key=nick_name,
+                           value=rw.random_word())
         # Record the nick name.
         # So that we can avoid to read it from store every time.
-        self.nick_name = safe_store_get(
-            store = self.store,
-            key   = nick_name
-        )
+        self.nick_name = safe_store_get(store=self.store, key=nick_name)
 
         # Write self._i_key to initialize the key value store.
-        safe_store_set(
-            store = self.store,
-            key   = self._i_key,
-            value = {
-                openfed_status   : zombie,
-                openfed_task_info: TaskInfo(),
-            }
-        )
+        safe_store_set(store=self.store,
+                       key=self._i_key,
+                       value={
+                           openfed_status: zombie,
+                           openfed_task_info: TaskInfo(),
+                       })
 
         # Try to read _u_key from the other end.
         # This is also a lock to make sure that the other end is online.
@@ -204,8 +199,8 @@ class Pipe(Attach, Package, EasyRole):
         self.key_tensor_bidict = bidict()
         # Packages use the string name as dictionary.
         self.packages = defaultdict(dict)
-        
-        # FormatChecker is a necessary cypher, which will move the tensor to 
+
+        # FormatChecker is a necessary cypher, which will move the tensor to
         # CPU, and then convert back to corresponding GPU.
         self.register_cypher(FormatChecker())
         self.register_cypher(DeviceAlign())
@@ -221,7 +216,7 @@ class Pipe(Attach, Package, EasyRole):
     def download_version(self) -> int:
         return self.get("download_version")
 
-    def transfer(self, to: bool) -> bool: 
+    def transfer(self, to: bool) -> bool:
         """
         Args:
             to: If `True`, transfer data to other end. Otherwise, download 
@@ -242,7 +237,7 @@ class Pipe(Attach, Package, EasyRole):
             while not _state():
                 if self.is_offline: raise DeviceOffline(self)
                 toc = time.time()
-                if timedelta(seconds=toc-tic) > timedelta(minutes=30):
+                if timedelta(seconds=toc - tic) > timedelta(minutes=30):
                     raise ConnectTimeout(self)
         else:
             # check state first
@@ -288,7 +283,7 @@ class Pipe(Attach, Package, EasyRole):
     def delivery_generator(cls) -> Any:
         """Return a generator to iterate over all deliveries.
         """
-        for pipe, _ in peeper.delivery_dict: # type: ignore
+        for pipe, _ in peeper.delivery_dict:  # type: ignore
             yield [] if pipe is None else pipe
             if pipe is not None:
                 pipe.world.current_pg = pipe.pg
@@ -299,20 +294,22 @@ class Pipe(Attach, Package, EasyRole):
     def default_delivery(cls) -> Any:
         """Return the fist pipe.
         """
-        for pipe, _ in peeper.delivery_dict: # type: ignore
+        for pipe, _ in peeper.delivery_dict:  # type: ignore
             return pipe
 
     @property
     def _i_key(self) -> str:
         """Pipe will write information to `i_key`.
         """
-        return openfed_identity + "_" + ("LEADER" if self.leader else "FOLLOWER")
+        return openfed_identity + "_" + ("LEADER"
+                                         if self.leader else "FOLLOWER")
 
     @property
     def _u_key(self) -> str:
         """Pipe will read information from `u_key`.
         """
-        return openfed_identity + "_" + ("LEADER" if not self.leader else "FOLLOWER")
+        return openfed_identity + "_" + ("LEADER"
+                                         if not self.leader else "FOLLOWER")
 
     def _write(self, info: Dict[str, str]) -> bool:
         """Write info to self._i_key.
@@ -335,7 +332,7 @@ class Pipe(Attach, Package, EasyRole):
         """
         try:
             self._u_backup_info = safe_store_get(self.store, self._u_key)
-            self.fresh_read     = True
+            self.fresh_read = True
         except InvalidStoreReading as e:
             logger.debug(e)
             # use the cached one instead.
@@ -344,7 +341,8 @@ class Pipe(Attach, Package, EasyRole):
             # The server is quiet stable, if read failed, we think it is offline.
             # But client sometimes may be unstable, if read failed, we will assume it
             # go into offline.
-            self._u_backup_info[openfed_status] = offline if self.follower else zombie
+            self._u_backup_info[
+                openfed_status] = offline if self.follower else zombie
             self.fresh_read = False
         finally:
             return self._u_backup_info[key] if key else self._u_backup_info
@@ -519,8 +517,8 @@ class Pipe(Attach, Package, EasyRole):
         rdict = {k: v for k, v in rdict.items() if v is not None}
         self.packages[key].update(rdict)
 
-
-    def unpack(self, key: Union[str, Tensor], rdict: Dict[str, Any]) -> Dict[str, Tensor]:
+    def unpack(self, key: Union[str, Tensor],
+               rdict: Dict[str, Any]) -> Dict[str, Tensor]:
         """Update rdict with the one saved in package.
         Args:
             key: The key index, both tensor and string is acceptable.
@@ -557,26 +555,30 @@ class Pipe(Attach, Package, EasyRole):
 
         received = [None for _ in range(self.country.get_world_size())]
 
-        rank       = leader_rank if self.leader else follower_rank
+        rank = leader_rank if self.leader else follower_rank
         other_rank = follower_rank if self.leader else leader_rank
 
-        rank       = self.country._get_global_rank(self.pg, rank) if self.country.get_world_size() > 2 else rank
-        other_rank = self.country._get_global_rank(self.pg, other_rank) if self.country.get_world_size() > 2 else other_rank
+        rank = self.country._get_global_rank(
+            self.pg, rank) if self.country.get_world_size() > 2 else rank
+        other_rank = self.country._get_global_rank(
+            self.pg,
+            other_rank) if self.country.get_world_size() > 2 else other_rank
 
-        gather_object(
-            None,
-            received,
-            dst     = rank,
-            group   = self.pg,
-            country = self.country)
+        gather_object(None,
+                      received,
+                      dst=rank,
+                      group=self.pg,
+                      country=self.country)
 
         r_packages = [r for r in received if r is not None][0]
         assert r_packages is not None
 
         # NOTE: decrypt data in the reverse order.
         for hook in self.hook_list[::-1]:
-            r_packages = {k: hook.decrypt(self.key_tensor(k), v)
-                            for k, v in r_packages.items()}
+            r_packages = {
+                k: hook.decrypt(self.key_tensor(k), v)
+                for k, v in r_packages.items()
+            }
 
         # Follower will load `param` to Tensor by an in-place operation.
         if auto_load_param and self.follower:
@@ -592,35 +594,37 @@ class Pipe(Attach, Package, EasyRole):
             self.pg) == 2, "Pipe is only designed for group with size 2"
 
         rank = follower_rank if self.leader else leader_rank
-        rank = self.country._get_global_rank(self.pg, rank) if self.country.get_world_size() > 2 else rank
+        rank = self.country._get_global_rank(
+            self.pg, rank) if self.country.get_world_size() > 2 else rank
 
         # encrypt data
         packages = self.packages
         for hook in self.hook_list:
-            packages = {k: hook.encrypt(self.key_tensor(k), v)
-                        for k, v in packages.items()}
+            packages = {
+                k: hook.encrypt(self.key_tensor(k), v)
+                for k, v in packages.items()
+            }
 
-        gather_object(
-            packages,
-            None,
-            dst     = rank,
-            group   = self.pg,
-            country = self.country)
+        gather_object(packages,
+                      None,
+                      dst=rank,
+                      group=self.pg,
+                      country=self.country)
 
     def __str__(self) -> str:
-        return openfed_class_fmt.format(
-            class_name="Pipe",
-            description=tablist(
-                head=["Nick Name", 
-                      "Upload Version",
-                      "Download Version", 
-                      "Status"],
-                data=[self.nick_name, 
-                      self.upload_version,
-                      self.download_version, 
-                      self._get_state()],
-            )
-        )
+        return openfed_class_fmt.format(class_name="Pipe",
+                                        description=tablist(
+                                            head=[
+                                                "Nick Name", "Upload Version",
+                                                "Download Version", "Status"
+                                            ],
+                                            data=[
+                                                self.nick_name,
+                                                self.upload_version,
+                                                self.download_version,
+                                                self._get_state()
+                                            ],
+                                        ))
 
 
 class Destroy(object):
@@ -628,8 +632,8 @@ class Destroy(object):
     """
     @classmethod
     def destroy_delivery(cls, pipe: Pipe):
-        world   = pipe.world
-        pg      = pipe.pg
+        world = pipe.world
+        pg = pipe.pg
         country = pipe.country
 
         if pg == world.current_pg:
@@ -637,11 +641,11 @@ class Destroy(object):
 
         pipe.offline()
         # NOTE:
-        # world._delivery_dict only recording the pipe defined under 
-        # the same world. 
+        # world._delivery_dict only recording the pipe defined under
+        # the same world.
         # peeper.delivery_dict contains all defined pipe under all world.
         world.delete_delivery(pipe)
-        
+
         country.destroy_process_group(pg)
 
         if country._group_count == 1:
@@ -652,7 +656,7 @@ class Destroy(object):
 
     @classmethod
     def destroy_all_deliveries(cls):
-        for pipe, _ in peeper.delivery_dict: # type: ignore
+        for pipe, _ in peeper.delivery_dict:  # type: ignore
             cls.destroy_delivery(pipe)
 
 
@@ -672,10 +676,11 @@ class Joint(Thread, EasyRole):
             address = address._replace(rank=rank)
         if address.world_size > 10 and address.init_method.startswith("tcp"):
             raise InvalidAddress(
-                "Use `init_method=file:///tmp/openfed.sharefile` instead when `world_size > 10`.")
+                "Use `init_method=file:///tmp/openfed.sharefile` instead when `world_size > 10`."
+            )
 
         self.address = address
-        self.world   = world
+        self.world = world
 
         self.build_success = False
 
@@ -705,11 +710,9 @@ class Joint(Thread, EasyRole):
         # bound pg with the country
         for sub_pg in sub_pg_list:
             # Pipe will automatically register to the corresponding world dictionary.
-            Pipe(
-                store = country.get_store(sub_pg),
-                pg    = sub_pg,
-                country = country)
+            Pipe(store=country.get_store(sub_pg), pg=sub_pg, country=country)
         self.build_success = True
+
 
 class Maintainer(Thread, EasyRole):
     """
@@ -736,19 +739,19 @@ class Maintainer(Thread, EasyRole):
     stopped: bool
 
     def __init__(self,
-                 world  : World,
+                 world: World,
                  address: Address = None,
-                 address_file : str = None,
-                 mtt          : int = 5,
-                 interval_seconds: float = 10) -> None: 
+                 address_file: str = None,
+                 mtt: int = 5,
+                 interval_seconds: float = 10) -> None:
         """
             Only a single valid address is allowed in client.
         """
         super().__init__(daemon=True)
         self.address_file = address_file
         self.pending_queue = ArrayDict()
-        self.finished_queue  = dict()
-        self.discard_queue   = dict()
+        self.finished_queue = dict()
+        self.discard_queue = dict()
         self.abnormal_exited = False
         self.interval_seconds = interval_seconds
 
@@ -769,12 +772,13 @@ class Maintainer(Thread, EasyRole):
             if not self.world.dal:
                 self.join()
         else:
-            assert len(self.pending_queue) == 1, "Only single address is allowed."
+            assert len(
+                self.pending_queue) == 1, "Only single address is allowed."
             address, (create_time, try_times) = self.pending_queue[0]
             Joint(address, self.world)
             with self.pending_queue:
                 del self.pending_queue[address]
-            self.finished_queue[address] = (time.time(), try_times+1)
+            self.finished_queue[address] = (time.time(), try_times + 1)
 
     def read_address_from_file(self) -> None:
         address_list = load_address_from_file(self.address_file)
@@ -804,15 +808,17 @@ class Maintainer(Thread, EasyRole):
                     joint_map[address] = Joint(address, self.world)
 
             def try_now(last_time, try_times) -> bool:
-                return False if (time.time() - last_time < self.interval_seconds) or try_times >= self.mtt else True
+                return False if (
+                    time.time() - last_time < self.interval_seconds
+                ) or try_times >= self.mtt else True
 
             rm_address = []
             for address, joint in joint_map.items():
                 last_time, try_times = self.pending_queue[address]
                 if try_now(last_time, try_times):
                     if joint.build_success:
-                        self.finished_queue[address] = (
-                            time.time(), try_times + 1)
+                        self.finished_queue[address] = (time.time(),
+                                                        try_times + 1)
                         with self.pending_queue:
                             del self.pending_queue[address]
                         rm_address.append((address))
@@ -823,15 +829,15 @@ class Maintainer(Thread, EasyRole):
                             joint._stop()
                             rm_address.append(address)
                             # Move to discard_queue
-                            self.discard_queue[address] = (
-                                time.time(), try_times)
+                            self.discard_queue[address] = (time.time(),
+                                                           try_times)
                             with self.pending_queue:
                                 del self.pending_queue[address]
                             break
                         else:
                             with self.pending_queue:
-                                self.pending_queue[address] = (
-                                    time.time(), try_times)
+                                self.pending_queue[address] = (time.time(),
+                                                               try_times)
             for address in rm_address:
                 del joint_map[address]
 
@@ -840,8 +846,8 @@ class Maintainer(Thread, EasyRole):
             else:
                 break
 
-        self.abnormal_exited = len(
-            self.pending_queue) > 0 or len(self.discard_queue) > 0
+        self.abnormal_exited = len(self.pending_queue) > 0 or len(
+            self.discard_queue) > 0
         return f"Build connection to {len(self.finished_queue)} addresses."
 
     def manual_stop(self, kill_world: bool = True) -> None:
@@ -866,12 +872,11 @@ class Maintainer(Thread, EasyRole):
         return openfed_class_fmt.format(
             class_name="Maintainer",
             description=tablist(
-                head=["Pending", 
-                      "Finished", 
-                      "Discard"],
-                data=[len(self.pending_queue),
-                      len(self.finished_queue),
-                      len(self.discard_queue)],
+                head=["Pending", "Finished", "Discard"],
+                data=[
+                    len(self.pending_queue),
+                    len(self.finished_queue),
+                    len(self.discard_queue)
+                ],
                 force_in_one_row=True,
-            )
-        )
+            ))

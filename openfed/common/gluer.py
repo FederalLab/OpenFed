@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-from heapq import merge
 import warnings
 from typing import Any, Callable, Dict
 from openfed.utils import openfed_class_fmt

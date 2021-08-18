@@ -10,7 +10,8 @@ def build_fedsgd(parameters, lr, role, **kwargs):
 
     parameters = list(parameters)
     optimizer = optim.SGD(
-        parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
+        parameters, lr=lr, **
+        kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
     fed_optimizer = fed_optim.build_fed_optim(optimizer)
     if openfed.core.is_leader(role):
         agg = fed_optim.AverageOp(parameters)
@@ -29,10 +30,11 @@ def build_fedavg(parameters, lr, role, **kwargs):
     parameters = list(parameters)
 
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
-    
+
     optimizer = optim.SGD(
-        parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
-    fed_optimizer = fed_optim.build_fed_optim(optimizer) 
+        parameters, lr=lr, **
+        kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
+    fed_optimizer = fed_optim.build_fed_optim(optimizer)
     if openfed.core.is_leader(role):
         agg = fed_optim.NaiveOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
@@ -51,8 +53,9 @@ def build_fedela(parameters, lr, role, **kwargs):
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
     penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
     optimizer = optim.SGD(
-        parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
-    
+        parameters, lr=lr, **
+        kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
+
     penalizer = fed_optim.ElasticPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
@@ -75,8 +78,9 @@ def build_fedprox(parameters, lr, role, **kwargs):
     penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
 
     optimizer = optim.SGD(
-        parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
-    
+        parameters, lr=lr, **
+        kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
+
     penalizer = fed_optim.ProxPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
@@ -98,18 +102,20 @@ def build_fedscaffold(parameters, lr, role, **kwargs):
     reducer = kwargs.pop('reducer') if 'reducer' in kwargs else None
     penal_cfg = kwargs.pop('penal_cfg') if 'penal_cfg' in kwargs else dict()
     optimizer = optim.SGD(
-        parameters, lr=lr, **kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
-    
+        parameters, lr=lr, **
+        kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
+
     penalizer = fed_optim.ScaffoldPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
     if openfed.core.is_leader(role):
         agg = fed_optim.NaiveOp(parameters, other_keys=['c_para'])
-        aggregator = fed_optim.build_aggregator( agg, reducer)
+        aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
         aggregator = None
 
     return fed_optimizer, aggregator
+
 
 builder = dict(
     fedavg=build_fedavg,
@@ -118,6 +124,7 @@ builder = dict(
     fedprox=build_fedprox,
     fedscaffold=build_fedscaffold,
 )
+
 
 def build_optim(name, *args, **kwargs):
     """Returns a optimizer and aggregator (for leader).

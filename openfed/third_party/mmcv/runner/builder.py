@@ -18,16 +18,14 @@ class OpenFed(object):
     model: Any  # assign from runner
     world_size: int  # assign from runner
 
-    def __init__(
-        self,
-        model,
-        optimizer,
-        rank: int = -1,
-        role: str = leader,
-        address_file: str = '',
-        fed_optim_cfg: Dict[str, Any] = dict(),
-        hook_cfg_list: List[Dict[str, Any]] = []
-    ):
+    def __init__(self,
+                 model,
+                 optimizer,
+                 rank: int = -1,
+                 role: str = leader,
+                 address_file: str = '',
+                 fed_optim_cfg: Dict[str, Any] = dict(),
+                 hook_cfg_list: List[Dict[str, Any]] = []):
         super().__init__()
         if rank != 0:
             # It is not necessary to build openfed core if rank > 0
@@ -36,17 +34,17 @@ class OpenFed(object):
         if len(hook_cfg_list) == 0:
             hook_cfg_list = [
                 dict(
-                    type        = 'Aggregate',
-                    count       = dict(train=-1),
-                    checkpoint  = None,
-                    max_version = -1,
+                    type='Aggregate',
+                    count=dict(train=-1),
+                    checkpoint=None,
+                    max_version=-1,
                 )
             ]
-        
+
         if len(fed_optim_cfg) == 0:
             fed_optim_cfg = dict(
-                type = 'fedavg',
-                lr   = 1.0,
+                type='fedavg',
+                lr=1.0,
             )
 
         # Build fed optimizer
@@ -55,18 +53,16 @@ class OpenFed(object):
             # else we will build a new optimizer for it.
             fed_optim_cfg['optimizer'] = optimizer
         fed_optim_cfg['role'] = role
-        optimizer, aggregator = build_optim(
-            fed_optim_cfg.pop('type'), model.parameters(), **fed_optim_cfg)
+        optimizer, aggregator = build_optim(fed_optim_cfg.pop('type'),
+                                            model.parameters(),
+                                            **fed_optim_cfg)
 
         # Build World
         world = openfed.core.World(role=role, mtt=15)
 
         # Build OpenFed API
-        openfed_api = openfed.API(
-            world,
-            model.state_dict(keep_vars=True),
-            optimizer,
-            aggregator)
+        openfed_api = openfed.API(world, model.state_dict(keep_vars=True),
+                                  optimizer, aggregator)
 
         # Register step function
         if is_leader(role):
@@ -78,7 +74,8 @@ class OpenFed(object):
                     build_hook(cfg)
                 if not aggregate_in:
                     warn(
-                        "Aggregate step function is not included in the hook config, which may cause a error.")
+                        "Aggregate step function is not included in the hook config, which may cause a error."
+                    )
 
         # Connect to other end
         openfed_api.build_connection(address_file=address_file)
@@ -97,7 +94,6 @@ class OpenFed(object):
 
             # Download or upload a model
             self.openfed_api.transfer(to=to)
-
 
         if not to:  # Download a model from the other end.
             # Broadcast new model to all nodes in distributed learning.

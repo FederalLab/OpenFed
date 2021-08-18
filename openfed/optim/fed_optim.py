@@ -19,7 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
- 
 
 from openfed.common import glue
 from torch.optim import Optimizer
@@ -34,7 +33,8 @@ class FedOptim(Optimizer, Penalizer):
         raise RuntimeError("Call `build_fed_optim` to create a fed_optim.")
 
 
-def build_fed_optim(optimizer: Optimizer, penalizer: Penalizer = None) -> FedOptim:
+def build_fed_optim(optimizer: Optimizer,
+                    penalizer: Penalizer = None) -> FedOptim:
     """Glue optimizer and penalizer as a single class, named `FedOptim`.
     Args:
         optimizer: The torch optimizer.
@@ -58,11 +58,12 @@ def build_fed_optim(optimizer: Optimizer, penalizer: Penalizer = None) -> FedOpt
                 output_a.update(output_b)
                 return output_a
             return output_a or output_b
+
         return _step
+
     OptimizerT = type(optimizer)
     PenalizerT = type(penalizer)
     # Penalizer step should be first steped.
-    extra_func = dict(step=step(
-        func_a=getattr(PenalizerT, 'step'), 
-        func_b=getattr(OptimizerT, 'step')))
-    return glue(optimizer, penalizer, extra_func) # type: ignore
+    extra_func = dict(step=step(func_a=getattr(PenalizerT, 'step'),
+                                func_b=getattr(OptimizerT, 'step')))
+    return glue(optimizer, penalizer, extra_func)  # type: ignore

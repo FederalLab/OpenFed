@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 from datetime import timedelta
 
 # communication timeout
@@ -28,23 +27,26 @@ DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
 # null progress group
 NULL_PG = None
 
-leader   = 'openfed_leader'
+leader = 'openfed_leader'
 follower = 'openfed_follower'
+
 
 def is_leader(role):
     return role == leader
 
+
 def is_follower(role):
     return role == follower
 
-push    = 'PUSH'
-pull    = 'PULL'
-zombie  = 'ZOMBIE'
+
+push = 'PUSH'
+pull = 'PULL'
+zombie = 'ZOMBIE'
 offline = 'OFFLINE'
 
-openfed_identity  = 'OPENFED_IDENTIFY'
-openfed_status    = 'OPENFED_STATUS'
+openfed_identity = 'OPENFED_IDENTIFY'
+openfed_status = 'OPENFED_STATUS'
 openfed_task_info = 'OPENFED_TASK_INFO'
-nick_name     = 'NICK_NAME'
-leader_rank   = 0
+nick_name = 'NICK_NAME'
+leader_rank = 0
 follower_rank = 1

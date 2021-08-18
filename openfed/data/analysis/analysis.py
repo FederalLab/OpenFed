@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 from typing import List, Tuple
 
 import numpy as np
@@ -42,17 +41,21 @@ class Analysis(object):
                 Mean=np.mean(parts_list),
                 Var=np.var(parts_list),
             )
-            print(tablist(
-                head=list(rdict.keys()),
-                data=list(rdict.values()),
-                force_in_one_row=True,
-            ))
+            print(
+                tablist(
+                    head=list(rdict.keys()),
+                    data=list(rdict.values()),
+                    force_in_one_row=True,
+                ))
         return parts_list
 
     @classmethod
-    def label_distribution(cls, federated_dataset, top_k: int = 10) -> Tuple[List, List]:
-        assert hasattr(federated_dataset, 'classes') and isinstance(federated_dataset.classes,
-                                                                    int), "Only classification federated dataset with specified the class number is supported."
+    def label_distribution(cls,
+                           federated_dataset,
+                           top_k: int = 10) -> Tuple[List, List]:
+        assert hasattr(federated_dataset, 'classes') and isinstance(
+            federated_dataset.classes, int
+        ), "Only classification federated dataset with specified the class number is supported."
         parts_list = cls.digest(federated_dataset, verbose=False)
 
         top_k = min(len(parts_list), top_k)

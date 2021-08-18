@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import json
 from collections import defaultdict
 from typing import List
@@ -34,7 +33,6 @@ from .reduce_op import ReduceOp
 class AutoReduceOp(ReduceOp):
     """Auto reducer based on specified keys.
     """
-
     def __init__(self,
                  reduce_keys: List[str] = ['accuracy'],
                  weight_key: str = None,
@@ -71,14 +69,13 @@ class AutoReduceOp(ReduceOp):
         task_info = task_info_list[0]
         if self.weight_key is not None:
             assert self.weight_key in task_info, "weight key is not contained in task info."
-            demo = sum([ti[self.weight_key]
-                       for ti in task_info_list])
+            demo = sum([ti[self.weight_key] for ti in task_info_list])
             rdict[self.weight_key] = demo
-            weight = [ti[self.weight_key] /
-                      demo for ti in task_info_list]
+            weight = [ti[self.weight_key] / demo for ti in task_info_list]
         else:
-            weight = [1.0/len(task_info_list)
-                      for _ in range(len(task_info_list))]
+            weight = [
+                1.0 / len(task_info_list) for _ in range(len(task_info_list))
+            ]
 
         for w, ti in zip(weight, task_info_list):
             for k, v in ti.items():

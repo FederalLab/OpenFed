@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 from typing import List, Callable, Union
 
 import torch
@@ -33,7 +32,6 @@ from .penal import Penalizer
 class ScaffoldPenalizer(Penalizer):
     """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
     """
-
     def __init__(self,
                  role: str,
                  pack_set: List[str] = None,
@@ -153,7 +151,7 @@ class ScaffoldPenalizer(Penalizer):
                 # c_para will be loaded from agg/deliver automatically.
                 assert "c_para" in state, "c_para must be loaded from agg/deliver."
                 c_para = state["c_para"]
-                p.grad.add_(c_para-c_para_i, alpha=1)
+                p.grad.add_(c_para - c_para_i, alpha=1)
 
         return loss
 
@@ -208,8 +206,9 @@ class ScaffoldPenalizer(Penalizer):
                     c_para_i.copy_(state["init_p_g"])
                 else:
                     # Use the second way to update c_para
-                    c_para_i.copy_(
-                        c_para_i - state["c_para"] + 1 / (state["step"] * group['lr']) * (state["init_p"] - p))
+                    c_para_i.copy_(c_para_i - state["c_para"] + 1 /
+                                   (state["step"] * group['lr']) *
+                                   (state["init_p"] - p))
                 if 'c_para' not in state:
                     state["c_para"] = c_para_i
                 else:

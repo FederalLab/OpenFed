@@ -24,13 +24,11 @@ def build_hook_constructor(cfg):
 
 def build_hook(cfg):
     hook_cfg = copy.deepcopy(cfg)
-    constructor_type = hook_cfg.pop('constructor',
-                                    'DefaultHookConstructor')
+    constructor_type = hook_cfg.pop('constructor', 'DefaultHookConstructor')
     hook_constructor = build_hook_constructor(
         dict(
-            type     = constructor_type,
-            hook_cfg = hook_cfg,
-        )
-    )
+            type=constructor_type,
+            hook_cfg=hook_cfg,
+        ))
     hook = hook_constructor()
     return hook

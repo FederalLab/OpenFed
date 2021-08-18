@@ -60,9 +60,7 @@ class PartitionerDataset(FederatedDataset):
     parts_index_list: List
     partitioner: Partitioner
 
-    def __init__(self,
-                 dataset: Dataset,
-                 total_parts: int,
+    def __init__(self, dataset: Dataset, total_parts: int,
                  partitioner: Partitioner):
         """
         Args:
@@ -74,15 +72,17 @@ class PartitionerDataset(FederatedDataset):
         self.total_parts = total_parts
         self.partitioner = partitioner
 
-        self.parts_index_list = self.partitioner(
-            total_parts, self.data_index_list())
+        self.parts_index_list = self.partitioner(total_parts,
+                                                 self.data_index_list())
 
     def data_index_list(self) -> List:
         """Rewrite for your dataset. If dataset.classes is not existed, you should rewrite this method for your dataset.
         """
-        if not hasattr(self.dataset, "classes") and not hasattr(self.dataset, "targets"):
-            raise RuntimeError("Dataset does not contain `classes` and `targets`."
-                               "Please rewrite this method for your dataset.")
+        if not hasattr(self.dataset, "classes") and not hasattr(
+                self.dataset, "targets"):
+            raise RuntimeError(
+                "Dataset does not contain `classes` and `targets`."
+                "Please rewrite this method for your dataset.")
         if isinstance(self.dataset.classes, int):
             classes = range(self.dataset.classes)
         else:

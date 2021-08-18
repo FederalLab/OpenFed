@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import time
 from copy import copy
 from threading import Lock, Thread
@@ -42,7 +41,7 @@ from openfed.optim import FedOptim, Aggregator
 from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
                            openfed_class_fmt)
 
-peeper.api_lock = Lock() # type: ignore
+peeper.api_lock = Lock()  # type: ignore
 
 
 def device_offline_care(func):
@@ -57,6 +56,7 @@ def device_offline_care(func):
         except DeviceOffline as e:
             logger.error(e)
             return False
+
     return _device_offline_care
 
 
@@ -69,12 +69,13 @@ class API(Thread, Attach, EasyRole):
     pipe: Pipe
     current_step: str
 
-    def __init__(self,
-                 world: World,
-                 state_dict: Dict[str, Tensor],
-                 fed_optim: FedOptim,
-                 aggregator: Aggregator = None,
-                 ):
+    def __init__(
+        self,
+        world: World,
+        state_dict: Dict[str, Tensor],
+        fed_optim: FedOptim,
+        aggregator: Aggregator = None,
+    ):
         """Whether act as a role.
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
@@ -121,15 +122,22 @@ class API(Thread, Attach, EasyRole):
         # register a clone of informer hook.
         # informer hook may contain some inner variable, which is not allowed
         # to share with each other.
-        [self.pipe.register_collector(copy(
-            hook)) for hook in self._hooks_collector if hook.bounding_name not in self.pipe._hook_dict]
+        [
+            self.pipe.register_collector(copy(hook))
+            for hook in self._hooks_collector
+            if hook.bounding_name not in self.pipe._hook_dict
+        ]
         # register the hook directly.
         # deliver hook is not allowed to have inner parameters.
         # it can be used among all pipe.
-        [self.pipe.register_cypher(
-            hook) for hook in self._hooks_cypher if hook not in self.pipe._hook_list]
+        [
+            self.pipe.register_cypher(hook) for hook in self._hooks_cypher
+            if hook not in self.pipe._hook_list
+        ]
 
-    def build_connection(self, address: Union[Address, List[Address]] = None, address_file: str = None):
+    def build_connection(self,
+                         address: Union[Address, List[Address]] = None,
+                         address_file: str = None):
         world = self.world
         if address is None and address_file is None:
             address = default_tcp_address
@@ -138,8 +146,9 @@ class API(Thread, Attach, EasyRole):
             # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
             # otherwise, it may interrupt the process and cause error before you go into loop()
             openfed_lock.acquire()
-        self.maintainer = Maintainer(
-            world, address=address, address_file=address_file)  # type: ignore
+        self.maintainer = Maintainer(world,
+                                     address=address,
+                                     address_file=address_file)  # type: ignore
 
         if self.follower:
             self.pipe = Pipe.default_delivery()
@@ -162,14 +171,14 @@ class API(Thread, Attach, EasyRole):
         # Collect system information from other end.
         # Most of the collect function will only be called once.
         self.pipe.collect()
-        
+
         # Scatter system information to other end.
         # Most of the scatter function will only be called once.
         self.pipe.scatter()
 
         # Reset state
         self.pipe.reset_state_dict(self.state_dict)
-        
+
         # Push data to the other end.
         if to:
             # Assign task info to other end
@@ -194,32 +203,37 @@ class API(Thread, Attach, EasyRole):
             self.delivery_task_info = self.pipe.task_info
             if self.follower:
                 # Reset current version as downloaded version.
-                self.version = self.delivery_task_info.version # type: ignore
-                # As for follower, we will unpack the inner state from 
+                self.version = self.delivery_task_info.version  # type: ignore
+                # As for follower, we will unpack the inner state from
                 # received tensor automatically.
                 [self.unpack_state(fed_optim) for fed_optim in self.fed_optim]
             elif self.leader:
-                if self.delivery_task_info.mode == 'train': # type: ignore
+                if self.delivery_task_info.mode == 'train':  # type: ignore
                     if self.upload_version <= self.version:
                         # In federated learning, some device may upload the outdated model.
                         # This is not desired, we should skip this invalid model.
                         logger.warning(
                             f"Received version of model is outdate."
-                            f"(Expected: > @{self.version}, Received: @{self.upload_version}).")
+                            f"(Expected: > @{self.version}, Received: @{self.upload_version})."
+                        )
                     else:
-                        # As for leader, we will increase the received numbers 
+                        # As for leader, we will increase the received numbers
                         # and catch received tensor to aggregator.
                         self.received_numbers += 1
                         packages = self.tensor_indexed_packages
-                        [aggregator.step(packages, self.delivery_task_info)
-                        for aggregator in self.aggregator]
+                        [
+                            aggregator.step(packages, self.delivery_task_info)
+                            for aggregator in self.aggregator
+                        ]
                 else:
                     # If under test mode it is not necessary to do the aggregation operation.
-                    # As for leader, we will increase the received numbers 
+                    # As for leader, we will increase the received numbers
                     # and catch received tensor to aggregator.
                     self.received_numbers += 1
-                    [aggregator.step({}, self.delivery_task_info)
-                        for aggregator in self.aggregator]
+                    [
+                        aggregator.step({}, self.delivery_task_info)
+                        for aggregator in self.aggregator
+                    ]
 
             if task_info is not None:
                 # Update the task info if necessary.
@@ -248,7 +262,10 @@ class API(Thread, Attach, EasyRole):
                 You should directly store other variables in self object.
             """
             self.current_step = step_name
-            output = [hook(self, step_name, *args, **kwargs) for hook in self.hook_list]
+            output = [
+                hook(self, step_name, *args, **kwargs)
+                for hook in self.hook_list
+            ]
 
             # reduce output
             if False in output:
@@ -275,18 +292,24 @@ class API(Thread, Attach, EasyRole):
                     cnt += 1
                     step(at_first)
                     if pipe.is_offline:
-                        [step(after_destroy, Destroy.destroy_delivery(pipe)) if step(
-                            before_destroy) else step(at_failed)]
+                        [
+                            step(after_destroy, Destroy.destroy_delivery(pipe))
+                            if step(before_destroy) else step(at_failed)
+                        ]
                     elif pipe.is_zombie:
                         step(at_zombie)
                     elif pipe.is_pushing:
                         # Follower want to push data to leader, we need to download.
-                        [step(after_download, self.transfer(to=False)) if step(
-                            before_download) else step(at_failed)]
+                        [
+                            step(after_download, self.transfer(to=False))
+                            if step(before_download) else step(at_failed)
+                        ]
                     elif pipe.is_pulling:
                         # Follower want to pull data from leader, we need to upload
-                        [step(after_upload, self.transfer(to=True)) if step(
-                            before_upload) else step(at_failed)]
+                        [
+                            step(after_upload, self.transfer(to=True))
+                            if step(before_upload) else step(at_failed)
+                        ]
                     else:
                         step(at_invalid_state)
                     # update regularly.
@@ -296,7 +319,7 @@ class API(Thread, Attach, EasyRole):
                     time.sleep(0.1)
             if cnt == 0:
                 time.sleep(5.0)
-                try_times  += 1
+                try_times += 1
             else:
                 time.sleep(0.1)
                 try_times = 0
@@ -339,22 +362,20 @@ class API(Thread, Attach, EasyRole):
     @property
     def upload_version(self):
         return self.pipe.upload_version
-    
+
     @property
     def download_version(self):
         return self.pipe.download_version
 
     def __str__(self):
-        return openfed_class_fmt.format(
-            class_name="OpenFedAPI",
-            description=f"ROLE: {self.role}"
-        )
+        return openfed_class_fmt.format(class_name="OpenFedAPI",
+                                        description=f"ROLE: {self.role}")
 
     def __enter__(self):
-        peeper.api_lock.acquire() # type: ignore
-        peeper.api = self # type: ignore
+        peeper.api_lock.acquire()  # type: ignore
+        peeper.api = self  # type: ignore
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # restore state
-        peeper.api = None # type: ignore
-        peeper.api_lock.release() # type: ignore
+        peeper.api = None  # type: ignore
+        peeper.api_lock.release()  # type: ignore
