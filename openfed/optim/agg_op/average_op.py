@@ -85,11 +85,11 @@ class AverageOp(AggOp):
 
         for key in pipe_keys:
             if key in state:
+                r_p = state[key]
                 if key == "param":
                     # `param` is the general name of the index key tensor.
                     # In most cases, it is the parameters of network or the buffer stored
                     # in the network. Sometimes, you can specify any tensor as `param`.
-                    r_p = state[key]
                     if p.requires_grad:
                         # If `param` required grad, we take it as a learnable parameter
                         # of network. In this case, we will calculate the gradient and
@@ -112,7 +112,7 @@ class AverageOp(AggOp):
                 else:
                     # Some inner state is unchanged. Such as `momentum_buffer` if you have specified.
                     # They will unpack to target object from state.
-                    ...
+                    state[key] = r_p
 
     def _stack_aggregate(self, p: Tensor, group: Dict):
         """Aggregate the stack buffer.
