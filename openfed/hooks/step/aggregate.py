@@ -67,8 +67,7 @@ class Aggregate(Step):
         self.last_received_numbers = 0
         self._bar_round = 1
 
-        self.process_bar = self._process_bar()
-        next(self.process_bar)
+        self.process_bar = None
 
         self.max_loop_times = max_loop_times
         self.max_version = max_version
@@ -157,6 +156,11 @@ class Aggregate(Step):
             yield
 
     def at_last(self, leader, *args, **kwargs) -> None:
+        if self.process_bar is None:
+            # Initialize progress bar
+            self.process_bar = self._process_bar()
+            next(self.process_bar)
+
         activated_parts = self.activated_parts[self.stage_name]
 
         if self.last_received_numbers != leader.received_numbers:
