@@ -38,6 +38,7 @@
         "logdir",
         "matmul",
         "mmcv",
+        "monai",
         "nargs",
         "nccl",
         "niid",
