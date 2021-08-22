@@ -74,7 +74,7 @@ class OpenFed(object):
                     build_hook(cfg)
                 if not aggregate_in:
                     warn(
-                        "Aggregate step function is not included in the hook config, which may cause a error."
+                        "Aggregate step function is not included in the hook config, which may cause an error."
                     )
 
         # Connect to other end
