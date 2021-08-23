@@ -4,7 +4,7 @@ from typing import Dict
 
 import openfed
 import torch.distributed as dist
-from mmcv.runner.builder import RUNNER_BUILDERS, RUNNERS # type: ignore
+from mmcv.runner.builder import RUNNER_BUILDERS, RUNNERS  # type: ignore
 from mmcv.runner.dist_utils import get_dist_info
 from openfed.core import is_follower, is_leader, leader
 from openfed.tools import build_optim
@@ -75,6 +75,13 @@ class OpenFedRunnerConstructor(object):
                         warnings.warn(
                             "`Aggregate` step function is not registerred.")
             openfed_api.build_connection(address_file=self.address_file)
+
+            if is_leader(self.role):
+                # Go into leader loop backend
+                openfed_api.run()
+                print(">>> Finished.")
+                openfed_api.finish(auto_exit=True)
+                
         self.default_args['optimizer'] = optimizer
 
         # build existing runner

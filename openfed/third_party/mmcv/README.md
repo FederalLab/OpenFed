@@ -24,7 +24,6 @@ runner = dict(
     address_file='/path/to/address.json',
     constructor='OpenFedRunnerConstructor',
 )
-
 ```
 
 1. Import `openfed` at the start point of program.
