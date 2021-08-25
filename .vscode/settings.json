@@ -59,6 +59,7 @@
         "signum",
         "stackoverflow",
         "tolist",
+        "topo",
         "unsqueeze"
     ],
     "restructuredtext.confPath": "${workspaceFolder}/docs",

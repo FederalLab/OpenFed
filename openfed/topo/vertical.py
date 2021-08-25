@@ -1,5 +1,4 @@
 from .topo import Topology
 
-
-class Chain(Topology):
+class VerticalTopo(Topology):
     pass
