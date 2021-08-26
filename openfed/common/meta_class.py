@@ -25,34 +25,7 @@ from threading import Lock
 from typing import Any, Tuple
 
 from openfed.utils import openfed_class_fmt, tablist
-
-
-class AttrDict(dict):
-    """Attribute Dictionary. You can access the items like attributes.
-
-    .. Example::
-        >>> attr_dict = AttrDict(openfed='openfed')
-        >>> attr_dict.openfed
-        'openfed'
-        >>> attr_dict
-        {'openfed': 'openfed'}
-        >>> attr_dict.version = 1.0
-        >>> attr_dict
-        {'openfed': 'openfed', 'version': 1.0}
-        >>> attr_dict['tag'] = 'rc'
-        >>> attr_dict
-        {'openfed': 'openfed', 'version': 1.0, 'tag': 'rc'}
-        >>> del attr_dict.tag
-        >>> attr_dict
-        {'openfed': 'openfed', 'version': 1.0}
-        >>> del attr_dict['version']
-        >>> attr_dict
-        {'openfed': 'openfed'}
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
-
+from addict import Dict as AttrDict
 
 class ArrayDict(dict):
     """Array Dictionary. Index items via int index.
