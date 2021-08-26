@@ -18,6 +18,7 @@
         "arange",
         "astype",
         "bidict",
+        "biedge",
         "cdict",
         "cfloat",
         "chdir",

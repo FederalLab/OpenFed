@@ -39,7 +39,9 @@ def _string_trim(string: str, length: int = 15):
         return string
 
 
-def _tablist(head: List[Any], data: List[Any]) -> str:
+def _tablist(head: List[Any],
+             data: List[Any],
+             multi_rows: bool = False) -> str:
     columns = 80
     length = (columns - len(head) * 3 - 1) // len(head)
     head = [_string_trim(h, length) for h in head]
@@ -51,7 +53,11 @@ def _tablist(head: List[Any], data: List[Any]) -> str:
     assert len(head) == len(
         set(head)), "String trim operation make some head with the some name."
     table = PrettyTable(head)
-    table.add_row([_string_trim(d, length) for d in data])
+    if multi_rows:
+        for d in data:
+            table.add_row([_string_trim(_d, length) for _d in d])
+    else:
+        table.add_row([_string_trim(d, length) for d in data])
 
     return str(table)
 
@@ -66,7 +72,16 @@ def tablist(head: List[Any],
     """
     table_list = []
     if force_in_one_row:
-        table_list.append(_tablist(head, data))
+        i = 0
+        rows = []
+        while i < len(data):
+            if i + len(head) <= len(data):
+                rows.append(data[i:i + len(head)])
+            else:
+                l = len(data) - i
+                rows.append(data[i:] + [' '] * l)
+            i += len(head)
+        table_list.append(_tablist(head, rows, multi_rows=True))
     else:
         i = 0
         while i < len(head):
