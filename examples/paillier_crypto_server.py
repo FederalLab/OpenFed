@@ -77,7 +77,7 @@ print(address)
 import time
 openfed_api.build_connection(address=address)
 
-print(openfed_api.maintainer)
+print(openfed_api.federated_group)
 
 
 openfed_api.run()

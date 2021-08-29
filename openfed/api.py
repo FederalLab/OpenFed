@@ -29,7 +29,7 @@ from torch import Tensor
 
 from openfed.common import (Address, Attach, DeviceOffline, TaskInfo,
                             default_tcp_address, logger, peeper)
-from openfed.core import Pipe, Destroy, Maintainer, World, openfed_lock, EasyRole
+from openfed.core import Pipe, openfed_lock, init_federated_group, FederatedGroupProperties
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,
@@ -60,18 +60,16 @@ def device_offline_care(func):
     return _device_offline_care
 
 
-class API(Thread, Attach, EasyRole):
+class API(Thread, Attach):
     """Provide a unified api for leader and role.
     """
 
     # Communication related
-    maintainer: Maintainer
     pipe: Pipe
     current_step: str
 
     def __init__(
         self,
-        world: World,
         state_dict: Dict[str, Tensor],
         fed_optim: FedOptim,
         aggregator: Aggregator = None,
@@ -81,8 +79,6 @@ class API(Thread, Attach, EasyRole):
         Backend will be set as async mode by default.
         """
         super().__init__(daemon=True)
-        self.world = world
-
         # how many times for leader waiting for connections.
 
         keyboard_interrupt_handle()
@@ -96,7 +92,7 @@ class API(Thread, Attach, EasyRole):
         self.stopped: bool = False
         self.received_numbers: int = 0
         self.last_aggregate_time: float = time.time()
-        self.delivery_task_info: TaskInfo = TaskInfo()
+        self.pipe_task_info: TaskInfo = TaskInfo()
         self.task_info_list: List[TaskInfo] = []
 
         # Data handle
@@ -118,7 +114,7 @@ class API(Thread, Attach, EasyRole):
             raise NotImplementedError(
                 f'Hook type is not supported: {type(hook)}.')
 
-    def _add_hook_to_delivery(self):
+    def _add_hook_to_pipe(self):
         # register a clone of informer hook.
         # informer hook may contain some inner variable, which is not allowed
         # to share with each other.
@@ -136,23 +132,9 @@ class API(Thread, Attach, EasyRole):
         ]
 
     def build_connection(self,
-                         address: Union[Address, List[Address]] = None,
-                         address_file: str = None):
-        world = self.world
-        if address is None and address_file is None:
-            address = default_tcp_address
-
-        if self.leader and self.world.dal:
-            # NOTE: hold openfed_lock before create a dynamic address loading maintainer.
-            # otherwise, it may interrupt the process and cause error before you go into loop()
-            openfed_lock.acquire()
-        self.maintainer = Maintainer(world,
-                                     address=address, # type: ignore
-                                     address_file=address_file)  
-
-        if self.follower:
-            self.pipe = Pipe.default_delivery()
-            self._add_hook_to_delivery()
+                         federated_group_properties: FederatedGroupProperties):
+        self.pipes = init_federated_group(federated_group_properties)
+        self._add_hook_to_pipe()
 
     def update_version(self, version: int = None):
         """Update inner model version.
@@ -182,8 +164,8 @@ class API(Thread, Attach, EasyRole):
         # Push data to the other end.
         if to:
             # Assign task info to other end
-            self.delivery_task_info = task_info or self.delivery_task_info
-            self.pipe.set_task_info(self.delivery_task_info)
+            self.pipe_task_info = task_info or self.pipe_task_info
+            self.pipe.set_task_info(self.pipe_task_info)
 
             # Pack related inner state of fed_optim.
             [self.pack_state(fed_optim) for fed_optim in self.fed_optim]
@@ -200,15 +182,15 @@ class API(Thread, Attach, EasyRole):
 
         if flag and not to:
             # update task info
-            self.delivery_task_info = self.pipe.task_info
+            self.pipe_task_info = self.pipe.task_info
             if self.follower:
                 # Reset current version as downloaded version.
-                self.version = self.delivery_task_info.version  # type: ignore
+                self.version = self.pipe_task_info.version  # type: ignore
                 # As for follower, we will unpack the inner state from
                 # received tensor automatically.
                 [self.unpack_state(fed_optim) for fed_optim in self.fed_optim]
             elif self.leader:
-                if self.delivery_task_info.mode == 'train':  # type: ignore
+                if self.pipe_task_info.mode == 'train':  # type: ignore
                     if self.upload_version <= self.version:
                         # In federated learning, some device may upload the outdated model.
                         # This is not desired, we should skip this invalid model.
@@ -222,7 +204,7 @@ class API(Thread, Attach, EasyRole):
                         self.received_numbers += 1
                         packages = self.tensor_indexed_packages
                         [
-                            aggregator.step(packages, self.delivery_task_info)
+                            aggregator.step(packages, self.pipe_task_info)
                             for aggregator in self.aggregator
                         ]
                 else:
@@ -231,13 +213,13 @@ class API(Thread, Attach, EasyRole):
                     # and catch received tensor to aggregator.
                     self.received_numbers += 1
                     [
-                        aggregator.step({}, self.delivery_task_info)
+                        aggregator.step({}, self.pipe_task_info)
                         for aggregator in self.aggregator
                     ]
 
             if task_info is not None:
                 # Update the task info if necessary.
-                task_info.update(self.delivery_task_info)
+                task_info.update(self.pipe_task_info)
 
         return flag
 
@@ -277,23 +259,23 @@ class API(Thread, Attach, EasyRole):
 
         try_times = 0
         while not self.stopped and try_times < self.world.mtt:
-            with self.maintainer.pending_queue:
+            with self.federated_group.pending_queue:
                 step(at_new_episode)
                 cnt = 0
-                for pipe in Pipe.delivery_generator():
+                for pipe in Pipe.pipe_generator():
                     if self.stopped:
                         break
                     # assign pipe to self first.
                     self.pipe = pipe
 
                     # register hook to pipe if necessary.
-                    self._add_hook_to_delivery()
+                    self._add_hook_to_pipe()
 
                     cnt += 1
                     step(at_first)
                     if pipe.is_offline:
                         [
-                            step(after_destroy, Destroy.destroy_delivery(pipe))
+                            step(after_destroy, Destroy.destroy_pipe(pipe))
                             if step(before_destroy) else step(at_failed)
                         ]
                     elif pipe.is_zombie:
@@ -327,15 +309,15 @@ class API(Thread, Attach, EasyRole):
     def finish(self, auto_exit: bool = False):
         """Kill all pipe in this world as soon as possible.
         """
-        if self.maintainer:
-            # Stop maintainer first
-            self.maintainer.manual_stop()
-            self.maintainer.join()
+        if self.federated_group:
+            # Stop federated_group first
+            self.federated_group.manual_stop()
+            self.federated_group.join()
 
             # Delete the pipe in world
-            world = self.maintainer.world
-            for pipe in list(world._delivery_dict.keys()):
-                Destroy.destroy_delivery(pipe)
+            world = self.federated_group.world
+            for pipe in list(world._pipe_dict.keys()):
+                Destroy.destroy_pipe(pipe)
 
         if auto_exit and self.leader:
             exit(15)

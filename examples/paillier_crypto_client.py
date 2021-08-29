@@ -68,7 +68,7 @@ print(address)
 
 openfed_api.build_connection(address=address)
 
-print(openfed_api.maintainer)
+print(openfed_api.federated_group)
 
 import random
 import time

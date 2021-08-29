@@ -87,7 +87,7 @@ class Aggregate(Step):
                 mode="train",
             )
             # set task_info
-            leader.delivery_task_info.update(task_info)
+            leader.pipe_task_info.update(task_info)
 
             return True
         else:

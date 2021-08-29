@@ -32,17 +32,15 @@ from openfed.utils import convert_to_list
 from .exceptions import InvalidAddress
 
 Address = namedtuple('Address',
-    field_names = ['backend', 'init_method', 'world_size', 'rank', 'store', 'group_name'],
-    defaults    = ['gloo', 'env://', 2, -1, None, 'openfed'])
+    field_names = ['backend', 'init_method', 'world_size', 'rank'],
+    defaults    = ['gloo', 'env://', 2, -1])
 
 
 def build_address(
     backend    : str,
     init_method: str,
     world_size : int = 2,
-    rank       : int = -1,
-    store      : Any = None,
-    group_name : str = 'openfed') -> Address: 
+    rank       : int = -1) -> Address: 
     """
     Build a federated address to initialize federated process group.
 
@@ -126,8 +124,6 @@ def build_address(
         init_method = init_method,
         world_size  = world_size,
         rank        = rank,
-        store       = store,
-        group_name  = group_name
     )
 
 
@@ -157,11 +153,9 @@ def dump_address_to_file(file: str, address_list: List[Address]):
 default_tcp_address = Address(
     backend     = "gloo",
     init_method = 'tcp://localhost:1994',
-    group_name  = "OpenFed"
 )
 
 default_file_address = Address(
     backend     = "gloo",
     init_method = 'file:///tmp/openfed.sharedfile',
-    group_name  = "OpenFed"
 )

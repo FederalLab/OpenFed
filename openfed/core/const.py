@@ -21,9 +21,8 @@
 # SOFTWARE.
 
 from datetime import timedelta
+from threading import Lock
 
-# communication timeout
-DEFAULT_PG_TIMEOUT = timedelta(minutes=30)
 # null progress group
 NULL_PG = None
 
@@ -50,3 +49,13 @@ openfed_task_info = 'OPENFED_TASK_INFO'
 nick_name = 'NICK_NAME'
 leader_rank = 0
 follower_rank = 1
+
+# Default process group wide timeout, if applicable.
+# This only applies to the gloo and nccl backends
+# (only if NCCL_BLOCKING_WAIT or NCCL_ASYNC_ERROR_HANDLING is set to 1).
+# To make an attempt at backwards compatibility with THD, we use an
+# extraordinarily high default timeout, given that THD did not have timeouts.
+default_pg_timeout = timedelta(seconds=10)
+
+
+openfed_lock = Lock()

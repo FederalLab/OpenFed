@@ -81,7 +81,7 @@ class Dispatch(Aggregate):
 
     def after_download(self, leader, flag: bool):
         if flag:
-            task_info = leader.delivery_task_info
+            task_info = leader.pipe_task_info
             part_id = task_info.part_id
 
             # pop from running queue
@@ -121,7 +121,7 @@ class Dispatch(Aggregate):
                 mode=self.stage_name,
             )
             # set task_info
-            leader.delivery_task_info.update(task_info)
+            leader.pipe_task_info.update(task_info)
 
             return True
 

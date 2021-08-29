@@ -109,7 +109,7 @@ class OpenFedRunnerConstructor(object):
             self.optimizer.round()
 
             instances = len(data_loader.dataset)
-            openfed_api.delivery_task_info.instances = instances  # type: ignore
+            openfed_api.pipe_task_info.instances = instances  # type: ignore
 
             # upload
             if rank == 0:

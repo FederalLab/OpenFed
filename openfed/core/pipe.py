@@ -24,23 +24,22 @@ import json
 import time
 from collections import defaultdict
 from datetime import timedelta
-from threading import Lock, Thread
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Union
 
+import torch.distributed.distributed_c10d as distributed_c10d
 from bidict import bidict
-from openfed.common import (Address, ArrayDict, Attach, ConnectTimeout,
-                            DeviceOffline, InvalidAddress, InvalidStoreReading,
-                            InvalidStoreWriting, Package, TaskInfo,
-                            load_address_from_file, logger, peeper)
+from openfed.common import (Attach, ConnectTimeout, DeviceOffline,
+                            InvalidStoreReading, InvalidStoreWriting, Package,
+                            TaskInfo, logger, peeper)
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
-from openfed.hooks.cypher import Cypher, FormatChecker, DeviceAlign
+from openfed.hooks.cypher import Cypher, DeviceAlign, FormatChecker
 from openfed.utils import openfed_class_fmt, tablist, time_string
 from random_words import RandomWords
 from torch import Tensor
+from torch.distributed import ProcessGroup, Store, gather_object
+
 from .const import *
-from .functional import gather_object
-from .space import (Country, ProcessGroup, Store, World, add_mt_lock,
-                    del_mt_lock, EasyRole)
+from .federated import DistributedProperties, FederatedGroupProperties
 
 rw = RandomWords()
 
@@ -79,28 +78,9 @@ def fresh_read(func):
     return _fresh_read
 
 
-class DelayHandler(object):
-    """An empty handler to skip the upload/download function. 
-    It is useful when you don't want to upload the tensor but send
-    the task info to other hand.
+class Pipe(Attach, Package):
     """
-    def __init__(self, func):
-        self.func = func
-        self.handler = None
-        self.step_func = None
-
-    def wait(self):
-        if self.handler is None and self.step_func is None:
-            self.handler, self.step_func = self.func()
-        self.handler.wait()  # type: ignore
-        self.step_func()  # type: ignore
-
-    def is_completed(self) -> bool:
-        return self.handler.is_completed()  # type: ignore
-
-
-class Pipe(Attach, Package, EasyRole):
-    """Pipe is responsible for transfer tensors and any other short information
+    Pipe is responsible for transfer tensors and any other short information
     to the other hand. You can pack state dict of Aggregator, Pipe to Pipe. Vise via,
     You can unpack inner state from Pipe to Aggregator or Pipe.
 
@@ -113,9 +93,10 @@ class Pipe(Attach, Package, EasyRole):
         In Pipe, we will organize all data as a dictionary which using a unifed string name 
         across all nodes. Then, we use the `gather_object` method to transfer tensors. This also 
         requires that all the data transferred should be picklable.
+    
+    .. warn::
+        Make sure you do any operation about Pipe is under the context of `pipe.distributed_properties`.
     """
-    world: World
-    country: Country
     pg: ProcessGroup
     store: Store
 
@@ -140,7 +121,8 @@ class Pipe(Attach, Package, EasyRole):
         self,
         store: Store,
         pg: ProcessGroup,
-        country: Country,
+        distributed_properties: DistributedProperties,
+        federated_group_properties: FederatedGroupProperties,
     ) -> None:
         """
         Args:
@@ -153,8 +135,9 @@ class Pipe(Attach, Package, EasyRole):
         """
         self.pg = pg
         self.store = store
-        self.country = country
-        self.world = country.world
+
+        self.distributed_properties = distributed_properties
+        self.federated_group_properties = federated_group_properties
 
         # Set nick name on leader end.
         # Nick name is always assigned by leader.
@@ -205,8 +188,13 @@ class Pipe(Attach, Package, EasyRole):
         self.register_cypher(FormatChecker())
         self.register_cypher(DeviceAlign())
 
-        # Register pipe to world and peeper dictionary
-        self.world.register_delivery(self)
+    @property
+    def leader(self):
+        return self.federated_group_properties.role == leader
+
+    @property
+    def follower(self):
+        return self.federated_group_properties.role == follower
 
     @property
     def upload_version(self) -> int:
@@ -280,10 +268,10 @@ class Pipe(Attach, Package, EasyRole):
         return self.transfer(to=False)
 
     @classmethod
-    def delivery_generator(cls) -> Any:
+    def pipe_generator(cls) -> Any:
         """Return a generator to iterate over all deliveries.
         """
-        for pipe, _ in peeper.delivery_dict:  # type: ignore
+        for pipe, _ in peeper.pipe_dict:  # type: ignore
             yield [] if pipe is None else pipe
             if pipe is not None:
                 pipe.world.current_pg = pipe.pg
@@ -291,10 +279,10 @@ class Pipe(Attach, Package, EasyRole):
             return []
 
     @classmethod
-    def default_delivery(cls) -> Any:
+    def default_pipe(cls) -> Any:
         """Return the fist pipe.
         """
-        for pipe, _ in peeper.delivery_dict:  # type: ignore
+        for pipe, _ in peeper.pipe_dict:  # type: ignore
             return pipe
 
     @property
@@ -380,12 +368,6 @@ class Pipe(Attach, Package, EasyRole):
         """
         self.set(openfed_status, state)
 
-    @property
-    def alive(self) -> bool:
-        """opposite to self.offline
-        """
-        return self.world.alive and self._get_state() != offline
-
     def pulling(self):
         """Set state to pull.
         """
@@ -420,7 +402,7 @@ class Pipe(Attach, Package, EasyRole):
 
     @property
     def is_offline(self) -> bool:
-        return self.world.alive and self._get_state() == offline
+        return self._get_state() == offline
 
     @Recorder.add_to_pool
     def register_collector(self, collector: Collector):
@@ -550,25 +532,22 @@ class Pipe(Attach, Package, EasyRole):
         After received data, Follower will load `param` to Tensor by an in-place operation automatically.
         You can specify :param:auto_load_param as ``False`` to disable it.
         """
-        assert self.country._get_group_size(
+        assert distributed_c10d._get_group_size(
             self.pg) == 2, "Pipe is only designed for group with size 2"
 
-        received = [None for _ in range(self.country.get_world_size())]
+        world_size = distributed_c10d.get_world_size()
+
+        received = [None for _ in range(world_size)]
 
         rank = leader_rank if self.leader else follower_rank
         other_rank = follower_rank if self.leader else leader_rank
 
-        rank = self.country._get_global_rank(
-            self.pg, rank) if self.country.get_world_size() > 2 else rank
-        other_rank = self.country._get_global_rank(
-            self.pg,
-            other_rank) if self.country.get_world_size() > 2 else other_rank
+        rank = distributed_c10d._get_global_rank(
+            self.pg, rank) if world_size > 2 else rank
+        other_rank = distributed_c10d._get_global_rank(
+            self.pg, other_rank) if world_size > 2 else other_rank
 
-        gather_object(None,
-                      received,
-                      dst=rank,
-                      group=self.pg,
-                      country=self.country)
+        gather_object(None, received, dst=rank, group=self.pg)
 
         r_packages = [r for r in received if r is not None][0]
         assert r_packages is not None
@@ -590,12 +569,12 @@ class Pipe(Attach, Package, EasyRole):
     def push(self) -> None:
         """Push data to the other end.
         """
-        assert self.country._get_group_size(
+        assert distributed_c10d._get_group_size(
             self.pg) == 2, "Pipe is only designed for group with size 2"
 
         rank = follower_rank if self.leader else leader_rank
-        rank = self.country._get_global_rank(
-            self.pg, rank) if self.country.get_world_size() > 2 else rank
+        rank = distributed_c10d._get_global_rank(
+            self.pg, rank) if distributed_c10d.get_world_size() > 2 else rank
 
         # encrypt data
         packages = self.packages
@@ -605,11 +584,7 @@ class Pipe(Attach, Package, EasyRole):
                 for k, v in packages.items()
             }
 
-        gather_object(packages,
-                      None,
-                      dst=rank,
-                      group=self.pg,
-                      country=self.country)
+        gather_object(packages, None, dst=rank, group=self.pg)
 
     def __str__(self) -> str:
         return openfed_class_fmt.format(class_name="Pipe",
@@ -626,257 +601,10 @@ class Pipe(Attach, Package, EasyRole):
                                             ],
                                         ))
 
+    def __del__(self):
+        self.offline()
 
-class Destroy(object):
-    """Automatically destroy a process group along with its world.
-    """
-    @classmethod
-    def destroy_delivery(cls, pipe: Pipe):
-        world = pipe.world
-        pg = pipe.pg
-        country = pipe.country
+        distributed_c10d.destroy_process_group(self.pg)
 
-        if pg == world.current_pg:
-            world.current_pg = NULL_PG
-
-        pipe.offline()
-        # NOTE:
-        # world._delivery_dict only recording the pipe defined under
-        # the same world.
-        # peeper.delivery_dict contains all defined pipe under all world.
-        world.delete_delivery(pipe)
-
-        country.destroy_process_group(pg)
-
-        if country._group_count == 1:
-            # If the country contains many deliveries, the group_count should be larger than 1
-            # after delete a pipe. If equals to one, it means that only the world group is left.
-            # So, we need to delete it manually.
-            country.destroy_process_group()
-
-    @classmethod
-    def destroy_all_deliveries(cls):
-        for pipe, _ in peeper.delivery_dict:  # type: ignore
-            cls.destroy_delivery(pipe)
-
-
-class Joint(Thread, EasyRole):
-    """A thread to build connection among specified ends.
-    """
-
-    # Indicates whether the connection is established correctly.
-    build_success: bool
-
-    def __init__(self, address: Address, world: World) -> None:
-        super().__init__(daemon=True)
-
-        if address.world_size == 2:
-            # If this address is point to point access, set the correct rank for leader and follower.
-            rank = follower_rank if world.follower else leader_rank
-            address = address._replace(rank=rank)
-        if address.world_size > 10 and address.init_method.startswith("tcp"):
-            raise InvalidAddress(
-                "Use `init_method=file:///tmp/openfed.sharefile` instead when `world_size > 10`."
-            )
-
-        self.address = address
-        self.world = world
-
-        self.build_success = False
-
-        self.start()
-
-        if self.follower:
-            self.join()
-
-    def run(self):
-        # create a country
-        country = Country(self.world)
-
-        # build the connection between the country
-        handler = country.init_process_group(*self.address)
-
-        while not handler():
-            time.sleep(0.01)
-
-        # rank is always set to 0 for that we want to build a
-        # point2point connection between the master and each nodes.
-        # If the address is a point2point one, we should use the leader rank.
-        # If the address is a shared multi-node one, we take the rank 0 as the leader rank.
-        # And the re-arranged rank will be set to the ideal rank order in function call.
-        sub_pg_list = country.build_point2point_group(
-            rank=leader_rank if country.get_world_size() == 2 else 0)
-
-        # bound pg with the country
-        for sub_pg in sub_pg_list:
-            # Pipe will automatically register to the corresponding world dictionary.
-            Pipe(store=country.get_store(sub_pg), pg=sub_pg, country=country)
-        self.build_success = True
-
-
-class Maintainer(Thread, EasyRole):
-    """
-    Dynamic build the connection.
-    """
-    # unfinished address
-    # Address -> [create time, try times]
-    pending_queue: ArrayDict
-
-    # finished address
-    # Address -> [connection time, try times]
-    finished_queue: Dict[Address, Tuple[float, int]]
-
-    # discard address
-    # Address -> [discarded time, try times]
-    discard_queue: Dict[Address, Tuple[float, int]]
-
-    mt_lock: Lock
-    # The shared information among all country in this maintainer.
-    world: World
-
-    abnormal_exited: bool
-
-    stopped: bool
-
-    def __init__(self,
-                 world: World,
-                 address: Address = None,
-                 address_file: str = None,
-                 mtt: int = 5,
-                 interval_seconds: float = 10) -> None:
-        """
-            Only a single valid address is allowed in client.
-        """
-        super().__init__(daemon=True)
-        self.address_file = address_file
-        self.pending_queue = ArrayDict()
-        self.finished_queue = dict()
-        self.discard_queue = dict()
-        self.abnormal_exited = False
-        self.interval_seconds = interval_seconds
-
-        self.mtt = mtt
-        add_mt_lock(self)
-
-        self.world = world
-
-        if address is not None:
-            self.pending_queue[address] = [time.time(), 0]
-
-        self.read_address_from_file()
-
-        self.stopped = False
-
-        if self.leader:
-            self.start()
-            if not self.world.dal:
-                self.join()
-        else:
-            assert len(
-                self.pending_queue) == 1, "Only single address is allowed."
-            address, (create_time, try_times) = self.pending_queue[0]
-            Joint(address, self.world)
-            with self.pending_queue:
-                del self.pending_queue[address]
-            self.finished_queue[address] = (time.time(), try_times + 1)
-
-    def read_address_from_file(self) -> None:
-        address_list = load_address_from_file(self.address_file)
-
-        for address in address_list:
-            if address in self.pending_queue:
-                # Already in pending queue.
-                ...
-            elif address in self.finished_queue:
-                # Already in finished_queue.
-                ...
-            elif address in self.discard_queue:
-                logger.error(f"Discarded!\nInvalid address: {address}.")
-            else:
-                # add address to pending queue
-                with self.pending_queue:
-                    self.pending_queue[address] = (time.time(), 0)
-
-    def run(self) -> str:
-        joint_map = dict()  # address -> joint
-        while not self.stopped and self.world.alive:
-            # update pending list
-            self.read_address_from_file()
-            # Create new Joint for new address
-            for address, (last_time, try_times) in self.pending_queue:
-                if address not in joint_map:
-                    joint_map[address] = Joint(address, self.world)
-
-            def try_now(last_time, try_times) -> bool:
-                return False if (
-                    time.time() - last_time < self.interval_seconds
-                ) or try_times >= self.mtt else True
-
-            rm_address = []
-            for address, joint in joint_map.items():
-                last_time, try_times = self.pending_queue[address]
-                if try_now(last_time, try_times):
-                    if joint.build_success:
-                        self.finished_queue[address] = (time.time(),
-                                                        try_times + 1)
-                        with self.pending_queue:
-                            del self.pending_queue[address]
-                        rm_address.append((address))
-                    else:
-                        try_times += 1
-                        if try_times > self.mtt:
-                            # Stop and delete the joint
-                            joint._stop()
-                            rm_address.append(address)
-                            # Move to discard_queue
-                            self.discard_queue[address] = (time.time(),
-                                                           try_times)
-                            with self.pending_queue:
-                                del self.pending_queue[address]
-                            break
-                        else:
-                            with self.pending_queue:
-                                self.pending_queue[address] = (time.time(),
-                                                               try_times)
-            for address in rm_address:
-                del joint_map[address]
-
-            if self.world.dal:
-                time.sleep(self.interval_seconds)
-            else:
-                break
-
-        self.abnormal_exited = len(self.pending_queue) > 0 or len(
-            self.discard_queue) > 0
-        return f"Build connection to {len(self.finished_queue)} addresses."
-
-    def manual_stop(self, kill_world: bool = True) -> None:
-        """Kill current pipe as soon as possible.
-        """
-        if kill_world:
-            self.world.kill()
-        del_mt_lock(self)
-        self.stopped = True
-
-    def manual_joint(self, address: Address) -> None:
-        if not self.world.dal and self.leader:
-            raise RuntimeError("Dynamic Address Loading (ADL) is disabled.")
-
-        if self.leader:
-            with self.pending_queue:
-                self.pending_queue[address] = (time.time(), 0)
-        else:
-            Joint(address, self.world)
-
-    def __str__(self) -> str:
-        return openfed_class_fmt.format(
-            class_name="Maintainer",
-            description=tablist(
-                head=["Pending", "Finished", "Discard"],
-                data=[
-                    len(self.pending_queue),
-                    len(self.finished_queue),
-                    len(self.discard_queue)
-                ],
-                force_in_one_row=True,
-            ))
+        if distributed_c10d._group_count == 1:
+            distributed_c10d.destroy_process_group()
