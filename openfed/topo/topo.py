@@ -1,11 +1,11 @@
 import warnings
+from typing import List, Tuple, overload
 
-from typing import List, Optional, Tuple, overload
-
+import torch
 from openfed.common import Address
 from openfed.core import (FederatedGroupProperties, follower, follower_rank,
                           is_follower, is_leader, leader, leader_rank)
-import torch
+from openfed.utils import tablist
 
 
 class Node(object):
@@ -63,7 +63,7 @@ class FederatedGroup(object):
             return True
         if self.follower and edge.start == self.node:
             # belong to this group
-            if len(self.others) > 1:
+            if len(self.others) >= 1:
                 # this group is not empty,
                 # as a follower, we only allow it belongs to
                 # a single leader node in one federated group.
@@ -248,5 +248,24 @@ class Topology(object):
     def load(self, filename):
         self.nodes, self.edges = torch.load(filename)
 
-    def __str__(self):
-        pass
+    def is_edge(self, start, end):
+        if start == end:
+            return False
+        edge = Edge(start, end)
+        return edge in self.edges
+
+    def __str__(self) -> str:
+        head = [node.nick_name for node in self.nodes]
+        head = [r'fl\lr'] + head
+        data = []
+        for start in self.nodes:
+            items = [
+                start.nick_name,
+            ]
+            for end in self.nodes:
+                if self.is_edge(start, end):
+                    items.append('^')
+                else:
+                    items.append('.')
+            data += items
+        return tablist(head=head, data=data, force_in_one_row=True)

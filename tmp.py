@@ -1,5 +1,5 @@
-from openfed.topo import Topology, Node
 from openfed.common import build_address
+from openfed.topo import Node, Topology
 
 if __name__ == '__main__':
     topology = Topology()
@@ -12,14 +12,8 @@ if __name__ == '__main__':
     topology.add_edge(node_c, node_b)
     topology.add_edge(node_c, node_a)
 
-    federated_group_props = topology.topology_analysis(node_b)
-    for fgp in federated_group_props:
-        print(fgp)
-
-    federated_group_props = topology.topology_analysis(node_a)
-    for fgp in federated_group_props:
-        print(fgp)
-
     federated_group_props = topology.topology_analysis(node_c)
     for fgp in federated_group_props:
         print(fgp)
+
+    print(topology)
