@@ -1,11 +1,25 @@
-from openfed.topo import TopoGraph
+from openfed.topo import Topology, Node
+from openfed.common import build_address
 
 if __name__ == '__main__':
-    topo_graph = TopoGraph()
+    topology = Topology()
 
-    topo_graph.add_edge('a', 'b', '*')
-    topo_graph.add_edge('d', 'f', '*')
-    topo_graph.add_dir_edge('a', 'f', '+')
-    topo_graph.add_dir_edge('c', 'h', '+')
+    node_a = Node('a', build_address('gloo', 'tcp://127.0.0.1:1995'), 5)
+    node_b = Node('b', build_address('gloo', 'tcp://127.0.0.1:1996'), 5)
+    node_c = Node('c', build_address('gloo', 'tcp://127.0.0.1:1997'), 5)
 
-    print(topo_graph)
+    topology.add_edge(node_a, node_b)
+    topology.add_edge(node_c, node_b)
+    topology.add_edge(node_c, node_a)
+
+    federated_group_props = topology.topology_analysis(node_b)
+    for fgp in federated_group_props:
+        print(fgp)
+
+    federated_group_props = topology.topology_analysis(node_a)
+    for fgp in federated_group_props:
+        print(fgp)
+
+    federated_group_props = topology.topology_analysis(node_c)
+    for fgp in federated_group_props:
+        print(fgp)

@@ -22,11 +22,15 @@
  
 
 from openfed.common import peeper
+from typing import Any
 
 class Hooks(object):
     # nice is the order to call the hook.
     # The hook list is like [nice_0, nice24, nice_50]
     nice: int = 50
+
+    # which API has been register to.
+    api: Any
 
     def __init__(self):
         if peeper.api is not None: # type: ignore

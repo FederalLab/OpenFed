@@ -259,7 +259,6 @@ class Helper(cmd.Cmd):
 
         try:
             address = Address(backend=backend,
-                              group_name=group_name,
                               init_method=init_method,
                               world_size=world_size,
                               rank=rank)

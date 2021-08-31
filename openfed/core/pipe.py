@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import json
+from subprocess import call
 import time
 from collections import defaultdict
 from datetime import timedelta
@@ -190,11 +191,15 @@ class Pipe(Attach, Package):
 
     @property
     def leader(self):
-        return self.federated_group_properties.role == leader
+        return self.role == leader
 
     @property
     def follower(self):
-        return self.federated_group_properties.role == follower
+        return self.role == follower
+
+    @property
+    def role(self):
+        return self.federated_group_properties.role
 
     @property
     def upload_version(self) -> int:
@@ -604,7 +609,14 @@ class Pipe(Attach, Package):
     def __del__(self):
         self.offline()
 
-        distributed_c10d.destroy_process_group(self.pg)
+        def callback():
+            distributed_c10d.destroy_process_group(self.pg)
 
-        if distributed_c10d._group_count == 1:
-            distributed_c10d.destroy_process_group()
+            if distributed_c10d._group_count == 1:
+                distributed_c10d.destroy_process_group()
+
+        if self.distributed_properties.lock.locked():
+            with self.distributed_properties:
+                callback()
+        else:
+            callback()

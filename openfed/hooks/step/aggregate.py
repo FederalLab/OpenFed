@@ -74,6 +74,8 @@ class Aggregate(Step):
 
         self.kwargs = kwargs
 
+        self.reset()
+
     def before_upload(self, leader, *args, **kwargs) -> bool:
         """Rewrite the before upload method. 
         In dispatch mode, we will response to client requests by task schedules.
@@ -181,6 +183,9 @@ class Aggregate(Step):
                 self._bar_round += 1
             self.process_bar = self._process_bar()
             self.reset()
+            # If you finish a round or a phase, we will stop the loop function.
+            # you need to restart it.
+            self.api.manual_stop()
         toc = time.time()
         if timedelta(seconds=toc - self.tic) >= self.period:
             self.aggregate(leader, *args, **kwargs)
@@ -196,5 +201,5 @@ class Aggregate(Step):
         return openfed_class_fmt.format(
             class_name="AggregateStep",
             description=f"period: {self.period}, activated_parts: {self.activated_parts}, checkpoint: {self.checkpoint}\n"
-            f"max_loop_tiems: {self.max_loop_times}, max_version: {self.max_version}"
+            f"max_loop_times: {self.max_loop_times}, max_version: {self.max_version}"
         )

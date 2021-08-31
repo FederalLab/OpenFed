@@ -22,14 +22,13 @@
 
 import time
 from copy import copy
-from threading import Lock, Thread
+from threading import Lock
 from typing import Any, Dict, List, Union
 
 from torch import Tensor
 
-from openfed.common import (Address, Attach, DeviceOffline, TaskInfo,
-                            default_tcp_address, logger, peeper)
-from openfed.core import Pipe, openfed_lock, init_federated_group, FederatedGroupProperties
+from openfed.common import (Attach, DeviceOffline, TaskInfo, logger, peeper)
+from openfed.core import (FederatedGroupProperties, Pipe, init_federated_group)
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,
@@ -37,35 +36,37 @@ from openfed.hooks.step import (Step, after_destroy, after_download,
                                 at_invalid_state, at_last, at_new_episode,
                                 at_zombie, before_destroy, before_download,
                                 before_upload)
-from openfed.optim import FedOptim, Aggregator
-from openfed.utils import (convert_to_list, keyboard_interrupt_handle,
-                           openfed_class_fmt)
+from openfed.optim import Aggregator, FedOptim
+from openfed.utils import convert_to_list, openfed_class_fmt
 
 peeper.api_lock = Lock()  # type: ignore
 
 
-def device_offline_care(func):
-    """Return False instead of raise an exception when device is offline.
+def federated_group(func):
+    def _federated_group(self, *args, **kwargs):
+        def safe_call(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except DeviceOffline as e:
+                return False
 
-    .. warn::
-        This decorator is unable to catch the exception raised by `assert`.
-    """
-    def _device_offline_care(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except DeviceOffline as e:
-            logger.error(e)
-            return False
+        if self.pipe.distributed_properties.lock.locked():
+            return safe_call(self, *args, **kwargs)
+        else:
+            # If pipe lock is unlocked, we need to lock it.
+            with self.pipe.distributed_properties:
+                return safe_call(self, *args, **kwargs)
 
-    return _device_offline_care
+    return _federated_group
 
 
-class API(Thread, Attach):
+class API(Attach):
     """Provide a unified api for leader and role.
     """
 
     # Communication related
     pipe: Pipe
+    pipes: List[Pipe]
     current_step: str
 
     def __init__(
@@ -78,10 +79,8 @@ class API(Thread, Attach):
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
         """
-        super().__init__(daemon=True)
+        super().__init__()
         # how many times for leader waiting for connections.
-
-        keyboard_interrupt_handle()
 
         # Set default value
         self.version: int = 0
@@ -100,9 +99,13 @@ class API(Thread, Attach):
         self.aggregator: List[Aggregator] = convert_to_list(aggregator)
         self.fed_optim: List[FedOptim] = convert_to_list(fed_optim)
 
+        self.pipes = []
+
     def register_everything(self, hook: Union[Step, Collector, Cypher]):
         """register hook to the corresponding class based on different hook types.
         """
+        hook.api = self
+
         if isinstance(hook, Step):
             """Register the step function to step possition call."""
             self.register_hook(hook)
@@ -133,7 +136,7 @@ class API(Thread, Attach):
 
     def build_connection(self,
                          federated_group_properties: FederatedGroupProperties):
-        self.pipes = init_federated_group(federated_group_properties)
+        self.pipes += init_federated_group(federated_group_properties)
         self._add_hook_to_pipe()
 
     def update_version(self, version: int = None):
@@ -141,7 +144,7 @@ class API(Thread, Attach):
         """
         self.version = version if version is not None else self.version + 1
 
-    @device_offline_care
+    @federated_group
     def transfer(self, to: bool = False, task_info: TaskInfo = None) -> bool:
         r"""Transfer inner state to other ends.
         Args:
@@ -223,101 +226,87 @@ class API(Thread, Attach):
 
         return flag
 
-    def run(self):
-        """
-            Use self.run() to start this loop in the main thread.
-            Use self.start() to start this loop in the thread.
-        """
-        # NOTE: release openfed_lock here.
-        if self.world.dal:
-            openfed_lock.release()
-
+    def step(self, *args, **kwargs):
         if self.follower:
-            return None
+            # upload and download
+            init = kwargs.pop('init', False)
+            task_info = kwargs.pop('task_info', None)
 
-        def step(step_name: str, *args, **kwargs) -> Union[None, bool]:
-            """
-                You can chain the same type hook together.
-                Hook will return a bool value or None.
-                If bool is returned, we will use `and` to reduce them.
-                If None is returned, we will return `None` directly.
-                You should directly store other variables in self object.
-            """
-            self.current_step = step_name
-            output = [
-                hook(self, step_name, *args, **kwargs)
-                for hook in self.hook_list
-            ]
+            if not init:
+                # upload
+                self.transfer(to=True, task_info=task_info)
 
-            # reduce output
-            if False in output:
-                return False
-            elif True in output:
-                return True
-            else:
-                return None
+            # Download
+            self.transfer(to=False, task_info=task_info)
+        else:
 
-        try_times = 0
-        while not self.stopped and try_times < self.world.mtt:
-            with self.federated_group.pending_queue:
+            self.stopped = False
+
+            def step(step_name: str, *args, **kwargs) -> Union[None, bool]:
+                """
+                    You can chain the same type hook together.
+                    Hook will return a bool value or None.
+                    If bool is returned, we will use `and` to reduce them.
+                    If None is returned, we will return `None` directly.
+                    You should directly store other variables in self object.
+                """
+                self.current_step = step_name
+                output = [
+                    hook(self, step_name, *args, **kwargs)
+                    for hook in self.hook_list
+                ]
+
+                # reduce output
+                if False in output:
+                    return False
+                elif True in output:
+                    return True
+                else:
+                    return None
+
+            while not self.stopped and len(self.pipes) > 0:
                 step(at_new_episode)
                 cnt = 0
-                for pipe in Pipe.pipe_generator():
+                for i, pipe in enumerate(self.pipes):
                     if self.stopped:
                         break
                     # assign pipe to self first.
                     self.pipe = pipe
 
-                    # register hook to pipe if necessary.
-                    self._add_hook_to_pipe()
-
                     cnt += 1
                     step(at_first)
                     if pipe.is_offline:
-                        [
-                            step(after_destroy, Destroy.destroy_pipe(pipe))
-                            if step(before_destroy) else step(at_failed)
-                        ]
+                        step(before_destroy)
+                        del self.pipes[i]
+                        step(after_destroy, True)
                     elif pipe.is_zombie:
                         step(at_zombie)
                     elif pipe.is_pushing:
                         # Follower want to push data to leader, we need to download.
-                        [
+                        if step(before_download):
                             step(after_download, self.transfer(to=False))
-                            if step(before_download) else step(at_failed)
-                        ]
+                        else:
+                            step(at_failed)
                     elif pipe.is_pulling:
                         # Follower want to pull data from leader, we need to upload
-                        [
+                        if step(before_upload):
                             step(after_upload, self.transfer(to=True))
-                            if step(before_upload) else step(at_failed)
-                        ]
+                        else:
+                            step(at_failed)
                     else:
                         step(at_invalid_state)
                     # update regularly.
                     step(at_last)
-                    # sleep a short time is very import!
-                    # otherwise, some states may be rewrite.
-                    time.sleep(0.1)
-            if cnt == 0:
-                time.sleep(5.0)
-                try_times += 1
-            else:
+
+                # Sleeping a while to wait the state being stable.
                 time.sleep(0.1)
-                try_times = 0
 
     def finish(self, auto_exit: bool = False):
         """Kill all pipe in this world as soon as possible.
         """
-        if self.federated_group:
-            # Stop federated_group first
-            self.federated_group.manual_stop()
-            self.federated_group.join()
+        self.manual_stop()
 
-            # Delete the pipe in world
-            world = self.federated_group.world
-            for pipe in list(world._pipe_dict.keys()):
-                Destroy.destroy_pipe(pipe)
+        self.pipes.clear()
 
         if auto_exit and self.leader:
             exit(15)
@@ -348,6 +337,21 @@ class API(Thread, Attach):
     @property
     def download_version(self):
         return self.pipe.download_version
+
+    @property
+    def leader(self):
+        return self.pipe.leader
+
+    @property
+    def follower(self):
+        return self.pipe.follower
+
+    @property
+    def role(self):
+        return self.pipe.role
+
+    def __del__(self):
+        self.finish(auto_exit=False)
 
     def __str__(self):
         return openfed_class_fmt.format(class_name="OpenFedAPI",

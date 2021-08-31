@@ -2,6 +2,7 @@ from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch.distributed.distributed_c10d as distributed_c10d
+from openfed.common import Address
 
 from .const import default_pg_timeout, follower_rank, leader_rank
 
@@ -129,5 +130,15 @@ def joint_federated_group(
 
 class FederatedGroupProperties(object):
     role: str
+    nick_name: str
+    address: Address
     mtt: int
-    address_list: List
+
+    def __init__(self, role: str, nick_name: str, address: Address, mtt: int):
+        self.role = role
+        self.nick_name = nick_name
+        self.address = address
+        self.mtt = mtt
+
+    def __str__(self):
+        return f"{self.role}, {self.nick_name}, mtt={self.mtt}\n" + str(self.address)

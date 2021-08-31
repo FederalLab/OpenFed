@@ -6,7 +6,6 @@ import openfed.data as data
 import openfed.optim as optim
 import openfed.topo as topo
 import openfed.hooks as hooks
-import openfed.third_party as third_party
 import openfed.tools as tools
 
 from .api import API

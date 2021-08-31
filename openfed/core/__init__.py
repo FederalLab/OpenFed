@@ -1,7 +1,8 @@
+import warnings
+
 from .const import *
 from .federated import *
 from .pipe import *
-import warnings
 
 del pipe
 del const
@@ -12,7 +13,7 @@ def init_federated_group(federated_group_properties):
     pipe_list = []
     finished = []
 
-    address_list = federated_group_properties.address_list
+    address_list = [federated_group_properties.address, ]
     distributed_properties_list = [
         DistributedProperties(openfed_lock) for _ in range(len(address_list))
     ]
