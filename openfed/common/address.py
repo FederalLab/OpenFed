@@ -25,6 +25,7 @@ import json
 import os
 import warnings
 from collections import namedtuple
+from turtle import back
 from typing import Any, List, Union
 
 from openfed.utils import convert_to_list
@@ -158,4 +159,9 @@ default_tcp_address = Address(
 default_file_address = Address(
     backend     = "gloo",
     init_method = 'file:///tmp/openfed.sharedfile',
+)
+
+empty_address = Address(
+    backend = 'null',
+    init_method = 'null',
 )

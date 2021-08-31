@@ -39,16 +39,23 @@ fed_optim = build_fed_optim(optim)
 
 print(fed_optim)
 
-from openfed.core import World, follower
 
-world = World(role=follower, dal=False, mtt=5)
+import openfed
 
-print(world)
+server_node = openfed.topo.Node('server', openfed.default_tcp_address, mtt=5)
+client = openfed.topo.Node('client', openfed.empty_address, mtt=5)
+
+topology = openfed.topo.Topology()
+topology.add_edge(client, server_node)
+
+federated_group_props = topology.topology_analysis(client)[0]
+
+print(federated_group_props)
+
 
 from openfed import API
 
 openfed_api = API(
-    world=world,
     state_dict=network.state_dict(keep_vars=True),
     fed_optim=fed_optim)
 
@@ -60,28 +67,16 @@ with openfed_api:
     paillier_crypto = PaillierCrypto(public_key)
     print(paillier_crypto)
 
-from openfed.common import default_tcp_address
-
-address = default_tcp_address
-
-print(address)
-
-openfed_api.build_connection(address=address)
-
-print(openfed_api.federated_group)
+openfed_api.build_connection(federated_group_props)
 
 import random
 import time
 
 version = 0
 for outter in range(5):
-    success = True
     for inner in range(2):
         openfed_api.update_version(version)
-        if not openfed_api.transfer(to=False):
-           print("Download failed.")
-           success = False
-           break
+        openfed_api.step(upload=False)
         
         part_id = random.randint(0, 9)
         print(f"Select part_id={part_id}")
@@ -104,17 +99,11 @@ for outter in range(5):
         duration = toc-tic
 
         fed_optim.round()
-        openfed_api.update_version(version+1)
-        
-        if not openfed_api.transfer(to=True):
-            print("Upload failed.")
-            success = False
-            break
-        else:
-            fed_optim.clear_buffer()
+
+        openfed_api.update_version(version + 1)
+        openfed_api.step(download=False)
+        fed_optim.clear_buffer()
         
         print(f"Outter: {outter}, Inner: {inner}, version: {version}, loss: {loss:.2f}, duration: {duration:.2f}")
-    if not success:
-        break
     version += 1
 print("Finished.")

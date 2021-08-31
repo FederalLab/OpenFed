@@ -27,8 +27,8 @@ from typing import Any, Dict, List, Union
 
 from torch import Tensor
 
-from openfed.common import (Attach, DeviceOffline, TaskInfo, logger, peeper)
-from openfed.core import (FederatedGroupProperties, Pipe, init_federated_group)
+from openfed.common import Attach, DeviceOffline, TaskInfo, logger, peeper
+from openfed.core import FederatedGroupProperties, Pipe, init_federated_group
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,
@@ -69,12 +69,10 @@ class API(Attach):
     pipes: List[Pipe]
     current_step: str
 
-    def __init__(
-        self,
-        state_dict: Dict[str, Tensor],
-        fed_optim: FedOptim,
-        aggregator: Aggregator = None,
-    ):
+    def __init__(self,
+                 state_dict: Dict[str, Tensor],
+                 fed_optim: FedOptim,
+                 aggregator: Aggregator = None):
         """Whether act as a role.
         Frontend is always in sync mode, which will ease the coding burden.
         Backend will be set as async mode by default.
@@ -137,7 +135,9 @@ class API(Attach):
     def build_connection(self,
                          federated_group_properties: FederatedGroupProperties):
         self.pipes += init_federated_group(federated_group_properties)
-        self._add_hook_to_pipe()
+        for pipe in self.pipes:
+            self.pipe = pipe
+            self._add_hook_to_pipe()
 
     def update_version(self, version: int = None):
         """Update inner model version.
@@ -229,15 +229,15 @@ class API(Attach):
     def step(self, *args, **kwargs):
         if self.follower:
             # upload and download
-            init = kwargs.pop('init', False)
+            download = kwargs.pop('download', True)
+            upload = kwargs.pop('upload', True)
             task_info = kwargs.pop('task_info', None)
 
-            if not init:
-                # upload
+            if upload:
                 self.transfer(to=True, task_info=task_info)
 
-            # Download
-            self.transfer(to=False, task_info=task_info)
+            if download:
+                self.transfer(to=False, task_info=task_info)
         else:
 
             self.stopped = False
@@ -352,10 +352,6 @@ class API(Attach):
 
     def __del__(self):
         self.finish(auto_exit=False)
-
-    def __str__(self):
-        return openfed_class_fmt.format(class_name="OpenFedAPI",
-                                        description=f"ROLE: {self.role}")
 
     def __enter__(self):
         peeper.api_lock.acquire()  # type: ignore

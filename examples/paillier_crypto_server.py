@@ -40,23 +40,25 @@ fed_optim = build_fed_optim(optim)
 
 print(fed_optim)
 
+import openfed
 
-from openfed.core import World, leader
+server_node = openfed.topo.Node('server', openfed.default_tcp_address, mtt=5)
+client = openfed.topo.Node('client', openfed.empty_address, mtt=5)
 
-world = World(role=leader, dal=False, mtt=5)
+topology = openfed.topo.Topology()
+topology.add_edge(client, server_node)
 
-print(world)
+federated_group_props = topology.topology_analysis(server_node)[0]
 
+print(federated_group_props)
 
 from openfed import API
 openfed_api = API(
-    world=world,
     state_dict=network.state_dict(keep_vars=True),
     fed_optim=fed_optim,
     aggregator=aggregator)
 
 print(openfed_api)
-
 
 
 from openfed.hooks import Aggregate
@@ -68,19 +70,9 @@ with openfed_api:
     )
     print(aggregate)
 
-from openfed.common import default_tcp_address
 
-address = default_tcp_address
-
-print(address)
-
-import time
-openfed_api.build_connection(address=address)
-
-print(openfed_api.federated_group)
-
-
-openfed_api.run()
+for r in range(5):
+    openfed_api.step()
 
 openfed_api.finish()
 

@@ -26,7 +26,7 @@ def init_federated_group(federated_group_properties):
                 with dist_prop:
                     try:
                         sub_pg_list = joint_federated_group(*address)
-                    except TimeoutError as e:
+                    except RuntimeError as e:
                         warnings.warn(str(e))
                         continue
                     # build pipe

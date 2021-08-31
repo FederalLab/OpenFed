@@ -16,27 +16,15 @@
             "name": "Python: client",
             "type": "python",
             "request": "launch",
-            "program": "tests/test.py",
+            "program": "examples/paillier_crypto_client.py",
             "console": "integratedTerminal",
-            "args": [
-                "--fed_rank",
-                "1",
-                "--fed_world_size",
-                "2",
-            ]
         },
         {
             "name": "Python: server",
             "type": "python",
             "request": "launch",
-            "program": "tests/test.py",
+            "program": "examples/paillier_crypto_server.py",
             "console": "integratedTerminal",
-            "args": [
-                "--fed_rank",
-                "0",
-                "--fed_world_size",
-                "2",
-            ]
         },
     ]
 }

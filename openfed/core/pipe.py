@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 import json
-from subprocess import call
 import time
 from collections import defaultdict
 from datetime import timedelta
@@ -35,17 +34,14 @@ from openfed.common import (Attach, ConnectTimeout, DeviceOffline,
 from openfed.hooks.collector import Collector, GPUInfo, Recorder, SystemInfo
 from openfed.hooks.cypher import Cypher, DeviceAlign, FormatChecker
 from openfed.utils import openfed_class_fmt, tablist, time_string
-from random_words import RandomWords
 from torch import Tensor
 from torch.distributed import ProcessGroup, Store, gather_object
 
 from .const import *
 from .federated import DistributedProperties, FederatedGroupProperties
 
-rw = RandomWords()
 
-
-def safe_store_set(store: Store, key: str, value: Dict) -> bool:
+def safe_store_set(store: Store, key: str, value: Any) -> bool:
     """Write key to store safely.
     """
     jsonstr = json.dumps(value)
@@ -145,10 +141,10 @@ class Pipe(Attach, Package):
         # With this nick name, we can have a better identification
         # of each follower.
         # warn: the nick name may be not unique.
-        if self.leader:
+        if self.follower:
             safe_store_set(store=self.store,
                            key=nick_name,
-                           value=rw.random_word())
+                           value=self.federated_group_properties.nick_name)
         # Record the nick name.
         # So that we can avoid to read it from store every time.
         self.nick_name = safe_store_get(store=self.store, key=nick_name)
