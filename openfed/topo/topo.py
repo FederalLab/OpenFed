@@ -3,7 +3,7 @@ from typing import List, Tuple, overload
 
 import torch
 from openfed.common import Address
-from openfed.core import (FederatedGroupProperties, follower, follower_rank,
+from openfed.core import (FederatedProperties, follower, follower_rank,
                           is_follower, is_leader, leader, leader_rank)
 from openfed.utils import tablist
 
@@ -76,8 +76,8 @@ class FederatedGroup(object):
         return False
 
     @property
-    def federated_group_properties(self) -> FederatedGroupProperties:
-        """The address in FederatedGroupProperties needs be rectified in `Topology`.
+    def federated_group_properties(self) -> FederatedProperties:
+        """The address in FederatedProperties needs be rectified in `Topology`.
         """
         role = self.role
         nick_name = self.node.nick_name
@@ -89,7 +89,7 @@ class FederatedGroup(object):
             address = self.others[0].address
             mtt = self.others[0].mtt
 
-        return FederatedGroupProperties(role, nick_name, address, mtt)
+        return FederatedProperties(role, nick_name, address, mtt)
 
 
 class Topology(object):
@@ -189,7 +189,7 @@ class Topology(object):
                     follower_group.append(fg)
         return leader_group, follower_group
 
-    def topology_analysis(self, node: Node) -> List[FederatedGroupProperties]:
+    def topology_analysis(self, node: Node) -> List[FederatedProperties]:
 
         leader_group, follower_group = self.build_federated_group(node)
 

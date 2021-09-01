@@ -1,16 +1,17 @@
 # Copyright (c) FederalLab. All rights reserved.
 import json
 import time
+import warnings
 from datetime import timedelta
 from typing import Any, Dict, Optional
-import warnings
+
 import torch.distributed.distributed_c10d as distributed_c10d
-from openfed.common import (DeviceOffline, TaskInfo)
+from openfed.common import DeviceOffline, TaskInfo
 from openfed.utils import openfed_class_fmt, tablist, time_string
 from torch.distributed import ProcessGroup, Store, gather_object
 
 from .const import *
-from .federated import DistributedProperties, FederatedGroupProperties
+from .federated import DistributedProperties, FederatedProperties
 
 
 def set_store_value(store, key, value) -> bool:
@@ -39,7 +40,7 @@ class Pipe():
     store: Store
     pg: ProcessGroup
     dist_props: DistributedProperties
-    fed_props: FederatedGroupProperties
+    fed_props: FederatedProperties
 
     _u_backup_info: Dict[str, Any]
     _i_backup_info: Dict[str, Any]
@@ -66,7 +67,7 @@ class Pipe():
         return self._u_backup_info[key] if key else self._u_backup_info
 
     def _write(self, info: Dict) -> bool:
-        info['timestep'] = time_string()
+        info['timestep'] = time.time()
         return set_store_value(self.store, self._i_key, info)
 
     def _update(self, info: Dict) -> bool:
@@ -116,7 +117,7 @@ class Pipe():
         store: Store,
         pg: ProcessGroup,
         dist_props: DistributedProperties,
-        fed_props: FederatedGroupProperties,
+        fed_props: FederatedProperties,
     ):
         self.store = store
         self.pg = pg
@@ -125,16 +126,17 @@ class Pipe():
 
         set_store_value(store=self.store,
                         key=self._i_key,
-                        value=dict(
-                            openfed_status=zombie,
-                            openfed_task_info=TaskInfo(),
-                        ))
-
-        self.set(nick_name, self.fed_props.nick_name)
+                        value={
+                            openfed_status: zombie,
+                            openfed_task_info: TaskInfo(),
+                            nick_name: self.fed_props.nick_name,
+                            "upload_version": -1,
+                            "download_version": -1,
+                        })
 
         self._i_backup_info = get_store_value(self.store, self._i_key)
         self._u_backup_info = get_store_value(self.store, self._u_key)
-
+        
         self.read_successfully = True
 
     def set_upload_version(self, version):
@@ -265,13 +267,13 @@ class Pipe():
             if distributed_c10d._group_count == 1:
                 distributed_c10d.destroy_process_group()
 
-        if self.dist_props.lock.locked():
+        if not self.dist_props.lock.locked():
             with self.dist_props:
                 callback()
         else:
             callback()
 
-    def __str__(self):
+    def __repr__(self):
         head = ['nick name', 'received version', 'request version', 'status']
         data = [
             self.nick_name, self.received_version, self.request_version,

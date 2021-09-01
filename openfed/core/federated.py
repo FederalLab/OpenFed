@@ -3,20 +3,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch.distributed.distributed_c10d as distributed_c10d
 from openfed.common import Address
+from openfed.utils import openfed_class_fmt, tablist
 
 from .const import default_pg_timeout, follower_rank, leader_rank
 
 
 class DistributedProperties(object):
     # Use to save the default distributed probabilities
-    _default_WORLD: Optional[distributed_c10d.ProcessGroup]
-    _default_pg_map: Dict[distributed_c10d.ProcessGroup,
-                          Tuple[str, Optional[distributed_c10d.Store]]]
-    _default_pg_names: Dict[distributed_c10d.ProcessGroup, str]
-    _default_pg_group_ranks: Dict[distributed_c10d.ProcessGroup, Dict[int,
-                                                                      int]]
-    _default_pg_init_method: Any
-    _default_group_count: int
+    _default_WORLD = distributed_c10d.group.WORLD
+    _default_pg_map = distributed_c10d._pg_map
+    _default_pg_names = distributed_c10d._pg_names
+    _default_pg_group_ranks = distributed_c10d._pg_group_ranks
+    _default_pg_init_method = distributed_c10d._default_pg_init_method
+    _default_group_count = distributed_c10d._group_count
 
     # Use to save current distributed probabilities
     _WORLD: Optional[distributed_c10d.ProcessGroup] = None
@@ -41,47 +40,52 @@ class DistributedProperties(object):
         self.lock.acquire()
 
         # save default value and load individual value
-        self._default_WORLD = distributed_c10d.group.WORLD
+        DistributedProperties._default_WORLD = distributed_c10d.group.WORLD
         distributed_c10d.group.WORLD = self._WORLD
         distributed_c10d.GroupMember.WORLD = self._WORLD
 
-        self._default_pg_map = distributed_c10d._pg_map
+        DistributedProperties._default_pg_map = distributed_c10d._pg_map
         distributed_c10d._pg_map = self._pg_map
 
-        self._default_pg_names = distributed_c10d._pg_names
+        DistributedProperties._default_pg_names = distributed_c10d._pg_names
         distributed_c10d._pg_names = self._pg_names
 
-        self._default_pg_group_ranks = distributed_c10d._pg_group_ranks
+        DistributedProperties._default_pg_group_ranks = distributed_c10d._pg_group_ranks
         distributed_c10d._pg_group_ranks = self._pg_group_ranks
 
-        self._default_pg_init_method = distributed_c10d._default_pg_init_method
+        DistributedProperties._default_pg_init_method = distributed_c10d._default_pg_init_method
         distributed_c10d._default_pg_init_method = self._pg_init_method
 
-        self._default_group_count = distributed_c10d._group_count
+        DistributedProperties._default_group_count = distributed_c10d._group_count
         distributed_c10d._group_count = self._group_count
 
     def __exit__(self, exc_type, exc_value, trace):
         # save individual value and load default value
         self._WORLD = distributed_c10d.group.WORLD
-        distributed_c10d.group.WORLD = self._default_WORLD
-        distributed_c10d.GroupMember.WORLD = self._default_WORLD
+        distributed_c10d.group.WORLD = DistributedProperties._default_WORLD
+        distributed_c10d.GroupMember.WORLD = DistributedProperties._default_WORLD
 
         self._pg_map = distributed_c10d._pg_map
-        distributed_c10d._pg_map = self._default_pg_map
+        distributed_c10d._pg_map = DistributedProperties._default_pg_map
 
         self._pg_names = distributed_c10d._pg_names
-        distributed_c10d._pg_names = self._default_pg_names
+        distributed_c10d._pg_names = DistributedProperties._default_pg_names
 
         self._pg_group_ranks = distributed_c10d._pg_group_ranks
-        distributed_c10d._pg_group_ranks = self._default_pg_group_ranks
+        distributed_c10d._pg_group_ranks = DistributedProperties._default_pg_group_ranks
 
         self._pg_init_method = distributed_c10d._default_pg_init_method
-        distributed_c10d._default_pg_init_method = self._default_pg_init_method
+        distributed_c10d._default_pg_init_method = DistributedProperties._default_pg_init_method
 
         self._group_count = distributed_c10d._group_count
-        distributed_c10d._group_count = self._default_group_count
+        distributed_c10d._group_count = DistributedProperties._default_group_count
 
         self.lock.release()
+
+    def __repr__(self):
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__,
+            description=f"GroupCount: {self._group_count}")
 
 
 def build_point2point_group(
@@ -128,17 +132,27 @@ def joint_federated_group(
     return sub_pg_list
 
 
-class FederatedGroupProperties(object):
+class FederatedProperties(object):
     role: str
     nick_name: str
     address: Address
     mtt: int
 
-    def __init__(self, role: str, nick_name: str, address: Address, mtt: int):
+    def __init__(self,
+                 role: str,
+                 nick_name: str,
+                 address: Address,
+                 mtt: int = 5):
         self.role = role
         self.nick_name = nick_name
         self.address = address
         self.mtt = mtt
 
-    def __str__(self):
-        return f"{self.role}, {self.nick_name}, mtt={self.mtt}\n" + str(self.address)
+    def __repr__(self):
+        head = ['role', 'nick_name', 'mtt']
+        data = [self.role, self.nick_name, self.mtt]
+        description = tablist(head, data, force_in_one_row=True)
+        other_description = str(self.address)
+        return openfed_class_fmt.format(class_name=self.__class__.__name__,
+                                        description=description + "\n" +
+                                        other_description)

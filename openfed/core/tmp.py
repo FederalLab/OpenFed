@@ -38,7 +38,7 @@ from torch import Tensor
 from torch.distributed import ProcessGroup, Store, gather_object
 
 from .const import *
-from .federated import DistributedProperties, FederatedGroupProperties
+from .federated import DistributedProperties, FederatedProperties
 
 
 def safe_store_set(store: Store, key: str, value: Any) -> bool:
@@ -119,7 +119,7 @@ class Pipe(Attach, Package):
         store: Store,
         pg: ProcessGroup,
         distributed_properties: DistributedProperties,
-        federated_group_properties: FederatedGroupProperties,
+        federated_group_properties: FederatedProperties,
     ) -> None:
         """
         Args:

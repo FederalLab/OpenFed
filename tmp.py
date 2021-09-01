@@ -1,19 +1,10 @@
-from openfed.common import build_address
-from openfed.topo import Node, Topology
+from openfed.common import Address
+from openfed.core import *
 
-if __name__ == '__main__':
-    topology = Topology()
+fed_props = FederatedProperties(leader, 'my_leader', Address(rank=0))
+# fed_props = FederatedProperties(follower, 'my_follower', Address(rank=1))
 
-    node_a = Node('a', build_address('gloo', 'tcp://127.0.0.1:1995'), 5)
-    node_b = Node('b', build_address('gloo', 'tcp://127.0.0.1:1996'), 5)
-    node_c = Node('c', build_address('gloo', 'tcp://127.0.0.1:1997'), 5)
+pipe = init_federated_group(fed_props)
 
-    topology.add_edge(node_a, node_b)
-    topology.add_edge(node_c, node_b)
-    topology.add_edge(node_c, node_a)
-
-    federated_group_props = topology.topology_analysis(node_c)
-    for fgp in federated_group_props:
-        print(fgp)
-
-    print(topology)
+print(len(pipe))
+print(pipe[0])

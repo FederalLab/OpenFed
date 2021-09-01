@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Union
 from torch import Tensor
 
 from openfed.common import Attach, DeviceOffline, TaskInfo, logger, peeper
-from openfed.core import FederatedGroupProperties, Pipe, init_federated_group
+from openfed.core import FederatedProperties, Pipe, init_federated_group
 from openfed.hooks.collector import Collector
 from openfed.hooks.cypher import Cypher
 from openfed.hooks.step import (Step, after_destroy, after_download,
@@ -133,7 +133,7 @@ class API(Attach):
         ]
 
     def build_connection(self,
-                         federated_group_properties: FederatedGroupProperties):
+                         federated_group_properties: FederatedProperties):
         self.pipes += init_federated_group(federated_group_properties)
         for pipe in self.pipes:
             self.pipe = pipe

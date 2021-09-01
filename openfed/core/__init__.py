@@ -1,5 +1,3 @@
-import warnings
-
 from .const import *
 from .federated import *
 from .pipe import *
@@ -9,38 +7,31 @@ del const
 del federated
 
 
-def init_federated_group(federated_group_properties):
-    pipe_list = []
-    finished = []
-
-    address_list = [federated_group_properties.address, ]
-    distributed_properties_list = [
-        DistributedProperties(openfed_lock) for _ in range(len(address_list))
-    ]
+def init_federated_group(fed_props: FederatedProperties) -> List[Pipe]:
+    dist_props = DistributedProperties(openfed_lock)
     tt = 0
-
-    while tt < federated_group_properties.mtt:
-        for address, dist_prop in zip(address_list,
-                                      distributed_properties_list):
-            if address not in finished:
-                with dist_prop:
-                    try:
-                        sub_pg_list = joint_federated_group(*address)
-                    except RuntimeError as e:
-                        warnings.warn(str(e))
-                        continue
-                    # build pipe
-                    for sub_pg in sub_pg_list:
-                        store = distributed_c10d._pg_map[sub_pg][1]
-                        pipe = Pipe(
-                            store,  # type: ignore
-                            pg=sub_pg,
-                            distributed_properties=dist_prop,
-                            federated_group_properties=
-                            federated_group_properties)
-                        pipe_list.append(pipe)
-                    finished.append(address)
-        tt += 1
-        if len(finished) == len(address_list):
+    pipe_list = []
+    while tt < fed_props.mtt:
+        with dist_props:
+            address = fed_props.address
+            try:
+                sub_pg_list = joint_federated_group(
+                    backend=address.backend,
+                    init_method=address.init_method,
+                    world_size=address.world_size,
+                    rank=address.rank,
+                )
+            except RuntimeError as e:
+                tt += 1
+                continue
+            # build pipe
+            for sub_pg in sub_pg_list:
+                store = distributed_c10d._pg_map[sub_pg][1]
+                pipe = Pipe(
+                    store,  # type: ignore
+                    pg=sub_pg,
+                    dist_props=dist_props,
+                    fed_props=fed_props)
+                pipe_list.append(pipe)
             break
     return pipe_list
