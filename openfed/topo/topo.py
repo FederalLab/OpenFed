@@ -1,3 +1,4 @@
+# Copyright (c) FederalLab. All rights reserved.
 import warnings
 from typing import List, Tuple, overload
 
@@ -5,17 +6,21 @@ import torch
 from openfed.common import Address
 from openfed.core import (FederatedProperties, follower, follower_rank,
                           is_follower, is_leader, leader, leader_rank)
-from openfed.utils import tablist
+from openfed.utils import openfed_class_fmt, tablist
 
 
 class Node(object):
-    def __init__(self, nick_name: str, address: Address, mtt: int):
+    def __init__(self, nick_name: str, address: Address):
         self.nick_name = nick_name
         self.address = address
-        self.mtt = mtt
 
     def __eq__(self, other):
         return self.nick_name == other.nick_name and self.address == other.address
+
+    def __repr__(self):
+        description = "nick name: " + self.nick_name + '\n' + str(self.address)
+        return openfed_class_fmt.format(class_name=self.__class__.__name__,
+                                        description=description)
 
 
 class Edge(object):
@@ -32,6 +37,11 @@ class Edge(object):
 
     def __eq__(self, other):
         return self.start == other.start and self.end == other.end
+
+    def __repr__(self):
+        description = f"|{self.start.nick_name} -> {self.end.nick_name}."
+        return openfed_class_fmt.format(class_name=self.__class__.__name__,
+                                        description=description)
 
 
 class FederatedGroup(object):
@@ -84,12 +94,9 @@ class FederatedGroup(object):
 
         if self.leader:
             address = self.node.address
-            mtt = self.node.mtt
         else:
             address = self.others[0].address
-            mtt = self.others[0].mtt
-
-        return FederatedProperties(role, nick_name, address, mtt)
+        return FederatedProperties(role, nick_name, address)
 
 
 class Topology(object):
@@ -108,7 +115,7 @@ class Topology(object):
         """
 
     @overload
-    def add_node(self, nick_name, address, mtt):
+    def add_node(self, nick_name, address):
         """Build a node and add it to topology
         """
 
@@ -189,7 +196,7 @@ class Topology(object):
                     follower_group.append(fg)
         return leader_group, follower_group
 
-    def topology_analysis(self, node: Node) -> List[FederatedProperties]:
+    def analysis(self, node: Node) -> List[FederatedProperties]:
 
         leader_group, follower_group = self.build_federated_group(node)
 
@@ -254,7 +261,7 @@ class Topology(object):
         edge = Edge(start, end)
         return edge in self.edges
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         head = [node.nick_name for node in self.nodes]
         head = [r'fl\lr'] + head
         data = []

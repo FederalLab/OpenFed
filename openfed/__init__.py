@@ -1,13 +1,15 @@
+# Copyright (c) FederalLab. All rights reserved.
 # Refer [here](https://semver.org/) to learn more about Semantic Versioning Specification.
 __version__ = "0.0.0"
 
-import openfed.core as core
-import openfed.data as data
-import openfed.optim as optim
-import openfed.topo as topo
-import openfed.hooks as hooks
-import openfed.tools as tools
+from openfed import agg as agg
+from openfed import core as core
+from openfed import data as data
+from openfed import hooks as hooks
+from openfed import maintainer as maintainer
+from openfed import optim as optim
+from openfed import reduce as reduce
+from openfed import topo as topo
 
-from .api import API
 from .common import *
 from .utils import *

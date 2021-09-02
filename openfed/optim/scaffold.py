@@ -1,60 +1,20 @@
-# MIT License
-
-# Copyright (c) 2021 FederalLab
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-from typing import List, Callable, Union
+# Copyright (c) FederalLab. All rights reserved.
+from typing import Callable, Union
 
 import torch
-from openfed.utils import convert_to_list
 import torch.nn.functional as F
+from openfed.core import follower
 
-from .penal import Penalizer
+from .fed_optim import FederatedOptimizer
 
 
-class ScaffoldPenalizer(Penalizer):
-    """SCAFFOLD: Stochastic Controlled Averaging for Federated Learning
-    """
+class ScaffoldOptimizer(FederatedOptimizer):
     def __init__(self,
-                 role: str,
-                 pack_set: List[str] = None,
-                 unpack_set: List[str] = None,
+                 optim,
+                 role: str = follower,
                  max_acg_step: int = -1,
-                 acg_loss_fn: Union[Callable, str] = 'cross_entropy'):
-        """Scaffold needs to run on both leader and follower.
-        If acg_loss_fn is not None, we will use the second way described in the
-        paper to do the acg step.
-
-        Args:
-            acg_loss_fn: The callable loss function used to calculate acg operation.
-                At most of time, it should be the consit with the loss function used 
-                in the task itself, such as BCE, MSE...,
-
-        """
-        pack_set = convert_to_list(pack_set) or []
-        unpack_set = convert_to_list(unpack_set) or []
-        pack_set.append('c_para')
-        unpack_set.append('c_para')
-
-        super().__init__(role, pack_set, unpack_set, max_acg_step)
-
+                 acg_loss_fn: Union[str, Callable] = 'cross_entropy'):
+        super(ScaffoldOptimizer, self).__init__(optim, role, max_acg_step)
         if isinstance(acg_loss_fn, str):
             acg_loss_fn = getattr(F, acg_loss_fn)
 
@@ -229,5 +189,5 @@ class ScaffoldPenalizer(Penalizer):
                     state['c_para'] = torch.zeros_like(p)
                 state["c_para"].copy_(c_para_i - state["c_para"])
 
-    def clear_buffer(self):
-        super().clear_buffer(keep_keys=['c_para_i', 'c_para'])
+    def clear_state_dict(self):
+        super().clear_state_dict(keys=['init_p_g', 'init_p_g_cnt', 'init_p'])

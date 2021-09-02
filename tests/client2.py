@@ -13,5 +13,5 @@ topology = openfed.topo.Topology()
 topology.add_edge(client_alpha, server_node)
 topology.add_edge(client_beta, server_node)
 
-federated_group_props = topology.topology_analysis(server_node)[0]
+federated_group_props = topology.analysis(server_node)[0]
 

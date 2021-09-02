@@ -1,2 +1,3 @@
-from .table import process_bar, tablist
+# Copyright (c) FederalLab. All rights reserved.
+from .table import tablist
 from .utils import *

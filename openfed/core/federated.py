@@ -1,3 +1,4 @@
+# Copyright (c) FederalLab. All rights reserved.
 from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -136,21 +137,18 @@ class FederatedProperties(object):
     role: str
     nick_name: str
     address: Address
-    mtt: int
 
     def __init__(self,
                  role: str,
                  nick_name: str,
-                 address: Address,
-                 mtt: int = 5):
+                 address: Address):
         self.role = role
         self.nick_name = nick_name
         self.address = address
-        self.mtt = mtt
 
     def __repr__(self):
-        head = ['role', 'nick_name', 'mtt']
-        data = [self.role, self.nick_name, self.mtt]
+        head = ['role', 'nick_name']
+        data = [self.role, self.nick_name]
         description = tablist(head, data, force_in_one_row=True)
         other_description = str(self.address)
         return openfed_class_fmt.format(class_name=self.__class__.__name__,

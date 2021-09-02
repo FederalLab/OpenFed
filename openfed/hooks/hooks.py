@@ -1,37 +1,51 @@
-# MIT License
+# Copyright (c) FederalLab. All rights reserved.
+import torch
 
-# Copyright (c) 2021 FederalLab
+from ..maintainer import DefaultMaintainer
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+def device_alignment():
+    _default_maintainer = DefaultMaintainer._default_maintainer
 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
- 
+    def package(state, p):
+        for k, v in state.items():
+            if v is not None:
+                state[k] = v.to(p)
+        return state
 
-from openfed.common import peeper
-from typing import Any
+    _default_maintainer.register_package_hook(nice=100, package_hook=package)
 
-class Hooks(object):
-    # nice is the order to call the hook.
-    # The hook list is like [nice_0, nice24, nice_50]
-    nice: int = 50
+    def unpackage(state, p):
+        for k, v in state.items():
+            if v is not None:
+                state[k] = v.to(p)
+        return state
 
-    # which API has been register to.
-    api: Any
+    _default_maintainer.register_unpackage_hook(nice=0,
+                                                unpackage_hook=unpackage)
 
-    def __init__(self):
-        if peeper.api is not None: # type: ignore
-            peeper.api.register_everything(self) # type: ignore
+
+def sign_gradient_clip(epsilon=0.001):
+    _default_maintainer = DefaultMaintainer._default_maintainer
+
+    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
+
+    if _default_maintainer.leader:
+
+        def unpackage(state, p):
+            state['param'] = p - epsilon * state['param']
+            return state
+
+        _default_maintainer.register_unpackage_hook(nice=80,
+                                                    unpackage_hook=unpackage)
+    else:
+
+        def package(state, p):
+            assert 'original_param' in state
+            state['param'] = torch.sign(state['param'] -
+                                        state['original_param'])
+            return state
+
+        _default_maintainer.register_package_hook(nice=20,
+                                                  package_hook=package)

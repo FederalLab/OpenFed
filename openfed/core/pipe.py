@@ -6,8 +6,8 @@ from datetime import timedelta
 from typing import Any, Dict, Optional
 
 import torch.distributed.distributed_c10d as distributed_c10d
-from openfed.common import DeviceOffline, TaskInfo
-from openfed.utils import openfed_class_fmt, tablist, time_string
+from openfed.common import DeviceOffline, Meta
+from openfed.utils import openfed_class_fmt, tablist
 from torch.distributed import ProcessGroup, Store, gather_object
 
 from .const import *
@@ -78,7 +78,7 @@ class Pipe():
         return self._read(key)
 
     def set(self, key: str, value):
-        self._update(dict(key=value))
+        self._update({key: value})
 
     @property
     def role(self):
@@ -97,19 +97,7 @@ class Pipe():
         return self.role == follower
 
     @property
-    def received_version(self):
-        """received version equals to other node upload version.
-        """
-        return self.get('upload_version')
-
-    @property
-    def request_version(self):
-        """request version equals to other node download version.
-        """
-        return self.get('download_version')
-
-    @property
-    def nick_name(self):
+    def nick_name(self) -> Any:
         return self.get(nick_name)
 
     def __init__(
@@ -128,32 +116,20 @@ class Pipe():
                         key=self._i_key,
                         value={
                             openfed_status: zombie,
-                            openfed_task_info: TaskInfo(),
+                            openfed_meta: Meta(),
                             nick_name: self.fed_props.nick_name,
-                            "upload_version": -1,
-                            "download_version": -1,
                         })
 
         self._i_backup_info = get_store_value(self.store, self._i_key)
         self._u_backup_info = get_store_value(self.store, self._u_key)
-        
+
         self.read_successfully = True
 
-    def set_upload_version(self, version):
-        self.set("upload_version", version)
+    def upload(self, data):
+        self.transfer(True, data)
 
-    def set_download_version(self, version):
-        self.set("download_version", version)
-
-    def upload(self, data, version: Optional[Any] = None):
-        if version is not None:
-            self.set_upload_version(version)
-        self.transfer(False, data)
-
-    def download(self, version: Optional[Any] = None) -> Any:
-        if version is not None:
-            self.set_download_version(version)
-        return self.transfer(True)
+    def download(self) -> Any:
+        return self.transfer(False)
 
     def _get_state(self):
         return self.get(openfed_status)
@@ -258,6 +234,15 @@ class Pipe():
 
         return data
 
+    @property
+    def meta(self) -> Meta:
+        meta_dict = self.get(openfed_meta)
+        assert self.read_successfully, "read meta info failed"
+        return Meta(**meta_dict)
+
+    def set_meta(self, meta: Meta):
+        self.set(openfed_meta, meta)
+
     def __del__(self):
         self.offline()
 
@@ -274,11 +259,8 @@ class Pipe():
             callback()
 
     def __repr__(self):
-        head = ['nick name', 'received version', 'request version', 'status']
-        data = [
-            self.nick_name, self.received_version, self.request_version,
-            self._get_state()
-        ]
+        head = ['nick name', 'status']
+        data = [self.nick_name, self._get_state()]
         description = tablist(head, data, force_in_one_row=True)
 
         other_description = "dist props: \n" + str(self.dist_props) + \
