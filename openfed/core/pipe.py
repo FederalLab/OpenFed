@@ -10,7 +10,9 @@ from openfed.common import DeviceOffline, Meta
 from openfed.utils import openfed_class_fmt, tablist
 from torch.distributed import ProcessGroup, Store, gather_object
 
-from .const import *
+from .const import (follower, follower_rank, leader, leader_rank, nick_name,
+                    offline, openfed_identity, openfed_meta, openfed_status,
+                    pull, push, zombie)
 from .federated import DistributedProperties, FederatedProperties
 
 

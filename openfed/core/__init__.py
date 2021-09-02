@@ -1,12 +1,12 @@
 # Copyright (c) FederalLab. All rights reserved.
+import warnings
+from threading import Lock
+
 from .const import *
 from .federated import *
 from .pipe import *
 
-del pipe
-del const
-del federated
-import warnings
+openfed_lock = Lock()
 
 
 def init_federated_group(fed_props: FederatedProperties) -> List[Pipe]:
@@ -35,3 +35,30 @@ def init_federated_group(fed_props: FederatedProperties) -> List[Pipe]:
             pipe_list.append(pipe)
 
     return pipe_list
+
+
+__all__ = [
+    'leader',
+    'follower',
+    'is_leader',
+    'is_follower',
+    'push',
+    'pull',
+    'zombie',
+    'offline',
+    'openfed_identity',
+    'openfed_status',
+    'openfed_meta',
+    'nick_name',
+    'leader_rank',
+    'follower_rank',
+    'default_pg_timeout',
+    'DistributedProperties',
+    'build_point2point_group',
+    'joint_federated_group',
+    'FederatedProperties',
+    'set_store_value',
+    'get_store_value',
+    'Pipe',
+    'init_federated_group',
+]

@@ -6,7 +6,10 @@ import torch.distributed.distributed_c10d as distributed_c10d
 from openfed.common import Address
 from openfed.utils import openfed_class_fmt, tablist
 
-from .const import default_pg_timeout, follower_rank, leader_rank
+from .const import follower_rank, leader_rank
+from datetime import timedelta
+
+default_pg_timeout = timedelta(seconds=100)
 
 
 class DistributedProperties(object):
@@ -138,10 +141,7 @@ class FederatedProperties(object):
     nick_name: str
     address: Address
 
-    def __init__(self,
-                 role: str,
-                 nick_name: str,
-                 address: Address):
+    def __init__(self, role: str, nick_name: str, address: Address):
         self.role = role
         self.nick_name = nick_name
         self.address = address
