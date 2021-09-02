@@ -5,46 +5,57 @@ from openfed.utils import openfed_class_fmt, tablist
 
 
 class Meta(AttrDict):
-    """A class to store different task inforation, such as instance number, 
-    train and test accuracy.
+    """A attributed dictionary to delivery message. It contains :attr:`mode` and
+    :attr:`version`.
 
     .. Example::
-        >>> task_info = Meta(part_id=1)
-        >>> task_info
-        {'part_id': 1}
-        >>> task_info['accuracy'] = 0.98
-        >>> task_info.accuracy
-        0.98
-        >>> task_info
-        {'part_id': 1, 'accuracy': 0.98}
-        >>> task_info.instance = 100
-        >>> task_info['instance']
+
+        >>> meta = Meta()
+        >>> meta
+        <OpenFed> Meta
+        +-------+---------+
+        |  mode | version |
+        +-------+---------+
+        | train |    -1   |
+        +-------+---------+
+
+        >>> meta['instance'] = 100
+        >>> meta.instance
         100
-        >>> task_info
-        {'part_id': 1, 'accuracy': 0.98, 'instance': 100}
-        >>> del task_info['instance']
-        >>> task_info
-        {'part_id': 1, 'accuracy': 0.98}
-        >>> del task_info.accuracy
-        >>> task_info
-        {'part_id': 1}
-    
-    .. note::
-        Meta will have a default attribute of `train`.
-        It will be used to control some aggregating process.
+        >>> meta.accuracy = 0.98
+        >>> meta['accuracy']
+        0.98
+        >>> meta
+        <OpenFed> Meta
+        +-------+---------+----------+----------+
+        |  mode | version | instance | accuracy |
+        +-------+---------+----------+----------+
+        | train |    -1   |   100    |   0.98   |
+        +-------+---------+----------+----------+
+
+        >>> del meta.instance
+        >>> del meta['accuracy']
+        >>> meta
+        <OpenFed> Meta
+        +-------+---------+
+        |  mode | version |
+        +-------+---------+
+        | train |    -1   |
+        +-------+---------+
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Add a train flag to task info.
         if 'mode' not in self:
             self.mode = 'train'
         if 'version' not in self:
-            self.version = '-1'
+            self.version = -1
 
-    def __str__(self):
-        return openfed_class_fmt.format(class_name='Meta',
-                                        description=tablist(
-                                            list(self.keys()),
-                                            list(self.values()),
-                                            items_per_row=10,
-                                        ))
+    def __repr__(self):
+        head = list(self.keys())
+        data = list(self.values())
+        description = tablist(head, data, items_per_row=10)
+
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__,
+            description=description,
+        )
