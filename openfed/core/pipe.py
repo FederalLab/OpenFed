@@ -38,7 +38,8 @@ def get_store_value(store, key) -> Any:
 
 
 class Pipe():
-
+    r"""
+    """
     store: Store
     pg: ProcessGroup
     dist_props: DistributedProperties
