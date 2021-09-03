@@ -157,7 +157,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
                 maintainer.meta['mode'] = parts_list_key[idx]
                 return True
 
-            if len(maintainer.meta_list) < counts[idx]: # type: ignore
+            if len(maintainer.meta_list) < counts[idx]:  # type: ignore
                 # wait an unfinished task
                 return False
 
