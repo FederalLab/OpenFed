@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from queue import PriorityQueue
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from openfed.common.meta import Meta
 from openfed.federated import (FederatedProperties, Pipe, init_federated_group,
@@ -23,6 +23,26 @@ from .functional import fed_context
 
 class Maintainer(object):
     r"""The user interface for OpenFed.
+
+    Args: 
+        fed_props: The federated group belongs to.
+        state_dict: Indicates tensors exchanged. If not specified, you should
+            load it via :func:``load_state_dict``. Default: ``None``
+    
+    Example::
+
+        >>> mt = Maintainer(fed_props, network.state_dict(keep_vars=True))
+
+        >>> print(mt)
+        [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
+        <OpenFed> Maintainer
+        +------------------+-----------+-------+
+        |       role       | nick_name | pipes |
+        +------------------+-----------+-------+
+        | openfed_follower |   client  |   1   |
+        +------------------+-----------+-------+
+        >>> with mt:
+        >>>     openfed.F.paillier(public_key)
     """
     pipe: Pipe
     pipes: List[Pipe]
@@ -87,25 +107,94 @@ class Maintainer(object):
 
     @property
     def anti_nick_name(self) -> str:
+        r"""Returns nick name of the other side.
+        """
         assert self.pipe
         return self.pipe.nick_name
 
     def register_package_hook(self, nice: int, package_hook: Callable):
+        r"""Register a package hook.
+
+        Args:
+            nice: Priority of the hook, ``0`` is the first hook to be registered.
+            package_hook: Package hook. It should take in `state` and `p`, returns
+                modified `state`.
+
+        .. note::
+            All package hooks will be called in :func:``upload``.
+        
+        Example::
+
+            >>> def package(state, p):
+            >>>     for k, v in state.items():
+            >>>         if v is not None:
+            >>>             state[k] = v.to(p)
+            >>>     return state
+            >>> maintainer.register_package_hook(nice=10, package_hook=package)
+        """
         self._package_hooks.put((package_hook, nice))
 
     def register_unpackage_hook(self, nice: int, unpackage_hook: Callable):
+        r"""Register an unpackage hook.
+
+        Args:
+            nice: Priority of the hook, ``0`` is the first hook to be registered.
+            unpackage_hook: Package hook. It should take in `state` and `p`, returns
+                modified `state`.
+
+        .. note::
+            All unpackage hooks will be called in :func:``download``.
+
+        Example::
+
+            >>> def unpackage(state, p):
+            >>>     for k, v in state.items():
+            >>>         if v is not None:
+            >>>             state[k] = v.to(p)
+            >>>     return state
+            >>> maintainer.register_unpackage_hook(nice=10, package_hook=unpackage)
+        """
         self._unpackage_hooks.put((unpackage_hook, nice))
 
     def register_step_hook(self,
                            nice: int,
                            step_hook: Callable,
                            step_name: Optional[str] = None):
+        r"""Register a step hook.
+
+        Args:
+            nice: Priority of the hook, ``0`` is the first hook to be registered.
+            step_hook: Step hook. It should take in `maintainer`, 
+                returns ``None`` or ``bool``.
+            step_name: When to apply this step hook.
+
+        .. note::
+            Step hook is used to control the behavior of `leader`. It will be 
+            called in :func:``_leader_step``.
+
+        Example::
+
+            >>> def before_upload_hook(maintainer) -> bool:
+            >>>     request_version = maintainer.pipe.meta.get('version')
+
+            >>>     if request_version > maintainer.version:
+            >>>         return False
+            >>>     else:
+            >>>         maintainer.meta['version'] = maintainer.version
+            >>>         return True
+
+            >>> _default_maintainer.register_step_hook(nice=50,
+            ...                                     step_hook=before_upload_hook,
+            ...                                     step_name=before_upload)
+        """
         step_name = step_name or step_hook.step_name
         assert step_name, "Step name must be a valid string."
 
         self._step_hooks[step_name].put((step_hook, nice))
 
     def build_connection(self):
+        r"""Builds connection to the given federated group.
+        """
         pipes = init_federated_group(self.fed_props)
 
         assert pipes, "init_federated_group failed."
@@ -115,6 +204,12 @@ class Maintainer(object):
         self.pipe = pipes[0]
 
     def update_version(self, version: Optional[Any] = None):
+        r"""Updates inner version.
+
+        Args:
+            version: The newer version. If not given, we will increment the
+                inner version by 1. Default:``None``
+        """
         if version is not None:
             self.version = version
         else:
@@ -122,16 +217,32 @@ class Maintainer(object):
         self.meta['version'] = self.version
 
     def load_state_dict(self, state_dict: Dict[str, Tensor]):
+        r"""Loads state dict to exchange with other end.
+
+        Args:
+            state_dict: State dict to exchange with.
+        """
         self.state_dict.update(state_dict)
 
     @fed_context
-    def transfer(self, to: bool):
+    def transfer(self, to: bool) -> Union[Any, None]:
+        r"""Transfer data to another end.
+
+        Args:
+            to: If ``True``, upload the data to the other end. If ``False``, 
+                download data from the other end.
+        
+        Returns:
+            If download was successful, return the downloaded data.
+        """
         if to:
             self.pipe.upload(self.packaged_data)
         else:
             return self.pipe.download()
 
     def download(self) -> bool:
+        r"""Downloads data from the other end.
+        """
         # clear data before download
         self.data.clear()
         data = self.transfer(to=False)
@@ -155,15 +266,11 @@ class Maintainer(object):
             self.data_list.append(tensor_data)
             self.meta_list.append(deepcopy(self.meta))
 
-        if self.follower:
-            for n, p in self.state_dict.items():
-                p_data = self.data[n]
-
-                p.data.copy_(p_data['param'])
-
         return True
 
     def upload(self) -> bool:
+        r"""Uploads data to the other end.
+        """
         assert self.packaged_data
 
         for n, p in self.state_dict.items():
@@ -261,6 +368,13 @@ class Maintainer(object):
     def package(self,
                 optim_list: Optional[Any] = None,
                 state_keys: Optional[List[str]] = None):
+        r"""Package data to upload.
+
+        Args:
+            optim_list: The state of optim will be uploaded to.
+            state_keys: The state keys to be uploaded. If ``None``, upload all 
+                state. Default: ``None``.
+        """
         self.packaged_data.clear()
         if optim_list and not isinstance(optim_list, list):
             optim_list = [
