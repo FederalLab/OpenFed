@@ -8,6 +8,7 @@ from openfed import federated as federated
 from openfed import functional as F
 from openfed import optim as optim
 from openfed import topo as topo
+from openfed.api import api as api
 
 from .common import *
 from .utils import *

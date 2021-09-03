@@ -54,19 +54,10 @@ with mt:
 
 print(mt)
 
-for r in range(5):
-    mt.package(fed_optim)
-    mt.step()
-    fed_optim.zero_grad()
-    openfed.F.paillier_aggregation(data_list=mt.data_list,
-                                   private_key=private_key,
-                                   meta_list=mt.meta_list,
-                                   optim_list=fed_optim)
-    fed_optim.step()
-    fed_optim.round()
-    fed_optim.clear_state_dict()
-
-    mt.update_version()
-    mt.clear()
+openfed.api(mt,
+            fed_optim,
+            5,
+            agg_func=openfed.F.paillier_aggregation,
+            private_key=private_key)
 
 print("Finished")

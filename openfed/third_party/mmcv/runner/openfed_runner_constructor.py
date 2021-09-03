@@ -7,9 +7,6 @@ import torch.distributed as dist
 from mmcv.runner.builder import RUNNER_BUILDERS, RUNNERS  # type: ignore
 from mmcv.runner.dist_utils import get_dist_info
 from openfed.federated import is_follower, is_leader, leader
-from openfed.tools import build_optim
-
-from .hooks import build_hook
 
 
 @RUNNER_BUILDERS.register_module()
@@ -81,7 +78,7 @@ class OpenFedRunnerConstructor(object):
                 openfed_api.run()
                 print(">>> Finished.")
                 openfed_api.finish(auto_exit=True)
-                
+
         self.default_args['optimizer'] = optimizer
 
         # build existing runner
