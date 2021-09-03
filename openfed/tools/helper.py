@@ -150,10 +150,9 @@ r"""
 import cmd
 import glob
 import os
-from typing import List, Any
 
-from openfed.common import (Address, dump_address_to_file,
-                            load_address_from_file, InvalidAddress)
+from openfed.common import Address
+from openfed.topo import Edge, Node, Topology
 from openfed.utils import openfed_title
 
 
