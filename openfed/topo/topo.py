@@ -199,6 +199,7 @@ class Topology(object):
 
     def load(self, filename):
         self.nodes, self.edges = torch.load(filename)
+        return self
 
     def is_edge(self, start, end):
         if start == end:
