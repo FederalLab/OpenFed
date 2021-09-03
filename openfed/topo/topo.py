@@ -168,6 +168,8 @@ class Topology(object):
 
     def save(self, filename):
         torch.save([self.nodes, self.edges], filename)
+        with open(filename + '.txt', 'w') as f:
+            f.write(str(self))
 
     def load(self, filename):
         self.nodes, self.edges = torch.load(filename)
