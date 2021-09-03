@@ -7,7 +7,7 @@ from openfed.utils import openfed_title
 
 
 class TopoBuilder(cmd.Cmd):
-    r"""
+    r"""A script to build topology more easily.
 
     Example::
 
