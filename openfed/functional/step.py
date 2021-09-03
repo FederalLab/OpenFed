@@ -144,9 +144,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
 
     if _default_maintainer.leader:
         idx = 0
-        pending_queue = random.sample(
-            parts_list_value[idx],  # type: ignore
-            counts[idx])  # type: ignore
+        pending_queue = random.sample(parts_list_value[idx], counts[idx])
 
         def before_upload_hook(maintainer) -> bool:
             nonlocal pending_queue
@@ -159,7 +157,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
                 maintainer.meta['mode'] = parts_list_key[idx]
                 return True
 
-            if len(maintainer.meta_list) < parts_list_value[idx]:
+            if len(maintainer.meta_list) < counts[idx]: # type: ignore
                 # wait an unfinished task
                 return False
 
