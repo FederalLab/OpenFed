@@ -34,6 +34,9 @@ class Edge(object):
         self.start = start
         self.end = end
 
+    def in_edge(self, node: Node) -> bool:
+        return self.start == node or self.end == node
+
     def __eq__(self, other):
         return self.start == other.start and self.end == other.end
 
@@ -162,7 +165,30 @@ class Topology(object):
         assert 0 <= index < len(self.edges)
         del self.edges[index]
 
+    def clear_useless_nodes(self):
+        useless_idx = []
+        for idx, node in enumerate(self.nodes):
+            useless = True
+            for edge in self.edges:
+                if edge.in_edge(node):
+                    useless = False
+                    break
+            if useless:
+                useless_idx.append(idx)
+        useless_idx.reverse()
+        for idx in useless_idx:
+            self.remove_node(idx)
+
     def remove_node(self, index: int):
+        node = self.nodes[index]
+        invalid_edge_idx = []
+        for idx, edge in enumerate(self.edges):
+            if edge.in_edge(node):
+                invalid_edge_idx.append(idx)
+        invalid_edge_idx.reverse()
+        for idx in invalid_edge_idx:
+            self.remove_edge(idx)
+
         assert 0 <= index < len(self.nodes)
         del self.nodes[index]
 
