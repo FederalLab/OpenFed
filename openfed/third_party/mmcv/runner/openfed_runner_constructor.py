@@ -29,6 +29,8 @@ class OpenFedRunnerConstructor(object):
 
     def __call__(self):
         rank, world_size = get_dist_info()
+        
+        fed_props = analysis(self.topology, self.topology.fetch_node_via_nick_name(self.nick_name))
 
         if not self.hook_cfg_list:
             self.hook_cfg_list = [

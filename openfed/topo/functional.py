@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from openfed.common import Address
 from openfed.federated import (FederatedProperties, follower, follower_rank,
@@ -10,6 +10,12 @@ from .topo import FederatedGroup, Node, Topology
 def build_federated_group(
         topo: Topology,
         node: Node) -> Tuple[List[FederatedGroup], List[FederatedGroup]]:
+    r"""Build the federated group for node.
+
+    Args:
+        topo: The topology map contains related information.
+        node: The node to build the federated group.
+    """
     # leader group
     leader_group = []
     follower_group = []
@@ -39,7 +45,19 @@ def build_federated_group(
     return leader_group, follower_group
 
 
-def analysis(topo: Topology, node: Node) -> List[FederatedProperties]:
+def analysis(topo: Topology, node: Union[Node,
+                                         str]) -> List[FederatedProperties]:
+    r"""Build the federated group for node.
+
+    Args:
+        topo: The topology map contains related information.
+        node: The node to build the federated group. If string is provided, we 
+            will use the string as the nick name of the node.
+    """
+    if isinstance(node, str):
+        node = topo.fetch_node_via_nick_name(node)  # type: ignore
+        assert node, 'Invalid node.'
+    assert isinstance(node, Node)
 
     leader_group, follower_group = build_federated_group(topo, node)
 
