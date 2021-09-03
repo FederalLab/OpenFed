@@ -1,6 +1,6 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
-from typing import List, overload
+from typing import List, Union, overload
 
 import torch
 from openfed.common import Address
@@ -177,6 +177,13 @@ class Topology(object):
             return False
         edge = Edge(start, end)
         return edge in self.edges
+
+    def fetch_node_via_nick_name(self, nick_name: str) -> Union[Node, None]:
+        for node in self.nodes:
+            if node.nick_name == nick_name:
+                return node
+        else:
+            return None
 
     def __repr__(self) -> str:
         head = [node.nick_name for node in self.nodes]
