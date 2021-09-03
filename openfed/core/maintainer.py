@@ -399,10 +399,16 @@ class Maintainer(object):
     def unpackage(self,
                   optim_list: Optional[Any] = None,
                   state_keys: Optional[List[str]] = None):
-        """
+        """Unpackage state to optim.
+
         .. note::
             This operation will automatically load the `param` property to 
             state_dict by a replace operation.
+        
+        Args:
+            optim_list: The state of optim will be rewritten to.
+            state_keys: The state keys to be rewritten. If ``None``, rewrite all 
+                state. Default: ``None``.
         """
         assert self.data
         if optim_list and not isinstance(optim_list, list):
@@ -428,6 +434,8 @@ class Maintainer(object):
                                     state[key] = p_data[key]
 
     def clear(self):
+        r"""Clears inner cached data.
+        """
         self.data_list.clear()
         self.meta_list.clear()
 
@@ -436,6 +444,7 @@ class Maintainer(object):
         self.pipes.clear()
 
     def manual_stop(self):
+        r"""Stop while loop in :func:`_leader_step`."""
         self.stopped = True
 
     def __enter__(self):
