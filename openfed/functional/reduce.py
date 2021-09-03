@@ -3,8 +3,8 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 
-def weight_reduce(meta_list: List[Dict[str, Any]],
-                  reduce_keys: List[str]) -> Dict:
+def meta_reduce(meta_list: List[Dict[str, Any]],
+                reduce_keys: List[str]) -> Dict:
     total_instances = sum([meta['instances'] for meta in meta_list])
     weight = [meta['instances'] / total_instances for meta in meta_list]
 

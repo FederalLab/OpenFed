@@ -1,5 +1,4 @@
 # Copyright (c) FederalLab. All rights reserved.
-
 leader = 'openfed_leader'
 follower = 'openfed_follower'
 

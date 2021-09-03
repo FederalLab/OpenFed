@@ -1,6 +1,8 @@
 # Copyright (c) FederalLab. All rights reserved.
+from .agg import *
 from .hooks import *
 from .paillier import *
+from .reduce import *
 from .step import *
 
 __all__ = [
@@ -30,4 +32,10 @@ __all__ = [
     'count_step',
     'period_step',
     'dispatch_step',
+    'load_param_states',
+    'average_aggregation',
+    'naive_aggregation',
+    'elastic_aggregation',
+    'paillier_aggregation',
+    'meta_reduce',
 ]

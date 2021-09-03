@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 from typing import List, Optional
 
-from openfed.core import follower, is_follower, is_leader
+from openfed.federated import follower, is_follower, is_leader
 from openfed.utils import openfed_class_fmt
 
 

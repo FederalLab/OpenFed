@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 import torch
 import torch.nn.functional as F
-from openfed.core import follower
+from openfed.federated import follower
 
 from .fed_optim import FederatedOptimizer
 

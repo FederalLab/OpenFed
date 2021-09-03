@@ -1,4 +1,4 @@
-import openfed.core
+import openfed.federated
 import openfed.optim as fed_optim
 import torch.optim as optim
 
@@ -13,7 +13,7 @@ def build_fedsgd(parameters, lr, role, **kwargs):
         parameters, lr=lr, **
         kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
     fed_optimizer = fed_optim.build_fed_optim(optimizer)
-    if openfed.core.is_leader(role):
+    if openfed.federated.is_leader(role):
         agg = fed_optim.AverageOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
@@ -35,7 +35,7 @@ def build_fedavg(parameters, lr, role, **kwargs):
         parameters, lr=lr, **
         kwargs) if 'optimizer' not in kwargs else kwargs['optimizer']
     fed_optimizer = fed_optim.build_fed_optim(optimizer)
-    if openfed.core.is_leader(role):
+    if openfed.federated.is_leader(role):
         agg = fed_optim.NaiveOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
@@ -59,7 +59,7 @@ def build_fedela(parameters, lr, role, **kwargs):
     penalizer = fed_optim.ElasticPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
-    if openfed.core.is_leader(role):
+    if openfed.federated.is_leader(role):
         agg = fed_optim.ElasticOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
@@ -84,7 +84,7 @@ def build_fedprox(parameters, lr, role, **kwargs):
     penalizer = fed_optim.ProxPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
-    if openfed.core.is_leader(role):
+    if openfed.federated.is_leader(role):
         agg = fed_optim.NaiveOp(parameters)
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:
@@ -108,7 +108,7 @@ def build_fedscaffold(parameters, lr, role, **kwargs):
     penalizer = fed_optim.ScaffoldPenalizer(role, **penal_cfg)
     fed_optimizer = fed_optim.build_fed_optim(optimizer, penalizer)
 
-    if openfed.core.is_leader(role):
+    if openfed.federated.is_leader(role):
         agg = fed_optim.NaiveOp(parameters, other_keys=['c_para'])
         aggregator = fed_optim.build_aggregator(agg, reducer)
     else:

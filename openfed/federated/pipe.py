@@ -6,14 +6,15 @@ from datetime import timedelta
 from typing import Any, Dict, Optional
 
 import torch.distributed.distributed_c10d as distributed_c10d
-from openfed.common import DeviceOffline, Meta
+from openfed.common import Meta
 from openfed.utils import openfed_class_fmt, tablist
 from torch.distributed import ProcessGroup, Store, gather_object
 
 from .const import (follower, follower_rank, leader, leader_rank, nick_name,
                     offline, openfed_identity, openfed_meta, openfed_status,
                     pull, push, zombie)
-from .federated import DistributedProperties, FederatedProperties
+from .exceptions import DeviceOffline
+from .props import DistributedProperties, FederatedProperties
 
 
 def set_store_value(store, key, value) -> bool:

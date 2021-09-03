@@ -1,11 +1,10 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
-from typing import List, Tuple, overload
+from typing import List, overload
 
 import torch
 from openfed.common import Address
-from openfed.core import (FederatedProperties, follower, follower_rank,
-                          is_follower, is_leader, leader, leader_rank)
+from openfed.federated import FederatedProperties, is_follower, is_leader
 from openfed.utils import openfed_class_fmt, tablist
 
 
@@ -86,7 +85,7 @@ class FederatedGroup(object):
         return False
 
     @property
-    def federated_group_properties(self) -> FederatedProperties:
+    def federated_properties(self) -> FederatedProperties:
         """The address in FederatedProperties needs be rectified in `Topology`.
         """
         role = self.role
@@ -166,88 +165,6 @@ class Topology(object):
     def remove_node(self, index: int):
         assert 0 <= index < len(self.nodes)
         del self.nodes[index]
-
-    def build_federated_group(self, node) -> Tuple[List, List]:
-        # leader group
-        leader_group = []
-        follower_group = []
-        for edge in self.edges:
-            if edge.end == node:
-                # leader group
-                fuse = False
-                for lg in leader_group:
-                    if lg.add_to_group(edge):
-                        fuse = True
-                        break
-                if not fuse:
-                    lg = FederatedGroup(leader, node)
-                    assert lg.add_to_group(edge)
-                    leader_group.append(lg)
-            elif edge.start == node:
-                # follower group
-                fuse = False
-                for fg in follower_group:
-                    if fg.add_to_group(edge):
-                        fuse = True
-                        break
-                if not fuse:
-                    fg = FederatedGroup(follower, node)
-                    assert fg.add_to_group(edge)
-                    follower_group.append(fg)
-        return leader_group, follower_group
-
-    def analysis(self, node: Node) -> List[FederatedProperties]:
-
-        leader_group, follower_group = self.build_federated_group(node)
-
-        # rectify the address infomation
-        leader_group_props = []
-        for lg in leader_group:
-            world_size = len(lg.others) + 1
-            rank = leader_rank if world_size == 2 else 0
-
-            lgp = lg.federated_group_properties
-
-            lgp.address = Address(lgp.address.backend, lgp.address.init_method,
-                                  world_size, rank)
-
-            leader_group_props.append(lgp)
-
-        follower_group_props = []
-        for fg in follower_group:
-            # build the federated group for leader
-            lgs, _ = self.build_federated_group(fg.others[0])
-            lg = None
-            for lg in lgs:
-                if fg.node in lg.others:
-                    break
-            if lg:
-                world_size = len(lg.others) + 1
-                if world_size == 2:
-                    rank = follower_rank
-                else:
-                    nick_name = [node.nick_name for node in lg.others]
-                    nick_name.sort()
-                    rank = -1
-                    for i, n in enumerate(nick_name):
-                        if n == fg.node.nick_name:
-                            rank = i + 1  # rank == 0 is leader.
-                            break
-                    assert rank > 0
-            else:
-                raise RuntimeError(f"Build leader federated group failed.")
-
-            fgp = fg.federated_group_properties
-
-            fgp.address = Address(
-                fgp.address.backend,
-                fgp.address.init_method,
-                world_size,
-                rank,
-            )
-            follower_group_props.append(fgp)
-
-        return leader_group_props + follower_group_props
 
     def save(self, filename):
         torch.save([self.nodes, self.edges], filename)

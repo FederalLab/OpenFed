@@ -25,7 +25,7 @@ network = nn.Linear(784, 10)
 loss_fn = nn.CrossEntropyLoss()
 
 import torch
-from openfed.core import leader
+from openfed.federated import leader
 from openfed.optim import FederatedOptimizer
 
 optim = torch.optim.SGD(network.parameters(), lr=1.0)

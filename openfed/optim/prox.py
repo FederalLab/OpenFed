@@ -1,5 +1,5 @@
 # Copyright (c) FederalLab. All rights reserved.
-from openfed.core import follower
+from openfed.federated import follower
 
 from .fed_optim import FederatedOptimizer
 

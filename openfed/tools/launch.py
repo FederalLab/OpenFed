@@ -120,7 +120,7 @@ by this module.
 
 ::
 
-    openfed.core.space.Country.init_process_group(backend='YOUR BACKEND',
+    openfed.federated.space.Country.init_process_group(backend='YOUR BACKEND',
                                          init_method='env://')
 
 4. Another way to pass ``local_rank`` to the subprocesses via environment variable

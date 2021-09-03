@@ -1,9 +1,15 @@
 # Copyright (c) FederalLab. All rights reserved.
-from .analysis import *
+from .analysis import Analysis
 from .datasets import FederatedDataset, PartitionerDataset
 from .partitioner import (DirichletPartitioner, IIDPartitioner, Partitioner,
                           PowerLawPartitioner)
 
-del analysis
-del datasets
-del partitioner
+__all__ = [
+    'Analysis',
+    'Partitioner',
+    'PowerLawPartitioner',
+    'DirichletPartitioner',
+    'IIDPartitioner',
+    'FederatedDataset',
+    'PartitionerDataset',
+]

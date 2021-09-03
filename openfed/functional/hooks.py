@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 import torch
+from openfed.core import DefaultMaintainer
 
-from ..maintainer import DefaultMaintainer
 
 def device_alignment():
     _default_maintainer = DefaultMaintainer._default_maintainer

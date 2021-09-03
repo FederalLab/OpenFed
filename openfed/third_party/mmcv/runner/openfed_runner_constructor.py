@@ -6,7 +6,7 @@ import openfed
 import torch.distributed as dist
 from mmcv.runner.builder import RUNNER_BUILDERS, RUNNERS  # type: ignore
 from mmcv.runner.dist_utils import get_dist_info
-from openfed.core import is_follower, is_leader, leader
+from openfed.federated import is_follower, is_leader, leader
 from openfed.tools import build_optim
 
 from .hooks import build_hook
@@ -57,7 +57,7 @@ class OpenFedRunnerConstructor(object):
             self.fed_optim_cfg.pop('type'),
             self.default_args['model'].parameters(), **self.fed_optim_cfg)
         if rank == 0:
-            world = openfed.core.World(role=self.role, mtt=50)
+            world = openfed.federated.World(role=self.role, mtt=50)
             openfed_api = openfed.API(
                 world,
                 self.default_args['model'].state_dict(keep_vars=True),

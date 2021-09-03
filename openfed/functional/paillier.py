@@ -3,11 +3,9 @@ from abc import abstractmethod
 from typing import Union
 
 import torch
+from openfed.core import DefaultMaintainer
 from openfed.utils import openfed_class_fmt, tablist
 from torch import Tensor
-
-from ..maintainer import DefaultMaintainer
-
 
 
 class Key(object):

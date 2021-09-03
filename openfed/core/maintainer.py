@@ -5,33 +5,17 @@ from copy import deepcopy
 from queue import PriorityQueue
 from typing import Any, Callable, Dict, List, Optional
 
-from torch import Tensor
-
-from openfed.common import DeviceOffline, Meta
-from openfed.core import (FederatedProperties, Pipe, init_federated_group,
-                          is_follower, is_leader)
+from openfed.common import Meta
+from openfed.federated import (FederatedProperties, Pipe, init_federated_group,
+                               is_follower, is_leader)
 from openfed.hooks.const import (after_destroy, after_download, after_upload,
                                  at_failed, at_first, at_invalid_state,
                                  at_last, at_new_episode, at_zombie,
                                  before_destroy, before_download,
                                  before_upload)
+from torch import Tensor
 
-
-def federated_group(func):
-    def _federated_group(self, *args, **kwargs):
-        def safe_call(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except DeviceOffline as e:
-                return False
-
-        if self.pipe.dist_props.lock.locked():
-            return safe_call(self, *args, **kwargs)
-        else:
-            with self.pipe.dist_props:
-                return safe_call(self, *args, **kwargs)
-
-    return _federated_group
+from .functional import fed_context
 
 
 class DefaultMaintainer(object):
@@ -139,7 +123,7 @@ class Maintainer(object):
     def load_state_dict(self, state_dict: Dict[str, Tensor]):
         self.state_dict.update(state_dict)
 
-    @federated_group
+    @fed_context
     def transfer(self, to: bool):
         if to:
             self.pipe.upload(self.packaged_data)

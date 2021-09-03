@@ -39,7 +39,7 @@ network = nn.Linear(784, 10)
 loss_fn = nn.CrossEntropyLoss()
 
 import torch
-from openfed.core import follower
+from openfed.federated import follower
 from openfed.optim import FederatedOptimizer
 
 optim = torch.optim.SGD(network.parameters(), lr=0.1)
