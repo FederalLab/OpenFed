@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
-from openfed.hooks import Ciphertext, PrivateKey, dec, long_to_float
+from .paillier import Ciphertext, PrivateKey, long_to_float, paillier_dec
 
 
 def load_param_states(optim: Optimizer, param_states: Dict[Tensor, Any]):
@@ -227,7 +227,7 @@ def paillier_aggregation(data_list: List[Dict[Tensor, Any]],
 
     def decode(c1, c2, received_numbers):
         c = Ciphertext(c1, c2)
-        v = dec(private_key, c)
+        v = paillier_dec(private_key, c) # type: ignore
         return long_to_float(private_key, v, received_numbers)  # type: ignore
 
     param_states = defaultdict(dict)
@@ -254,7 +254,7 @@ def paillier_aggregation(data_list: List[Dict[Tensor, Any]],
                         continue
                     if k not in param_state:
                         param_state[k] = []
-                    
+
                     param_state[k].append(state[k])
 
         param_state['received_numbers'] = received_numbers

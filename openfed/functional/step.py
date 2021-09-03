@@ -3,7 +3,7 @@ import random
 import time
 from typing import Dict, List, Union
 
-from openfed.core import DefaultMaintainer
+from openfed.core.const import DefaultMaintainer
 
 from .const import (after_destroy, after_download, after_upload, at_failed,
                     at_first, at_invalid_state, at_last, at_new_episode,

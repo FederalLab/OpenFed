@@ -5,21 +5,19 @@ from copy import deepcopy
 from queue import PriorityQueue
 from typing import Any, Callable, Dict, List, Optional
 
-from openfed.common import Meta
+from openfed.common.meta import Meta
 from openfed.federated import (FederatedProperties, Pipe, init_federated_group,
                                is_follower, is_leader)
-from openfed.hooks.const import (after_destroy, after_download, after_upload,
-                                 at_failed, at_first, at_invalid_state,
-                                 at_last, at_new_episode, at_zombie,
-                                 before_destroy, before_download,
-                                 before_upload)
+from openfed.functional.const import (after_destroy, after_download,
+                                      after_upload, at_failed, at_first,
+                                      at_invalid_state, at_last,
+                                      at_new_episode, at_zombie,
+                                      before_destroy, before_download,
+                                      before_upload)
 from torch import Tensor
 
+from .const import DefaultMaintainer
 from .functional import fed_context
-
-
-class DefaultMaintainer(object):
-    _default_maintainer: Optional[Any] = None
 
 
 class Maintainer(object):

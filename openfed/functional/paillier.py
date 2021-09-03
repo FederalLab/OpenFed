@@ -3,7 +3,7 @@ from abc import abstractmethod
 from typing import Union
 
 import torch
-from openfed.core import DefaultMaintainer
+from openfed.core.const import DefaultMaintainer
 from openfed.utils import openfed_class_fmt, tablist
 from torch import Tensor
 
@@ -125,7 +125,7 @@ def key_gen(n_lwe: int = 3000,
                      bound), PrivateKey(S, n_lwe, bits, l, bound)
 
 
-def enc(public_key: PublicKey, m) -> Ciphertext:
+def paillier_enc(public_key: PublicKey, m: Tensor) -> Ciphertext:
     e1 = get_discrete_gaussian_random_vector(public_key.n_lwe,
                                              public_key.bits).to(m)
     e2 = get_discrete_gaussian_random_vector(public_key.n_lwe,
@@ -150,17 +150,17 @@ def enc(public_key: PublicKey, m) -> Ciphertext:
     return Ciphertext(c1, c2)
 
 
-def dec(private_key, c) -> Tensor:
+def paillier_dec(private_key: PrivateKey, c: Ciphertext) -> Tensor:
     S = private_key.S.to(c.c1)
     return (torch.matmul(c.c1, S).unsqueeze(0) +
             c.c2).reshape(-1) % private_key.p
 
 
-def float_to_long(public_key: PublicKey, tensor):
+def float_to_long(public_key: PublicKey, tensor: Tensor):
     return ((tensor + public_key.bound) * 2**(public_key.bits_safe)).long()
 
 
-def long_to_float(private_key: PrivateKey, tensor, denominator):
+def long_to_float(private_key: PrivateKey, tensor: Tensor, denominator: float):
     return tensor.float() / (
         2**private_key.bits_safe) / denominator - private_key.bound
 
@@ -179,8 +179,12 @@ def paillier(public_key: Union[str, PublicKey]):
             paillier_state = dict()
             for k, v in state.items():
                 if v is not None:
-                    flat_v = float_to_long(public_key, v).view(-1)  # type: ignore
-                    ciphertext = enc(public_key, flat_v)  # type: ignore
+                    flat_v = float_to_long(
+                        public_key,  # type: ignore
+                        v).view(-1)
+                    ciphertext = paillier_enc(
+                        public_key,  # type: ignore
+                        flat_v)
                     paillier_state[f'{k}_c1'] = ciphertext.c1
                     paillier_state[f'{k}_c2'] = ciphertext.c2
             return paillier_state

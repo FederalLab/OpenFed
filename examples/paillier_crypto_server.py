@@ -6,7 +6,7 @@ sys.path.insert(0, '/Users/densechen/code/OpenFed/')
 import os
 
 import torch
-from openfed.hooks import PrivateKey, key_gen
+from openfed.functional import PrivateKey, key_gen
 
 if not os.path.isfile('/tmp/public.key') or not os.path.isfile(
         '/tmp/private.key'):
@@ -40,17 +40,17 @@ client = openfed.topo.Node('client', openfed.empty_address)
 topology = openfed.topo.Topology()
 topology.add_edge(client, server_node)
 
-fed_props = topology.analysis(server_node)[0]
+fed_props = openfed.topo.analysis(topology, server_node)[0]
 
 print(fed_props)
 
-from openfed.maintainer import Maintainer
+from openfed.core import Maintainer
 
 mt = Maintainer(fed_props, network.state_dict(keep_vars=True))
 
 with mt:
-    openfed.hooks.device_alignment()
-    openfed.hooks.count_step(2)
+    openfed.F.device_alignment()
+    openfed.F.count_step(2)
 
 print(mt)
 
@@ -58,10 +58,10 @@ for r in range(5):
     mt.package(fed_optim)
     mt.step()
     fed_optim.zero_grad()
-    openfed.agg.paillier_aggregation(data_list=mt.data_list,
-                                     meta_list=mt.meta_list,
-                                     private_key=private_key,
-                                     optim_list=fed_optim)
+    openfed.F.paillier_aggregation(data_list=mt.data_list,
+                                   private_key=private_key,
+                                   meta_list=mt.meta_list,
+                                   optim_list=fed_optim)
     fed_optim.step()
     fed_optim.round()
     fed_optim.clear_state_dict()

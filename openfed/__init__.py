@@ -6,7 +6,6 @@ from openfed import core as core
 from openfed import data as data
 from openfed import federated as federated
 from openfed import functional as F
-from openfed import maintainer as maintainer
 from openfed import optim as optim
 from openfed import topo as topo
 

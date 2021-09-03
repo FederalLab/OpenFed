@@ -6,7 +6,7 @@ sys.path.insert(0, '/Users/densechen/code/OpenFed/')
 import os
 
 import torch
-from openfed.hooks import PublicKey
+from openfed.functional import PublicKey
 
 if not os.path.isfile('/tmp/public.key'):
     raise FileNotFoundError(
@@ -55,18 +55,18 @@ client = openfed.topo.Node('client', openfed.empty_address)
 topology = openfed.topo.Topology()
 topology.add_edge(client, server_node)
 
-fed_props = topology.analysis(client)[0]
+fed_props = openfed.topo.analysis(topology, client)[0]
 
 print(fed_props)
 
-from openfed.maintainer import Maintainer
+from openfed.core import Maintainer
 
 mt = Maintainer(fed_props, network.state_dict(keep_vars=True))
 
 print(mt)
 
 with mt:
-    openfed.hooks.paillier(public_key)
+    openfed.F.paillier(public_key)
 
 import random
 import time

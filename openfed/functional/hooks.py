@@ -1,6 +1,6 @@
 # Copyright (c) FederalLab. All rights reserved.
 import torch
-from openfed.core import DefaultMaintainer
+from openfed.core.const import DefaultMaintainer
 
 
 def device_alignment():

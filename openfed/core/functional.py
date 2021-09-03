@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
 
-from openfed.federated import DeviceOffline
+from openfed.federated.exceptions import DeviceOffline
 
 
 def fed_context(func):
