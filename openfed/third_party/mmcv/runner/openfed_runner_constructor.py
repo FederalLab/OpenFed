@@ -7,7 +7,7 @@ import torch.distributed as dist
 from mmcv.runner.builder import RUNNER_BUILDERS, RUNNERS  # type: ignore
 from mmcv.runner.dist_utils import get_dist_info
 from openfed.federated import is_follower, is_leader, leader
-
+from openfed.topo import Topology, analysis
 
 @RUNNER_BUILDERS.register_module()
 class OpenFedRunnerConstructor(object):
@@ -18,11 +18,11 @@ class OpenFedRunnerConstructor(object):
             raise TypeError('runner_cfg should be a dict',
                             f'but got {type(runner_cfg)}')
 
-        self.role = runner_cfg.pop('role', leader)
-        self.address_file = runner_cfg.pop('address_file', '')
+        self.topology = Topology().load(runner_cfg.pop('topology'))
+        self.agg_cfg = runner_cfg.pop('agg_cfg', dict(type='average_aggregation'))
+        self.reduce_cfg = runner_cfg.pop('reduce_cfg', dict(type=None))
         self.fed_optim_cfg = runner_cfg.pop('fed_optim_cfg', dict())
-        self.hook_cfg_list = runner_cfg.pop('hook_cfg_list', list())
-
+        
         self.runner_cfg = runner_cfg
 
         self.default_args: Dict = default_args  # type: ignore
