@@ -1,14 +1,6 @@
 openfed.third\_party.mmcv.runner package
 ========================================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   openfed.third_party.mmcv.runner.hooks
-
 Submodules
 ----------
 

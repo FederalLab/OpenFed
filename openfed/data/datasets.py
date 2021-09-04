@@ -36,6 +36,11 @@ class PartitionerDataset(FederatedDataset):
     """PartitionerDataset can make a non-federated dataset as a federated dataset
     via specify different partition methods. It is useful while exploring the 
     influence of non-iid experiments.
+
+    Args:
+        dataset: Any torch kind dataset.
+        total_parts: How many parts the dataset participated into.
+        partitioner: The way to participate the dataset.
     """
     dataset: Dataset
     parts_index_list: List
@@ -43,12 +48,6 @@ class PartitionerDataset(FederatedDataset):
 
     def __init__(self, dataset: Dataset, total_parts: int,
                  partitioner: Partitioner):
-        """
-        Args:
-            dataset: Any torch kind dataset.
-            total_parts: How many parts the dataset participated into.
-            partitioner: The way to participate the dataset.
-        """
         self.dataset = dataset
         self.total_parts = total_parts
         self.partitioner = partitioner

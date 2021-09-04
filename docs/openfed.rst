@@ -18,6 +18,17 @@ Subpackages
    openfed.topo
    openfed.utils
 
+Submodules
+----------
+
+openfed.api module
+------------------
+
+.. automodule:: openfed.api
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

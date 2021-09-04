@@ -4,18 +4,18 @@ openfed.tools package
 Submodules
 ----------
 
-openfed.tools.helper module
----------------------------
+openfed.tools.simulator module
+------------------------------
 
-.. automodule:: openfed.tools.helper
+.. automodule:: openfed.tools.simulator
    :members:
    :undoc-members:
    :show-inheritance:
 
-openfed.tools.launch module
----------------------------
+openfed.tools.topo\_builder module
+----------------------------------
 
-.. automodule:: openfed.tools.launch
+.. automodule:: openfed.tools.topo_builder
    :members:
    :undoc-members:
    :show-inheritance:
