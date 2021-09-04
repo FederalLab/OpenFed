@@ -72,6 +72,23 @@ class PowerLawPartitioner(Partitioner):
 
 
 class DirichletPartitioner(Partitioner):
+    r"""Dirichlet partitioner.
+
+    .. Examples::
+
+        >>> from openfed.data import DirichletPartitioner, PartitionerDataset, samples_distribution
+        >>> from torchvision.datasets import MNIST
+        >>> from torchvision.transforms import ToTensor
+        >>> dataset = PartitionerDataset(
+            MNIST(r'/tmp/', True, ToTensor(), download=True), total_parts=10, partitioner=DirichletPartitioner())
+        >>> samples_distribution(dataset, True)
+        +-------+---------+---------+----------+
+        | Parts | Samples |   Mean  |   Var    |
+        +-------+---------+---------+----------+
+        |   10  |  60000  | 6000.00 | 23904.20 |
+        +-------+---------+---------+----------+
+        [5891, 5955, 6220, 5986, 5965, 6174, 6190, 5873, 6047, 5699]
+    """
     _MAX_LOOP = 10000
 
     def __init__(self, alpha: float = 100, min_samples: int = 10):
@@ -141,6 +158,22 @@ class DirichletPartitioner(Partitioner):
 
 
 class IIDPartitioner(Partitioner):
+    r"""IID partitioner.
+
+    Examples::
+        >>> from openfed.data import IIDPartitioner, PartitionerDataset, samples_distribution
+        >>> from torchvision.datasets import MNIST
+        >>> from torchvision.transforms import ToTensor
+        >>> dataset = PartitionerDataset(
+            MNIST(r'/tmp/', True, ToTensor(), download=True), total_parts=10, partitioner=IIDPartitioner())
+        >>> samples_distribution(dataset, True)
+        +-------+---------+---------+------+
+        | Parts | Samples |   Mean  | Var  |
+        +-------+---------+---------+------+
+        |   10  |  59960  | 5996.00 | 0.00 |
+        +-------+---------+---------+------+
+        [5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996]
+    """
     def partition(self, total_parts: int, data_index_list: List) -> List:
 
         parts_index_list = [[] for _ in range(total_parts)]

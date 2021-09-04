@@ -1,8 +1,8 @@
 # Copyright (c) FederalLab. All rights reserved.
-from .analysis import *
 from .datasets import FederatedDataset, PartitionerDataset
 from .partitioner import (DirichletPartitioner, IIDPartitioner, Partitioner,
                           PowerLawPartitioner)
+from .utils import samples_distribution
 
 __all__ = [
     'Partitioner',
@@ -11,6 +11,5 @@ __all__ = [
     'IIDPartitioner',
     'FederatedDataset',
     'PartitionerDataset',
-    'digest',
-    'label_distribution',
+    'samples_distribution',
 ]
