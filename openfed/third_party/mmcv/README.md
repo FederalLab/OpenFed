@@ -7,20 +7,20 @@ An OpenFed extra module for open-mmlab's projects, such as mmdetection, mmdetect
 1. Define the config file
 
 ```python
-# For follower
+# For collaborator
 runner = dict(
     type='EpochBasedRunner',
     max_epochs=36,
-    role='follower',
+    role='collaborator',
     address_file='/path/to/address.json',
     constructor='OpenFedRunnerConstructor',
 )
 
-# For leader
+# For aggregator
 runner = dict(
     type='EpochBasedRunner',
     max_epochs=36,
-    role='leader',
+    role='aggregator',
     address_file='/path/to/address.json',
     constructor='OpenFedRunnerConstructor',
 )

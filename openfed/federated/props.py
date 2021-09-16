@@ -116,13 +116,13 @@ class FederatedProperties(object):
 
     Examples::
 
-        >>> fed_props = FederatedProperties('leader', 'openfed_node', default_tcp_address)
+        >>> fed_props = FederatedProperties('aggregator', 'openfed_node', default_tcp_address)
         >>> fed_props
         <OpenFed> FederatedProperties
         +--------+--------------+
         |  role  |  nick_name   |
         +--------+--------------+
-        | leader | openfed_node |
+        | aggregator | openfed_node |
         +--------+--------------+
         <OpenFed> Address
         +---------+---------------------+------------+------+

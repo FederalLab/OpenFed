@@ -10,7 +10,7 @@ from openfed.common import Meta
 from openfed.utils import openfed_class_fmt, tablist
 from torch.distributed import ProcessGroup, Store, gather_object
 
-from .const import (follower, follower_rank, leader, leader_rank, nick_name,
+from .const import (collaborator, collaborator_rank, aggregator, aggregator_rank, nick_name,
                     offline, openfed_identity, openfed_meta, openfed_status,
                     pull, push, zombie)
 from .exceptions import DeviceOffline
@@ -64,7 +64,7 @@ class Pipe():
         if len(read_info) == 0:
             self.read_successfully = False
             self._u_backup_info[
-                openfed_status] = offline if self.follower else zombie
+                openfed_status] = offline if self.collaborator else zombie
         else:
             self.read_successfully = True
             self._u_backup_info = read_info
@@ -90,15 +90,15 @@ class Pipe():
 
     @property
     def anti_role(self):
-        return leader if self.follower else follower
+        return aggregator if self.collaborator else collaborator
 
     @property
-    def leader(self):
-        return self.role == leader
+    def aggregator(self):
+        return self.role == aggregator
 
     @property
-    def follower(self):
-        return self.role == follower
+    def collaborator(self):
+        return self.role == collaborator
 
     @property
     def nick_name(self) -> Any:
@@ -175,7 +175,7 @@ class Pipe():
         def _state():
             return self.is_pulling if to else self.is_pushing
 
-        if self.follower:
+        if self.collaborator:
             if to:
                 self.pushing()
             else:
@@ -209,7 +209,7 @@ class Pipe():
         assert distributed_c10d._get_group_size(self.pg) == 2,\
             "Pipe is only designed for point to point communication."
 
-        rank = follower_rank if self.leader else leader_rank
+        rank = collaborator_rank if self.aggregator else aggregator_rank
         rank = distributed_c10d._get_global_rank(self.pg, rank) \
             if distributed_c10d.get_world_size() > 2 else rank
 
@@ -223,8 +223,8 @@ class Pipe():
 
         received = [None for _ in range(world_size)]
 
-        rank = leader_rank if self.leader else follower_rank
-        other_rank = follower_rank if self.leader else leader_rank
+        rank = aggregator_rank if self.aggregator else collaborator_rank
+        other_rank = collaborator_rank if self.aggregator else aggregator_rank
 
         rank = distributed_c10d._get_global_rank(
             self.pg, rank) if world_size > 2 else rank

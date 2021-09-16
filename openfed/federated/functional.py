@@ -6,7 +6,7 @@ from typing import List
 
 import torch.distributed.distributed_c10d as distributed_c10d
 
-from .const import follower_rank, leader_rank
+from .const import collaborator_rank, aggregator_rank
 from .pipe import Pipe
 from .props import DistributedProperties, FederatedProperties
 
@@ -28,7 +28,7 @@ def build_point2point_group(
     pg_list = []
     for other in range(distributed_c10d.get_world_size()):
         if other != rank:
-            ranks = [other, rank] if follower_rank == 0 else [rank, other]
+            ranks = [other, rank] if collaborator_rank == 0 else [rank, other]
             pg = distributed_c10d.new_group(ranks=ranks)
             if pg is not distributed_c10d.GroupMember.NON_GROUP_MEMBER:
                 pg_list.append(pg)
@@ -77,11 +77,11 @@ def joint_federated_group(backend,
                                         store=store)
     # rank is always set to 0 for that we want to build a
     # point2point connection between the master and each nodes.
-    # If the address is a point2point one, we should use the leader rank.
-    # If the address is a shared multi-node one, we take the rank 0 as the leader rank.
+    # If the address is a point2point one, we should use the aggregator rank.
+    # If the address is a shared multi-node one, we take the rank 0 as the aggregator rank.
     # And the re-arranged rank will be set to the ideal rank order in function call.
     sub_pg_list = build_point2point_group(
-        leader_rank if distributed_c10d.get_world_size() == 2 else 0)
+        aggregator_rank if distributed_c10d.get_world_size() == 2 else 0)
 
     return sub_pg_list
 

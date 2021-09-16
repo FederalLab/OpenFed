@@ -33,7 +33,7 @@ def count_step(counts: Union[List[int], int]):
             counts,
         ]
 
-    if _default_maintainer.leader:
+    if _default_maintainer.aggregator:
 
         def before_upload_hook(maintainer) -> bool:
             request_version = maintainer.pipe.meta.get('version')
@@ -83,7 +83,7 @@ def period_step(period: float):
 
     assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
 
-    if _default_maintainer.leader:
+    if _default_maintainer.aggregator:
 
         def before_upload_hook(maintainer) -> bool:
             request_version = maintainer.pipe.meta.get('version')
@@ -142,7 +142,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
     parts_list_key = list(parts_list.keys())
     parts_list_value = list(parts_list.values())
 
-    if _default_maintainer.leader:
+    if _default_maintainer.aggregator:
         idx = 0
         pending_queue = random.sample(parts_list_value[idx], counts[idx])
 

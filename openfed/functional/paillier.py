@@ -173,7 +173,7 @@ def paillier(public_key: Union[str, PublicKey]):
     if isinstance(public_key, str):
         public_key = PublicKey.load(public_key)
 
-    if _default_maintainer.follower:
+    if _default_maintainer.collaborator:
 
         def package(state, p):
             paillier_state = dict()

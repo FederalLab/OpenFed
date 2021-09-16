@@ -1,26 +1,26 @@
 # Copyright (c) FederalLab. All rights reserved.
 from typing import List, Optional
 
-from openfed.federated import follower, is_follower, is_leader
+from openfed.federated import collaborator, is_collaborator, is_aggregator
 from openfed.utils import openfed_class_fmt
 
 
 class FederatedOptimizer(object):
     def __init__(self,
                  optimizer,
-                 role: str = follower,
+                 role: str = collaborator,
                  max_acg_step: int = -1):
         self.optimizer = optimizer
         self.role = role
         self.max_acg_step = max_acg_step
 
     @property
-    def leader(self) -> bool:
-        return is_leader(self.role)
+    def aggregator(self) -> bool:
+        return is_aggregator(self.role)
 
     @property
-    def follower(self) -> bool:
-        return is_follower(self.role)
+    def collaborator(self) -> bool:
+        return is_collaborator(self.role)
 
     @property
     def param_groups(self):
@@ -40,28 +40,28 @@ class FederatedOptimizer(object):
         ...
 
     def step(self, *args, **kwargs):
-        if self.follower:
-            self._follower_step(*args, **kwargs)
+        if self.collaborator:
+            self._collaborator_step(*args, **kwargs)
         else:
-            self._leader_step(*args, **kwargs)
+            self._aggregator_step(*args, **kwargs)
         return self.optimizer.step()
 
-    def _follower_step(self, *args, **kwargs):
+    def _collaborator_step(self, *args, **kwargs):
         ...
 
-    def _leader_step(self, *args, **kwargs):
+    def _aggregator_step(self, *args, **kwargs):
         ...
 
     def round(self):
-        if self.follower:
-            return self._follower_round()
+        if self.collaborator:
+            return self._collaborator_round()
         else:
-            return self._leader_round()
+            return self._aggregator_round()
 
-    def _follower_round(self):
+    def _collaborator_round(self):
         ...
 
-    def _leader_round(self):
+    def _aggregator_round(self):
         ...
 
     def clear_state_dict(

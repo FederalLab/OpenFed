@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from openfed.common.meta import Meta
 from openfed.federated import (FederatedProperties, Pipe, init_federated_group,
-                               is_follower, is_leader)
+                               is_collaborator, is_aggregator)
 from openfed.functional.const import (after_destroy, after_download,
                                       after_upload, at_failed, at_first,
                                       at_invalid_state, at_last,
@@ -39,7 +39,7 @@ class Maintainer(object):
         +------------------+-----------+-------+
         |       role       | nick_name | pipes |
         +------------------+-----------+-------+
-        | openfed_follower |   client  |   1   |
+        | openfed_collaborator |   client  |   1   |
         +------------------+-----------+-------+
         >>> with mt:
         >>>     openfed.F.paillier(public_key)
@@ -94,12 +94,12 @@ class Maintainer(object):
         return self.fed_props.role
 
     @property
-    def leader(self) -> bool:
-        return is_leader(self.role)
+    def aggregator(self) -> bool:
+        return is_aggregator(self.role)
 
     @property
-    def follower(self) -> bool:
-        return is_follower(self.role)
+    def collaborator(self) -> bool:
+        return is_collaborator(self.role)
 
     @property
     def nick_name(self) -> str:
@@ -169,8 +169,8 @@ class Maintainer(object):
             step_name: When to apply this step hook.
 
         .. note::
-            Step hook is used to control the behavior of `leader`. It will be 
-            called in :func:``_leader_step``.
+            Step hook is used to control the behavior of `aggregator`. It will be 
+            called in :func:``_aggregator_step``.
 
         Example::
 
@@ -257,7 +257,7 @@ class Maintainer(object):
 
         self.data = data
 
-        if self.leader:
+        if self.aggregator:
             # convert to tensor index
             tensor_data = dict()
             for n, p in self.state_dict.items():
@@ -285,12 +285,12 @@ class Maintainer(object):
         return True
 
     def step(self, *args, **kwargs):
-        if self.follower:
-            self._follower_step(*args, **kwargs)
+        if self.collaborator:
+            self._collaborator_step(*args, **kwargs)
         else:
-            self._leader_step(*args, **kwargs)
+            self._aggregator_step(*args, **kwargs)
 
-    def _follower_step(self, *args, **kwargs):
+    def _collaborator_step(self, *args, **kwargs):
         download = kwargs.pop('download', True)
         upload = kwargs.pop('upload', True)
         meta = kwargs.pop('meta', None)
@@ -308,7 +308,7 @@ class Maintainer(object):
         if meta:
             meta.update(self.meta)
 
-    def _leader_step(self, *args, **kwargs):
+    def _aggregator_step(self, *args, **kwargs):
         self.stopped = False
 
         def step(step_name: str, *args, **kwargs):
@@ -342,16 +342,16 @@ class Maintainer(object):
                 elif pipe.is_zombie:
                     step(at_zombie)
                 elif pipe.is_pushing:
-                    # follower pushes data to leader,
-                    # as a leader, we need to download
+                    # collaborator pushes data to aggregator,
+                    # as a aggregator, we need to download
                     if step(before_download):
                         flag = self.download()
                         step(after_download, flag)
                     else:
                         step(at_failed)
                 elif pipe.is_pulling:
-                    # follower pulls data to leader,
-                    # as a leader, we need to upload
+                    # collaborator pulls data to aggregator,
+                    # as a aggregator, we need to upload
                     if step(before_upload):
                         flag = self.upload()
                         step(after_upload, flag)
@@ -444,7 +444,7 @@ class Maintainer(object):
         self.pipes.clear()
 
     def manual_stop(self):
-        r"""Stop while loop in :func:`_leader_step`."""
+        r"""Stop while loop in :func:`_aggregator_step`."""
         self.stopped = True
 
     def __enter__(self):

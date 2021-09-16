@@ -68,11 +68,11 @@ Optimizer
 .. code:: ipython3
 
     import torch
-    from openfed.federated import follower
+    from openfed.federated import collaborator
     from openfed.optim import FederatedOptimizer
     
     optim = torch.optim.SGD(network.parameters(), lr=0.1)
-    fed_optim = FederatedOptimizer(optim, role=follower)
+    fed_optim = FederatedOptimizer(optim, role=collaborator)
     
     print(fed_optim)
 
@@ -116,7 +116,7 @@ Topology
     +------------------+-----------+
     |       role       | nick_name |
     +------------------+-----------+
-    | openfed_follower |   client  |
+    | openfed_collaborator |   client  |
     +------------------+-----------+
     [0;34m<OpenFed>[0m [0;35mAddress[0m
     +---------+---------------------+------------+------+
@@ -149,7 +149,7 @@ Maintainer
     +------------------+-----------+-------+
     |       role       | nick_name | pipes |
     +------------------+-----------+-------+
-    | openfed_follower |   client  |   1   |
+    | openfed_collaborator |   client  |   1   |
     +------------------+-----------+-------+
     
 

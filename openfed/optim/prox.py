@@ -1,5 +1,5 @@
 # Copyright (c) FederalLab. All rights reserved.
-from openfed.federated import follower
+from openfed.federated import collaborator
 
 from .fed_optim import FederatedOptimizer
 
@@ -7,7 +7,7 @@ from .fed_optim import FederatedOptimizer
 class ProxOptimizer(FederatedOptimizer):
     def __init__(self,
                  optim,
-                 role: str = follower,
+                 role: str = collaborator,
                  mu: float = 0.9,
                  max_acg_step: int = -1):
         if not 0.0 < mu < 1.0:
@@ -16,7 +16,7 @@ class ProxOptimizer(FederatedOptimizer):
         self.mu = mu
         super(ProxOptimizer, self).__init__(optim, role, max_acg_step)
 
-    def _follower_step(self):
+    def _collaborator_step(self):
         for group in self.param_groups:
             for p in group["params"]:
                 if p.grad is not None:

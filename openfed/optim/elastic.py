@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 import torch
 import torch.nn.functional as F
-from openfed.federated import follower
+from openfed.federated import collaborator
 
 from .fed_optim import FederatedOptimizer
 
@@ -9,7 +9,7 @@ from .fed_optim import FederatedOptimizer
 class ElasticOptimizer(FederatedOptimizer):
     def __init__(self,
                  optim,
-                 role: str = follower,
+                 role: str = collaborator,
                  momentum: float = 0.9,
                  max_acg_step=-1):
         if not 0.0 <= momentum <= 1.0:

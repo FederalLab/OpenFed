@@ -1,18 +1,18 @@
 # Copyright (c) FederalLab. All rights reserved.
-leader = 'openfed_leader'
-follower = 'openfed_follower'
+aggregator = 'openfed_aggregator'
+collaborator = 'openfed_collaborator'
 
 
-def is_leader(role: str) -> bool:
-    """Returns `True` if `role` is leader.
+def is_aggregator(role: str) -> bool:
+    """Returns `True` if `role` is aggregator.
     """
-    return role == leader
+    return role == aggregator
 
 
-def is_follower(role: str) -> bool:
-    """Returns `True` if `role` is follower.
+def is_collaborator(role: str) -> bool:
+    """Returns `True` if `role` is collaborator.
     """
-    return role == follower
+    return role == collaborator
 
 
 push = 'push'
@@ -25,5 +25,5 @@ openfed_status = 'openfed_status'
 openfed_meta = 'openfed_meta'
 nick_name = 'nick_name'
 
-leader_rank = 0
-follower_rank = 1
+aggregator_rank = 0
+collaborator_rank = 1

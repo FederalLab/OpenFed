@@ -3,7 +3,7 @@ from typing import Callable, Union
 
 import torch
 import torch.nn.functional as F
-from openfed.federated import follower
+from openfed.federated import collaborator
 
 from .fed_optim import FederatedOptimizer
 
@@ -11,7 +11,7 @@ from .fed_optim import FederatedOptimizer
 class ScaffoldOptimizer(FederatedOptimizer):
     def __init__(self,
                  optim,
-                 role: str = follower,
+                 role: str = collaborator,
                  max_acg_step: int = -1,
                  acg_loss_fn: Union[str, Callable] = 'cross_entropy'):
         super(ScaffoldOptimizer, self).__init__(optim, role, max_acg_step)
@@ -77,7 +77,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
                     state["init_p_g"].copy_(g)
                     state['init_p_g_cnt'] += 1
 
-    def _follower_step(self, closure=None):
+    def _collaborator_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
@@ -115,7 +115,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
 
         return loss
 
-    def _leader_step(self, closure=None):
+    def _aggregator_step(self, closure=None):
         """Performs a single optimization step.
 
         Args:
@@ -132,7 +132,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
                 if p.grad is None:
                     continue
                 state = self.state[p]
-                # Update leader
+                # Update aggregator
                 if 'c_para' not in state:
                     state['c_para'] = torch.zeros_like(p)
                 c_para = state["c_para"]
@@ -148,7 +148,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
 
         return loss
 
-    def _follower_round(self):
+    def _collaborator_round(self):
         """Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
         """
@@ -159,7 +159,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
                     continue
                 state = self.state[p]
                 c_para_i = state["c_para_i"]
-                # Update follower
+                # Update collaborator
                 if self.acg_loss_fn is not None:
                     # Use the first way to update c_para
                     assert "init_p_g" in state, "You should accumulate init_p_g first!"
@@ -174,7 +174,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
                 else:
                     state["c_para"].copy_(c_para_i - state["c_para"])
 
-    def _leader_round(self):
+    def _aggregator_round(self):
         """Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
         """

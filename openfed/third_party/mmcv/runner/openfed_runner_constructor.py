@@ -6,7 +6,7 @@ import openfed
 import torch.distributed as dist
 from mmcv.runner.builder import RUNNER_BUILDERS, RUNNERS  # type: ignore
 from mmcv.runner.dist_utils import get_dist_info
-from openfed.federated import is_follower, is_leader, leader
+from openfed.federated import is_collaborator, is_aggregator, aggregator
 from openfed.topo import Topology, analysis
 
 @RUNNER_BUILDERS.register_module()
@@ -48,7 +48,7 @@ class OpenFedRunnerConstructor(object):
                 type='fedavg',
                 lr=1.0,
             )
-        if is_follower(self.role):
+        if is_collaborator(self.role):
             self.fed_optim_cfg['optimizer'] = self.default_args['optimizer']
         self.fed_optim_cfg['role'] = self.role
 
@@ -63,7 +63,7 @@ class OpenFedRunnerConstructor(object):
                 optimizer,
                 aggregator,
             )
-            if is_leader(self.role):
+            if is_aggregator(self.role):
                 with openfed_api:
                     aggregate_in = False
                     for cfg in self.hook_cfg_list:
@@ -75,8 +75,8 @@ class OpenFedRunnerConstructor(object):
                             "`Aggregate` step function is not registerred.")
             openfed_api.build_connection(address_file=self.address_file)
 
-            if is_leader(self.role):
-                # Go into leader loop backend
+            if is_aggregator(self.role):
+                # Go into aggregator loop backend
                 openfed_api.run()
                 print(">>> Finished.")
                 openfed_api.finish(auto_exit=True)
@@ -92,7 +92,7 @@ class OpenFedRunnerConstructor(object):
         def train(self, data_loader, **kwargs):
             if rank == 0:
                 with openfed_api:
-                    # Download a model from leader
+                    # Download a model from aggregator
                     openfed_api.transfer(to=False)
 
             # broadcast the model to other rank
@@ -113,7 +113,7 @@ class OpenFedRunnerConstructor(object):
             # upload
             if rank == 0:
                 with openfed_api:
-                    # Upload the trained model to leader
+                    # Upload the trained model to aggregator
                     openfed_api.update_version()
 
                     openfed_api.transfer(to=True)

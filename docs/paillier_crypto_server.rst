@@ -52,11 +52,11 @@ Optimizer
 .. code:: ipython3
 
     import torch
-    from openfed.federated import leader
+    from openfed.federated import aggregator
     from openfed.optim import FederatedOptimizer
     
     optim = torch.optim.SGD(network.parameters(), lr=1.0)
-    fed_optim = FederatedOptimizer(optim, role=leader)
+    fed_optim = FederatedOptimizer(optim, role=aggregator)
     print(fed_optim)
 
 
@@ -99,7 +99,7 @@ Topology
     +----------------+-----------+
     |      role      | nick_name |
     +----------------+-----------+
-    | openfed_leader |   server  |
+    | openfed_aggregator |   server  |
     +----------------+-----------+
     [0;34m<OpenFed>[0m [0;35mAddress[0m
     +---------+---------------------+------------+------+
@@ -133,7 +133,7 @@ Maintainer
     +----------------+-----------+-------+
     |      role      | nick_name | pipes |
     +----------------+-----------+-------+
-    | openfed_leader |   server  |   1   |
+    | openfed_aggregator |   server  |   1   |
     +----------------+-----------+-------+
     
 

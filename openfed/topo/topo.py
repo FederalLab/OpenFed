@@ -4,7 +4,7 @@ from typing import List, Union, overload
 
 import torch
 from openfed.common import Address
-from openfed.federated import FederatedProperties, is_follower, is_leader
+from openfed.federated import FederatedProperties, is_collaborator, is_aggregator
 from openfed.utils import openfed_class_fmt, tablist
 
 
@@ -23,7 +23,7 @@ class Node(object):
 
 
 class Edge(object):
-    """Edge, start node will be regarded as follower, end node will be regarded as leader.
+    """Edge, start node will be regarded as collaborator, end node will be regarded as aggregator.
     """
     def __init__(
         self,
@@ -58,28 +58,28 @@ class FederatedGroup(object):
         self.others = []
 
     @property
-    def leader(self):
-        return is_leader(self.role)
+    def aggregator(self):
+        return is_aggregator(self.role)
 
     @property
-    def follower(self):
-        return is_follower(self.role)
+    def collaborator(self):
+        return is_collaborator(self.role)
 
     def add_to_group(self, edge: Edge) -> bool:
         """Add an edge to federated group.
         """
-        if self.leader and edge.end == self.node:
+        if self.aggregator and edge.end == self.node:
             # belong to this group
-            # add the follower to this group
+            # add the collaborator to this group
             self.others.append(edge.start)
             return True
-        if self.follower and edge.start == self.node:
+        if self.collaborator and edge.start == self.node:
             # belong to this group
             if len(self.others) >= 1:
                 # this group is not empty,
-                # as a follower, we only allow it belongs to
-                # a single leader node in one federated group.
-                # if it belongs to more than one leader, you
+                # as a collaborator, we only allow it belongs to
+                # a single aggregator node in one federated group.
+                # if it belongs to more than one aggregator, you
                 # need to build federated group for each one.
                 return False
             else:
@@ -94,7 +94,7 @@ class FederatedGroup(object):
         role = self.role
         nick_name = self.node.nick_name
 
-        if self.leader:
+        if self.aggregator:
             address = self.node.address
         else:
             address = self.others[0].address

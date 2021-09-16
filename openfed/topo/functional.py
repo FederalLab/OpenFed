@@ -1,8 +1,8 @@
 from typing import List, Tuple, Union
 
 from openfed.common import Address
-from openfed.federated import (FederatedProperties, follower, follower_rank,
-                               leader, leader_rank)
+from openfed.federated import (FederatedProperties, collaborator, collaborator_rank,
+                               aggregator, aggregator_rank)
 
 from .topo import FederatedGroup, Node, Topology
 
@@ -16,33 +16,33 @@ def build_federated_group(
         topo: The topology map contains related information.
         node: The node to build the federated group.
     """
-    # leader group
-    leader_group = []
-    follower_group = []
+    # aggregator group
+    aggregator_group = []
+    collaborator_group = []
     for edge in topo.edges:
         if edge.end == node:
-            # leader group
+            # aggregator group
             fuse = False
-            for lg in leader_group:
+            for lg in aggregator_group:
                 if lg.add_to_group(edge):
                     fuse = True
                     break
             if not fuse:
-                lg = FederatedGroup(leader, node)
+                lg = FederatedGroup(aggregator, node)
                 assert lg.add_to_group(edge)
-                leader_group.append(lg)
+                aggregator_group.append(lg)
         elif edge.start == node:
-            # follower group
+            # collaborator group
             fuse = False
-            for fg in follower_group:
+            for fg in collaborator_group:
                 if fg.add_to_group(edge):
                     fuse = True
                     break
             if not fuse:
-                fg = FederatedGroup(follower, node)
+                fg = FederatedGroup(collaborator, node)
                 assert fg.add_to_group(edge)
-                follower_group.append(fg)
-    return leader_group, follower_group
+                collaborator_group.append(fg)
+    return aggregator_group, collaborator_group
 
 
 def analysis(topo: Topology, node: Union[Node,
@@ -59,24 +59,24 @@ def analysis(topo: Topology, node: Union[Node,
         assert node, 'Invalid node.'
     assert isinstance(node, Node)
 
-    leader_group, follower_group = build_federated_group(topo, node)
+    aggregator_group, collaborator_group = build_federated_group(topo, node)
 
     # rectify the address infomation
-    leader_group_props = []
-    for lg in leader_group:
+    aggregator_group_props = []
+    for lg in aggregator_group:
         world_size = len(lg.others) + 1
-        rank = leader_rank if world_size == 2 else 0
+        rank = aggregator_rank if world_size == 2 else 0
 
         lgp = lg.federated_properties
 
         lgp.address = Address(lgp.address.backend, lgp.address.init_method,
                               world_size, rank)
 
-        leader_group_props.append(lgp)
+        aggregator_group_props.append(lgp)
 
-    follower_group_props = []
-    for fg in follower_group:
-        # build the federated group for leader
+    collaborator_group_props = []
+    for fg in collaborator_group:
+        # build the federated group for aggregator
         lgs, _ = build_federated_group(topo, fg.others[0])
         lg = None
         for lg in lgs:
@@ -85,18 +85,18 @@ def analysis(topo: Topology, node: Union[Node,
         if lg:
             world_size = len(lg.others) + 1
             if world_size == 2:
-                rank = follower_rank
+                rank = collaborator_rank
             else:
                 nick_name = [node.nick_name for node in lg.others]
                 nick_name.sort()
                 rank = -1
                 for i, n in enumerate(nick_name):
                     if n == fg.node.nick_name:
-                        rank = i + 1  # rank == 0 is leader.
+                        rank = i + 1  # rank == 0 is aggregator.
                         break
                 assert rank > 0
         else:
-            raise RuntimeError(f"Build leader federated group failed.")
+            raise RuntimeError(f"Build aggregator federated group failed.")
 
         fgp = fg.federated_properties
 
@@ -106,6 +106,6 @@ def analysis(topo: Topology, node: Union[Node,
             world_size,
             rank,
         )
-        follower_group_props.append(fgp)
+        collaborator_group_props.append(fgp)
 
-    return leader_group_props + follower_group_props
+    return aggregator_group_props + collaborator_group_props

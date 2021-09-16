@@ -6,10 +6,10 @@ from .pipe import *
 from .props import *
 
 __all__ = [
-    'leader',
-    'follower',
-    'is_leader',
-    'is_follower',
+    'aggregator',
+    'collaborator',
+    'is_aggregator',
+    'is_collaborator',
     'push',
     'pull',
     'zombie',
@@ -18,8 +18,8 @@ __all__ = [
     'openfed_status',
     'openfed_meta',
     'nick_name',
-    'leader_rank',
-    'follower_rank',
+    'aggregator_rank',
+    'collaborator_rank',
     'default_pg_timeout',
     'DistributedProperties',
     'build_point2point_group',

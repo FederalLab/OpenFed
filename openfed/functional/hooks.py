@@ -31,7 +31,7 @@ def sign_gradient_clip(epsilon=0.001):
 
     assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
 
-    if _default_maintainer.leader:
+    if _default_maintainer.aggregator:
 
         def unpackage(state, p):
             state['param'] = p - epsilon * state['param']
