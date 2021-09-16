@@ -4,7 +4,8 @@ from typing import List, Union, overload
 
 import torch
 from openfed.common import Address
-from openfed.federated import FederatedProperties, is_collaborator, is_aggregator
+from openfed.federated import (FederatedProperties, is_aggregator,
+                               is_collaborator)
 from openfed.utils import openfed_class_fmt, tablist
 
 
@@ -216,7 +217,7 @@ class Topology(object):
 
     def __repr__(self) -> str:
         head = [node.nick_name for node in self.nodes]
-        head = [r'fl\lr'] + head
+        head = [r'CO\AG'] + head
         data = []
         for start in self.nodes:
             items = [

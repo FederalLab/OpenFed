@@ -71,7 +71,7 @@ class TopoBuilder(cmd.Cmd):
 
         <OpenFed>: plot
         +--------+--------+-------+------+
-        | fl\lr  | server | alpha | beta |
+        | CO\AG  | server | alpha | beta |
         +--------+--------+-------+------+
         | server |   .    |   .   |  .   |
         | alpha  |   .    |   .   |  .   |
@@ -97,7 +97,7 @@ class TopoBuilder(cmd.Cmd):
 
         <OpenFed>: plot
         +--------+--------+-------+------+
-        | fl\lr  | server | alpha | beta |
+        | CO\AG  | server | alpha | beta |
         +--------+--------+-------+------+
         | server |   .    |   .   |  .   |
         | alpha  |   ^    |   .   |  .   |
@@ -140,7 +140,7 @@ class TopoBuilder(cmd.Cmd):
 
         <OpenFed>: plot
         +--------+--------+-------+------+-------+
-        | fl\lr  | server | alpha | beta | gamma |
+        | CO\AG  | server | alpha | beta | gamma |
         +--------+--------+-------+------+-------+
         | server |   .    |   .   |  .   |   .   |
         | alpha  |   ^    |   .   |  ^   |   .   |
@@ -151,7 +151,7 @@ class TopoBuilder(cmd.Cmd):
         Filename:
         topology
         +--------+--------+-------+------+-------+
-        | fl\lr  | server | alpha | beta | gamma |
+        | CO\AG  | server | alpha | beta | gamma |
         +--------+--------+-------+------+-------+
         | server |   .    |   .   |  .   |   .   |
         | alpha  |   ^    |   .   |  ^   |   .   |
