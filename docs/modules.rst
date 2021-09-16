@@ -1,7 +1,6 @@
-openfed
-=======
+examples
+========
 
 .. toctree::
    :maxdepth: 4
 
-   openfed

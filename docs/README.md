@@ -13,7 +13,8 @@ sphinx-apidoc -f -o . ../examples
 The command detects the code structure under `../openfed` and generates a series of `*.rst` files, such as `openfed.api.rst`.
 However, the docstring would not be compiled until we execute `make html` later.
 
-We can also update the hand-crafted documents, including `intro.rst` and `tutorial.rst`. The `index.rst` is the entry file. We don't need to modify it unless we want to add more hand-crafted pages or adjust the order in the Contents page.
+We can also update the hand-crafted documents, including `intro.rst` and `tutorial.rst`.
+The `openfed.rst` is the entry file. We don't need to modify it unless we want to add more hand-crafted pages or adjust the order in the Contents page.
 
 After completing revision on the .rst files, we would compile the documentation source code:
 

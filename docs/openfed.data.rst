@@ -4,14 +4,6 @@ openfed.data package
 Submodules
 ----------
 
-openfed.data.analysis module
-----------------------------
-
-.. automodule:: openfed.data.analysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 openfed.data.datasets module
 ----------------------------
 
@@ -24,6 +16,14 @@ openfed.data.partitioner module
 -------------------------------
 
 .. automodule:: openfed.data.partitioner
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+openfed.data.utils module
+-------------------------
+
+.. automodule:: openfed.data.utils
    :members:
    :undoc-members:
    :show-inheritance:
