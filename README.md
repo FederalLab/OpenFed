@@ -7,6 +7,9 @@
 
 # OpenFed: An Open-Source AI Safety and Security Guaranteed Deep Learning Framework
 
+
+![GitHub last commit](https://img.shields.io/github/last-commit/FederalLab/OpenFed) [![Documentation Status](https://readthedocs.org/projects/OpenFed/badge/?version=latest)](https://OpenFed.readthedocs.io/en/latest/?badge=latest) [![PyPI](https://img.shields.io/pypi/v/OpenFed)](https://pypi.org/project/OpenFed) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OpenFed)](https://pypi.org/project/OpenFed)
+
 ## Introduction
 
 OpenFed is a foundational library for federated learning research and supports many research projects as below:
