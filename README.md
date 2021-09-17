@@ -40,3 +40,17 @@ Python>=3.7, PyTorch>=1.8.0 are required.
 **Stable version**: `pip install openfed`
 
 **Latest version**: `pip install -e git+https://github.com/FederalLab/OpenFed.git`
+
+
+## Citation
+
+If you find this project useful in your research, please consider cite:
+
+```
+@misc{OpenFed,
+Author = {Chen Dengsheng},
+Title = {OpenFed: An Open-Source Security and Privacy Guaranteed Federated Learning Framework},
+Year = {2021},
+Eprint = {arXiv:2109.07852},
+}
+```
