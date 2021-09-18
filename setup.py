@@ -2,11 +2,15 @@
 python setup.py sdist bdist_wheel
 python -m twine upload dist/*
 '''
-import os
-
 from setuptools import find_packages, setup
 
-from openfed.version import __version__
+
+def get_version():
+    version_file = 'openfed/version.py'
+    with open(version_file, 'r', encoding='utf-8') as f:
+        exec(compile(f.read(), version_file, 'exec'))
+    return locals()['__version__']
+
 
 with open("requirements.txt", "r", encoding="utf-8") as fh:
     install_requires = fh.read()
@@ -17,7 +21,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     install_requires=install_requires,
     name="openfed",
-    version=__version__,
+    version=get_version(),
     author="FederalLab",
     author_email="densechen@foxmail.com",
     description="OpenFed: A PyTorch Library for Federated Learning",
