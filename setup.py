@@ -6,7 +6,7 @@ import os
 
 from setuptools import find_packages, setup
 
-from openfed import __version__
+from openfed.version import __version__
 
 with open("requirements.txt", "r", encoding="utf-8") as fh:
     install_requires = fh.read()
