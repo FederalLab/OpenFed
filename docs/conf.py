@@ -20,7 +20,7 @@
 import os
 import sys
 
-import pytorch_sphinx_theme
+import pytorch_sphinx_theme  # type: ignore
 from m2r import MdInclude
 from recommonmark.transform import AutoStructify
 from sphinx.builders.html import StandaloneHTMLBuilder
