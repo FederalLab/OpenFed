@@ -9,7 +9,7 @@ def fed_context(func):
     
     .. warning::
 
-        This decorator is intended to be used only for class which contains 
+        This decorator intends to be used only for class which contains 
         :attr:``pipe``.
     """
     def _fed_context(self, *args, **kwargs):

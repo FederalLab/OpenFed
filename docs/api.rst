@@ -23,23 +23,16 @@ functional
 .. automodule:: openfed.functional
     :members:
 
-
 optim
 -------
 .. automodule:: openfed.optim
     :members:
 
-third_party
--------
-.. automodule:: openfed.third_party
-    :members:
-    
 tools
 -------
 .. automodule:: openfed.tools
     :members:
     
-
 topo
 -------
 .. automodule:: openfed.topo

@@ -1,5 +1,5 @@
 ## Installation
 
 ```shell
-pip install mmcv
+pip install openfed
 ```

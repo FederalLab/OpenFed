@@ -43,23 +43,6 @@ openfed
 │   ├── fed_optim.py
 │   ├── prox.py
 │   └── scaffold.py
-├── third_party
-│   ├── __init__.py
-│   ├── fast_nlp
-│   │   └── __init__.py
-│   ├── mmcv
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   └── runner
-│   │       ├── __init__.py
-│   │       └── openfed_runner_constructor.py
-│   ├── monai
-│   │   └── __init__.py
-│   ├── pytorch_lightning
-│   │   ├── __init__.py
-│   │   └── openfed_checkpoint.py
-│   └── stable_baseline3
-│       └── __init__.py
 ├── tools
 │   ├── __init__.py
 │   ├── simulator.py

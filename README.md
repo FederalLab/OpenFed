@@ -41,7 +41,6 @@ In addition, we also provide a toolkit for better compatibility with following l
 
 **Latest version**: `pip install -e git+https://github.com/FederalLab/OpenFed.git`
 
-
 ## Citation
 
 If you find this project useful in your research, please consider cite:
