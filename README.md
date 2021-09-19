@@ -59,3 +59,11 @@ Year = {2021},
 Eprint = {arXiv:2109.07852},
 }
 ```
+
+## Contributing
+
+We appreciate all contributions to improve OpenFed. Please refer to [CONTRIBUTUNG.md](CONTRIBUTING.md) for the contributing guideline.
+
+## License
+
+OpenFed is released under the MIT License.
