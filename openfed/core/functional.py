@@ -6,17 +6,17 @@ from openfed.federated.exceptions import DeviceOffline
 
 def fed_context(func):
     r"""A decorator that can be used to provide federated communication context.
-    
+
     .. warning::
 
-        This decorator intends to be used only for class which contains 
-        :attr:``pipe``.
+        This decorator intends to be used only for class which
+        contains :attr:``pipe``.
     """
     def _fed_context(self, *args, **kwargs):
         def safe_call(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
-            except DeviceOffline as e:
+            except DeviceOffline:
                 warnings.warn(f"Failed to call {func}")
                 return False
 

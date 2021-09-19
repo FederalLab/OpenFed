@@ -36,11 +36,11 @@ class ScaffoldOptimizer(FederatedOptimizer):
             model: The model to test.
             dataloader: The data loader to iterate over.
 
-        .. note:: 
+        .. note::
             This function only be called if you do not specify the `lr` in 
             `__init__` process.
         """
-        if self.init_c_para_flag == False:
+        if self.init_c_para_flag is False:
             self.init_c_para()
 
         if self.acg_loss_fn is None:
@@ -109,7 +109,8 @@ class ScaffoldOptimizer(FederatedOptimizer):
                 else:
                     c_para_i = state["c_para_i"]
                 # c_para will be loaded from agg/deliver automatically.
-                assert "c_para" in state, "c_para must be loaded from agg/deliver."
+                assert "c_para" in state, \
+                    "c_para must be loaded from agg/deliver."
                 c_para = state["c_para"]
                 p.grad.add_(c_para - c_para_i, alpha=1)
 
@@ -162,7 +163,8 @@ class ScaffoldOptimizer(FederatedOptimizer):
                 # Update collaborator
                 if self.acg_loss_fn is not None:
                     # Use the first way to update c_para
-                    assert "init_p_g" in state, "You should accumulate init_p_g first!"
+                    assert "init_p_g" in state, \
+                        "You should accumulate init_p_g first!"
                     c_para_i.copy_(state["init_p_g"])
                 else:
                     # Use the second way to update c_para

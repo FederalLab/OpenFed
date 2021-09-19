@@ -15,8 +15,7 @@ from .props import DistributedProperties, FederatedProperties
 default_pg_timeout = timedelta(seconds=100)
 
 
-def build_point2point_group(
-        rank: int = 0) -> List:
+def build_point2point_group(rank: int = 0) -> List:
     r"""Builds process groups between two ranks.
 
     Args:
@@ -68,8 +67,10 @@ def joint_federated_group(backend,
             runtime. Default: -1
     """
     # build a store
-    rendezvous_iterator = rendezvous(
-        init_method, rank, world_size, timeout=default_pg_timeout)
+    rendezvous_iterator = rendezvous(init_method,
+                                     rank,
+                                     world_size,
+                                     timeout=default_pg_timeout)
     store, rank, world_size = next(rendezvous_iterator)
     store.set_timeout(default_pg_timeout)
 

@@ -25,7 +25,8 @@ def load_param_states(optim: Optimizer, param_states: Dict[Tensor, Any]):
                 fail += 1
     if fail > 0:
         warnings.warn(
-            f"Load param state for {success} params, {fail} params are ignored."
+            f"Load param state for {success} params, "
+            f"{fail} params are ignored."
         )
 
 
@@ -199,7 +200,8 @@ def elastic_aggregation(data_list: List[Dict[Tensor, Any]],
         del state['weight']
 
         if p.requires_grad:
-            assert 'importance' in state, "elastic aggregation requires `importance` state."
+            assert 'importance' in state, \
+                "elastic aggregation requires `importance` state."
             norm_importance = state['importance'] / state['importance'].max()
             weight = 1 + quantile - norm_importance
             grad = p - state['param']
@@ -227,7 +229,7 @@ def paillier_aggregation(data_list: List[Dict[Tensor, Any]],
 
     def decode(c1, c2, received_numbers):
         c = Ciphertext(c1, c2)
-        v = paillier_dec(private_key, c) # type: ignore
+        v = paillier_dec(private_key, c)  # type: ignore
         return long_to_float(private_key, v, received_numbers)  # type: ignore
 
     param_states = defaultdict(dict)
