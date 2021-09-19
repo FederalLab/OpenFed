@@ -50,6 +50,12 @@ Welcome to OpenFed's documentation!
 
    api.rst
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Build documentation
+
+   build_docs.md
+
 Indices and tables
 ==================
 
