@@ -8,11 +8,11 @@ from typing import Any, Dict, Optional
 import torch.distributed.distributed_c10d as distributed_c10d
 from openfed.common import Meta
 from openfed.utils import openfed_class_fmt, tablist
-from torch.distributed import ProcessGroup, Store, gather_object
+from torch._C._distributed_c10d import ProcessGroup, Store
 
-from .const import (collaborator, collaborator_rank, aggregator, aggregator_rank, nick_name,
-                    offline, openfed_identity, openfed_meta, openfed_status,
-                    pull, push, zombie)
+from .const import (aggregator, aggregator_rank, collaborator,
+                    collaborator_rank, nick_name, offline, openfed_identity,
+                    openfed_meta, openfed_status, pull, push, zombie)
 from .exceptions import DeviceOffline
 from .props import DistributedProperties, FederatedProperties
 
@@ -213,7 +213,7 @@ class Pipe():
         rank = distributed_c10d._get_global_rank(self.pg, rank) \
             if distributed_c10d.get_world_size() > 2 else rank
 
-        gather_object(data, None, dst=rank, group=self.pg)
+        distributed_c10d.gather_object(data, None, dst=rank, group=self.pg)
 
     def pull(self) -> Any:
         assert distributed_c10d._get_group_size(self.pg) == 2,\
@@ -231,7 +231,7 @@ class Pipe():
         other_rank = distributed_c10d._get_global_rank(
             self.pg, other_rank) if world_size > 2 else other_rank
 
-        gather_object(None, received, dst=rank, group=self.pg)
+        distributed_c10d.gather_object(None, received, dst=rank, group=self.pg)
 
         data = [r for r in received if r is not None][0]
         assert data
