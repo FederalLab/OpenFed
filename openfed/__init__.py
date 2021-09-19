@@ -9,4 +9,4 @@ from openfed.api import API as API
 
 from .common import *
 from .utils import *
-from .version import *
+from .version import __version__
