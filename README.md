@@ -2,7 +2,7 @@
 <!-- markdownlint-disable MD041 -->
 
 <div align=center>
-<img src="docs/openfed-logo.png" width="432" height="183" />
+<img src="docs/_static/image/openfed-logo.png" width="432" height="183" />
 </div>
 
 # OpenFed: An Open-Source AI Safety and Security Guaranteed Deep Learning Framework
