@@ -10,6 +10,8 @@
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/FederalLab/OpenFed) [![Documentation Status](https://readthedocs.org/projects/openfed/badge/?version=latest)](https://openfed.readthedocs.io/en/latest/?badge=latest) [![PyPI](https://img.shields.io/pypi/v/OpenFed)](https://pypi.org/project/OpenFed) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OpenFed)](https://pypi.org/project/OpenFed)
 
+**NOTE**: Current version is unstable, and we will release the first stable version very soon.
+
 ## Introduction
 
 OpenFed is a foundational library for federated learning research and supports many research projects as below:
