@@ -8,7 +8,6 @@ from typing import Any, Dict, Optional
 import torch.distributed.distributed_c10d as distributed_c10d
 from openfed.common import Meta
 from openfed.utils import openfed_class_fmt, tablist
-from torch._C._distributed_c10d import ProcessGroup, Store
 
 from .const import (aggregator, aggregator_rank, collaborator,
                     collaborator_rank, nick_name, offline, openfed_identity,
@@ -41,8 +40,8 @@ def get_store_value(store, key) -> Any:
 class Pipe():
     r"""
     """
-    store: Store
-    pg: ProcessGroup
+    store: Any
+    pg: Any
     dist_props: DistributedProperties
     fed_props: FederatedProperties
 
@@ -106,8 +105,8 @@ class Pipe():
 
     def __init__(
         self,
-        store: Store,
-        pg: ProcessGroup,
+        store: Any,
+        pg: Any,
         dist_props: DistributedProperties,
         fed_props: FederatedProperties,
     ):

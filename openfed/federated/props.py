@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional, Tuple
 import torch.distributed.distributed_c10d as distributed_c10d
 from openfed.common import Address
 from openfed.utils import openfed_class_fmt, tablist
-from torch._C._distributed_c10d import ProcessGroup, Store
 
 
 class DistributedProperties(object):
@@ -36,10 +35,10 @@ class DistributedProperties(object):
     _default_group_count = distributed_c10d._group_count
 
     # Use to save current distributed probabilities
-    _WORLD: Optional[ProcessGroup] = None
-    _pg_map: Dict[ProcessGroup, Tuple[str, Optional[Store]]] = {}
-    _pg_names: Dict[ProcessGroup, str]
-    _pg_group_ranks: Dict[ProcessGroup, Dict[int, int]]
+    _WORLD: Optional[Any] = None
+    _pg_map: Dict[Any, Tuple[str, Optional[Any]]] = {}
+    _pg_names: Dict[Any, str]
+    _pg_group_ranks: Dict[Any, Dict[int, int]]
     _pg_init_method: Any
     _group_count: int
 

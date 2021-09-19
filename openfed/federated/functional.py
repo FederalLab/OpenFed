@@ -5,7 +5,6 @@ from threading import Lock
 from typing import List
 
 import torch.distributed.distributed_c10d as distributed_c10d
-from torch._C._distributed_c10d import ProcessGroup
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous
 
@@ -17,7 +16,7 @@ default_pg_timeout = timedelta(seconds=100)
 
 
 def build_point2point_group(
-        rank: int = 0) -> List[ProcessGroup]:
+        rank: int = 0) -> List:
     r"""Builds process groups between two ranks.
 
     Args:
@@ -41,7 +40,7 @@ def build_point2point_group(
 def joint_federated_group(backend,
                           init_method=None,
                           world_size=-1,
-                          rank=-1) -> List[ProcessGroup]:
+                          rank=-1) -> List:
     r"""Joints federated group. We will build a store manually used for meta
     exchange.
 
