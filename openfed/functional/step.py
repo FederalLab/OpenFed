@@ -3,8 +3,8 @@ import random
 import time
 from typing import Dict, List, Union
 
-import openfed.functional.const as const
 from openfed.core.const import DefaultMaintainer
+from openfed.functional import const as const
 
 
 def count_step(counts: Union[List[int], int]):
