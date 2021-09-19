@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import List
 
 import numpy as np
+import numpy.random as np_random
 
 
 class Partitioner(object):
@@ -50,7 +51,7 @@ class PowerLawPartitioner(Partitioner):
                 cursor[l] = end
 
         # power law
-        props = np.random.lognormal(self.mean,
+        props = np_random.lognormal(self.mean,
                                     self.sigma,
                                     size=(classes, total_parts // classes,
                                           min_classes))
@@ -114,12 +115,12 @@ class DirichletPartitioner(Partitioner):
     def dirichlet_partition(self, total_samples: int, total_parts: int,
                             parts_index_list: List, data_index: List):
         data_index = deepcopy(data_index)
-        np.random.shuffle(data_index)
+        np_random.shuffle(data_index)
         # using dirichlet distribution to determine the unbalanced proportion
         # for each partition (total_parts in total).
         # e.g., when total_parts=4, proportions=[0.29, 0.38, 0.32, 0.00],
         # sum(proportions) = 1
-        proportions = np.random.dirichlet(np.repeat(self.alpha, total_parts))
+        proportions = np_random.dirichlet(np.repeat(self.alpha, total_parts))
 
         # get the index in data_index according to the dirichlet distribution
         proportions = np.array([

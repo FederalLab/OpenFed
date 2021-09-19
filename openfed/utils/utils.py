@@ -2,7 +2,7 @@
 import random
 from datetime import datetime
 
-import numpy as np
+import numpy.random as np_random
 import torch
 
 
@@ -12,7 +12,7 @@ def time_string():
 
 def seed_everything(seed: int = 0):
     torch.manual_seed(seed)
-    np.random.seed(seed)
+    np_random.seed(seed)
     random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
