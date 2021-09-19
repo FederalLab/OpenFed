@@ -3,6 +3,8 @@
 We use sphinx to generate the documentation for this project.
 The documentation project has been initialized properly and we basically just need to update the actual content.
 
+Install dependencies: `pip install -r requirements/docs.txt`.
+
 If we ever change the code structure since last compilation, we may need to regenerate the docstring index:
 
 ```shell
