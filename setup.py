@@ -33,8 +33,6 @@ setup(
     # https://pypi.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
-        "Environment :: Console",
-        "Environment :: GPU :: NVIDIA CUDA :: 10.2",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Operating System :: OS Independent",
@@ -52,5 +50,5 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     license="MIT License",
-    python_requires='>=3.7',
+    keywords='federated learning',
 )
