@@ -54,7 +54,7 @@ jobs:
       - name: Build and install
         run: rm -rf .eggs && pip install -e .
       - name: Validate the installation
-        run: python -c "import openfed; print(openfed.__version)"
+        run: python -c "import openfed; print(openfed.__version__)"
       - name: Run unittests and generate coverage report
         run: |
           pip install -r requirements/test.txt
