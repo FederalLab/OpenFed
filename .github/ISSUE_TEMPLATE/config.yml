@@ -4,6 +4,6 @@ contact_links:
   - name: Common Issues
     url: https://openfed.readthedocs.io/en/latest/trouble_shooting.html
     about: Check if your issue already has solutions
-  - name: MMCV Documentation
+  - name: OpenFed Documentation
     url: https://openfed.readthedocs.io/en/latest/
     about: Check if your question is answered in docs
