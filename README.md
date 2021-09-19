@@ -37,8 +37,6 @@ In addition, we also provide a toolkit for better compatibility with following l
 
 ## Install
 
-Python>=3.7, PyTorch>=1.8.0 are required.
-
 **Stable version**: `pip install openfed`
 
 **Latest version**: `pip install -e git+https://github.com/FederalLab/OpenFed.git`
