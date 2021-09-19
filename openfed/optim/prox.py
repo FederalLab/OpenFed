@@ -26,5 +26,6 @@ class ProxOptimizer(FederatedOptimizer):
                     else:
                         init_p = state['init_p']
                     p.grad.add_(p - init_p, alpha=self.mu)
+
     def clear_state_dict(self):
         super().clear_state_dict(keys=['init_p'])

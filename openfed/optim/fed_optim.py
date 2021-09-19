@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 from typing import List, Optional
 
-from openfed.federated import collaborator, is_collaborator, is_aggregator
+from openfed.federated import collaborator, is_aggregator, is_collaborator
 from openfed.utils import openfed_class_fmt
 
 

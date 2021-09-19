@@ -20,7 +20,8 @@ class FederatedDataset(Dataset):
     total_parts: int = 1
 
     def set_part_id(self, part_id):
-        assert 0 <= part_id < self.total_parts, f"part_id({part_id}) out of range [0, {self.total_parts}])"
+        assert 0 <= part_id < self.total_parts, \
+            f"part_id({part_id}) out of range [0, {self.total_parts}])"
         self.part_id = part_id
 
     @property
@@ -29,13 +30,16 @@ class FederatedDataset(Dataset):
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return self.__class__.__name__ + f"(total_parts: {self.total_parts}, total_samples: {self.total_samples}, current_parts: {self.part_id})"
+        return self.__class__.__name__ + (
+            f"(total_parts: {self.total_parts}, "
+            f"total_samples: {self.total_samples}, "
+            f"current_parts: {self.part_id})")
 
 
 class PartitionerDataset(FederatedDataset):
-    """PartitionerDataset can make a non-federated dataset as a federated dataset
-    via specify different partition methods. It is useful while exploring the 
-    influence of non-iid experiments.
+    """PartitionerDataset can make a non-federated dataset as a 
+    federated dataset via specify different partition methods. 
+    It is useful while exploring the influence of non-iid experiments.
 
     Args:
         dataset: Any torch kind dataset.
@@ -56,7 +60,8 @@ class PartitionerDataset(FederatedDataset):
                                                  self.data_index_list())
 
     def data_index_list(self) -> List:
-        """Rewrite for your dataset. If dataset.classes is not existed, you should rewrite this method for your dataset.
+        """Rewrite for your dataset. 
+        If dataset.classes is not existed, you should rewrite this method.
         """
         if not hasattr(self.dataset, "classes") and not hasattr(
                 self.dataset, "targets"):
