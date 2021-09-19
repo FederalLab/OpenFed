@@ -14,7 +14,6 @@ from typing import IO, Any, List, Optional
 
 from openfed.topo import Topology, analysis
 from openfed.utils import openfed_title
-from pkg_resources import parse_requirements
 
 node_local_rank_stdout_filename = "openfed_node_{}_local_rank_{}_stdout"
 node_local_rank_stderr_filename = "openfed_node_{}_local_rank_{}_stderr"

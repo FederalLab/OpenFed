@@ -5,9 +5,7 @@ from typing import Dict, List, Union
 
 from openfed.core.const import DefaultMaintainer
 
-from .const import (after_destroy, after_download, after_upload, at_failed,
-                    at_first, at_invalid_state, at_last, at_new_episode,
-                    at_zombie, before_destroy, before_download, before_upload)
+import const
 
 
 def count_step(counts: Union[List[int], int]):
@@ -46,7 +44,7 @@ def count_step(counts: Union[List[int], int]):
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=before_upload_hook,
-                                               step_name=before_upload)
+                                               step_name=const.before_upload)
 
         idx = 0
 
@@ -59,14 +57,14 @@ def count_step(counts: Union[List[int], int]):
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=at_last_hook,
-                                               step_name=at_last)
+                                               step_name=const.at_last)
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=lambda x: True,
-                                               step_name=before_destroy)
+                                               step_name=const.before_destroy)
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=lambda x: True,
-                                               step_name=before_download)
+                                               step_name=const.before_download)
 
 
 def period_step(period: float):
@@ -96,7 +94,7 @@ def period_step(period: float):
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=before_upload_hook,
-                                               step_name=before_upload)
+                                               step_name=const.before_upload)
 
         tic = time.time()
 
@@ -108,14 +106,14 @@ def period_step(period: float):
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=at_last_hook,
-                                               step_name=at_last)
+                                               step_name=const.at_last)
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=lambda x: True,
-                                               step_name=before_destroy)
+                                               step_name=const.before_destroy)
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=lambda x: True,
-                                               step_name=before_download)
+                                               step_name=const.before_download)
 
 
 def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
@@ -165,7 +163,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=before_upload_hook,
-                                               step_name=before_upload)
+                                               step_name=const.before_upload)
 
         idx = 0
 
@@ -183,11 +181,11 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=at_last_hook,
-                                               step_name=at_last)
+                                               step_name=const.at_last)
 
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=lambda x: True,
-                                               step_name=before_destroy)
+                                               step_name=const.before_destroy)
         _default_maintainer.register_step_hook(nice=50,
                                                step_hook=lambda x: True,
-                                               step_name=before_download)
+                                               step_name=const.before_download)
