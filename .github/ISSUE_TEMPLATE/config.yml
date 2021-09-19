@@ -5,5 +5,5 @@ contact_links:
     url: https://openfed.readthedocs.io/en/latest/trouble_shooting.html
     about: Check if your issue already has solutions
   - name: OpenFed Documentation
-    url: https://openfed.readthedocs.io/en/latest/
+    url: https://openfed.readthedocs.io/en/latest/README.html?badge=latest
     about: Check if your question is answered in docs
