@@ -1,8 +1,8 @@
 # Copyright (c) FederalLab. All rights reserved.
-r"""
+r'''
 `openfed.tools.simulator` is a module that spawns up multiple simulated
 federated processes on each of the training nodes.
-"""
+'''
 
 import os
 import signal
@@ -15,59 +15,59 @@ from typing import IO, Any, List, Optional
 from openfed.topo import Topology
 from openfed.utils import openfed_title
 
-node_local_rank_stdout_filename = "openfed_node_{}_local_rank_{}_stdout"
-node_local_rank_stderr_filename = "openfed_node_{}_local_rank_{}_stderr"
+node_local_rank_stdout_filename = 'openfed_node_{}_local_rank_{}_stdout'
+node_local_rank_stderr_filename = 'openfed_node_{}_local_rank_{}_stderr'
 
 
 def parse_args():
-    """
+    '''
     Helper function parsing the command line options
     @retval ArgumentParser
-    """
+    '''
     parser = ArgumentParser(
-        description=f"{openfed_title} federated simulation training launch "
-        "helper utility that will spawn up "
-        "multiple federated processes.")
+        description=f'{openfed_title} federated simulation training launch '
+        'helper utility that will spawn up '
+        'multiple federated processes.')
 
     # Optional arguments for the launch helper
-    parser.add_argument("--topology",
+    parser.add_argument('--topology',
                         type=str,
                         required=True,
-                        help="The topology file to use for training.")
+                        help='The topology file to use for training.')
     parser.add_argument(
-        "-m",
-        "--module",
+        '-m',
+        '--module',
         default=False,
-        action="store_true",
-        help="Changes each process to interpret the launch script "
-        "as a python module, executing with the same behavior as"
-        "'python -m'.")
+        action='store_true',
+        help='Changes each process to interpret the launch script '
+        'as a python module, executing with the same behavior as'
+        '`python -m`.')
     parser.add_argument(
-        "--no_python",
+        '--no_python',
         default=False,
-        action="store_true",
-        help="Do not prepend the training script with \"python\" - just exec "
-        "it directly. Useful when the script is not a Python script.")
+        action='store_true',
+        help='Do not prepend the training script with \'python\' - just exec '
+        'it directly. Useful when the script is not a Python script.')
     parser.add_argument(
-        "--logdir",
+        '--logdir',
         default=None,
         type=str,
-        help=f"""Relative path to write subprocess logs to.
+        help=f'''Relative path to write subprocess logs to.
         Passing in a relative path will create a directory if needed,
         and write the stdout and stderr to files
         {node_local_rank_stdout_filename} and {node_local_rank_stderr_filename}
         Note that successive runs with the  same path to write logs to will
         overwrite existing logs, so be sure to save logs as needed.
-        (The logs of rank 0 will be directly printed to the screen.)""",
+        (The logs of rank 0 will be directly printed to the screen.)''',
     )
 
     # positional
-    parser.add_argument("training_script",
+    parser.add_argument('training_script',
                         type=str,
-                        help="The full path to the single GPU training "
-                        "program/script to be launched in parallel, "
-                        "followed by all the arguments for the "
-                        "training script")
+                        help='The full path to the single GPU training '
+                        'program/script to be launched in parallel, '
+                        'followed by all the arguments for the '
+                        'training script')
 
     # rest from the training program
     parser.add_argument('training_script_args', nargs=REMAINDER)
@@ -86,7 +86,7 @@ def main():
         if os.path.exists(args.logdir):
             if not os.path.isdir(args.logdir):
                 raise ValueError(
-                    "argument --logdir must be a path to a directory.")
+                    'argument --logdir must be a path to a directory.')
         else:
             # create the relative directory
             os.mkdir(os.path.join(os.getcwd(), args.logdir))
@@ -95,7 +95,7 @@ def main():
 
     def sigkill_handler(signum, *args):
         for process in processes:
-            print(f"Killing subprocess {process.pid}")
+            print(f'Killing subprocess {process.pid}')
             try:
                 process.kill()
             except Exception:
@@ -104,7 +104,7 @@ def main():
             raise subprocess.CalledProcessError(returncode=last_return_code,
                                                 cmd=cmd)
         if signum in sig_names:
-            print(f"Main process received {sig_names[signum]}, exiting")
+            print(f'Main process received {sig_names[signum]}, exiting')
         sys.exit(1)
 
     for local_rank in range(len(topology.nodes)):
@@ -112,22 +112,22 @@ def main():
         with_python = not args.no_python
         cmd = []
         if with_python:
-            cmd = [sys.executable, "-u"]
+            cmd = [sys.executable, '-u']
             if args.module:
-                cmd.append("-m")
+                cmd.append('-m')
         else:
             if not args.use_env:
-                raise ValueError("When using the '--no_python' flag, "
-                                 "you must also set the '--use_env' flag.")
+                raise ValueError('When using the `--no_python` flag, '
+                                 'you must also set the `--use_env` flag.')
             if args.module:
-                raise ValueError("Don't use both the '--no_python' flag "
-                                 "and the '--module' flag at the same time.")
+                raise ValueError('Do not use both the `--no_python` flag '
+                                 'and the `--module` flag at the same time.')
 
         cmd.append(args.training_script)
 
         cmd.extend(args.training_script_args)
-        cmd.append(f"--nick_name={topology.nodes[local_rank].nick_name}")
-        cmd.append(f"--topology={args.topology}")
+        cmd.append(f'--nick_name={topology.nodes[local_rank].nick_name}')
+        cmd.append(f'--topology={args.topology}')
 
         stdout_handle: Optional[IO]
         stderr_handle: Optional[IO]
@@ -142,19 +142,19 @@ def main():
                 stderr_file_name = node_local_rank_stderr_filename.format(
                     node_rank, local_rank)
                 stdout_handle = open(
-                    os.path.join(directory_path, stdout_file_name), "w")
+                    os.path.join(directory_path, stdout_file_name), 'w')
                 stderr_handle = open(
-                    os.path.join(directory_path, stderr_file_name), "w")
+                    os.path.join(directory_path, stderr_file_name), 'w')
                 subprocess_file_handles.append((stdout_handle, stderr_handle))
                 stdout_name = stdout_handle.name
                 stderr_name = stderr_handle.name
                 print(
-                    "Note: Stdout and stderr for "
-                    f"node {node_rank} rank {local_rank} will "
-                    f"be written to {stdout_name}, {stderr_name} respectively."
+                    'Note: Stdout and stderr for '
+                    f'node {node_rank} rank {local_rank} will '
+                    f'be written to {stdout_name}, {stderr_name} respectively.'
                 )
 
-        sig_names = {2: "SIGINT", 15: "SIGTERM"}
+        sig_names = {2: 'SIGINT', 15: 'SIGTERM'}
         last_return_code = None
 
         # pass SIGINT/SIGTERM to children if the parent is being terminated
@@ -200,5 +200,5 @@ def main():
                 stderr_handle.close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

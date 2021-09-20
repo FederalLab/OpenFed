@@ -11,14 +11,14 @@ class ProxOptimizer(FederatedOptimizer):
                  mu: float = 0.9,
                  max_acg_step: int = -1):
         if not 0.0 < mu < 1.0:
-            raise ValueError(f"Invalid mu value: {mu}")
+            raise ValueError(f'Invalid mu value: {mu}')
 
         self.mu = mu
         super(ProxOptimizer, self).__init__(optim, role, max_acg_step)
 
     def _collaborator_step(self):
         for group in self.param_groups:
-            for p in group["params"]:
+            for p in group['params']:
                 if p.grad is not None:
                     state = self.state[p]
                     if 'init_p' not in state:

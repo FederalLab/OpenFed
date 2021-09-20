@@ -9,7 +9,7 @@ from openfed.optim import FederatedOptimizer
 
 
 class API(Thread):
-    r"""API: Provides an API to handle backend logistics.
+    r'''API: Provides an API to handle backend logistics.
 
     Args:
         maintainer: The maintainer.
@@ -27,7 +27,7 @@ class API(Thread):
         >>> api.join()
         >>> # 2. run it on main process.
         >>> api.run()
-    """
+    '''
     def __init__(self,
                  maintainer: Maintainer,
                  fed_optim: FederatedOptimizer,

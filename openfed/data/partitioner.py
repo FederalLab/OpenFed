@@ -22,17 +22,17 @@ class PowerLawPartitioner(Partitioner):
                  min_classes: int = 2,
                  mean: float = 0.0,
                  sigma: float = 2.0):
-        """
+        '''
         mean and sigma is used for lognormal.
-        """
+        '''
         self.min_samples = min_samples
         self.min_classes = min_classes
         self.mean = mean
         self.sigma = sigma
 
     def partition(self, total_parts: int, data_index_list: List) -> List:
-        """Refer to: https://github.com/litian96/FedProx/
-        """
+        '''Refer to: https://github.com/litian96/FedProx/
+        '''
         min_samples = self.min_samples
         min_classes = self.min_classes
 
@@ -72,7 +72,7 @@ class PowerLawPartitioner(Partitioner):
 
 
 class DirichletPartitioner(Partitioner):
-    r"""Dirichlet partitioner.
+    r'''Dirichlet partitioner.
 
     .. Examples::
 
@@ -90,11 +90,11 @@ class DirichletPartitioner(Partitioner):
         |   10  |  60000  | 6000.00 | 23904.20 |
         +-------+---------+---------+----------+
         [5891, 5955, 6220, 5986, 5965, 6174, 6190, 5873, 6047, 5699]
-    """
+    '''
     _MAX_LOOP = 10000
 
     def __init__(self, alpha: float = 100, min_samples: int = 10):
-        """Obtain sample index list for each client from the
+        '''Obtain sample index list for each client from the
         Dirichlet distribution.
 
             This LDA method is first proposed by:
@@ -115,7 +115,7 @@ class DirichletPartitioner(Partitioner):
         Args:
             alpha: a concentration parameter controlling
             the identicalness among clients.
-        """
+        '''
 
         self.alpha = alpha
         self.min_samples = min_samples
@@ -161,13 +161,13 @@ class DirichletPartitioner(Partitioner):
             loop_cnt += 1
             if loop_cnt > self._MAX_LOOP:
                 raise RuntimeError(
-                    f"Exceed maximum loop times: {self._MAX_LOOP}.")
+                    f'Exceed maximum loop times: {self._MAX_LOOP}.')
 
         return [np.array(p) for p in parts_index_list]  # type: ignore
 
 
 class IIDPartitioner(Partitioner):
-    r"""IID partitioner.
+    r'''IID partitioner.
 
     Examples::
         >>> from openfed.data import IIDPartitioner, PartitionerDataset,\
@@ -184,7 +184,7 @@ class IIDPartitioner(Partitioner):
         |   10  |  59960  | 5996.00 | 0.00 |
         +-------+---------+---------+------+
         [5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996]
-    """
+    '''
     def partition(self, total_parts: int, data_index_list: List) -> List:
 
         parts_index_list = [[] for _ in range(total_parts)]

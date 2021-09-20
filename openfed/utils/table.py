@@ -7,13 +7,13 @@ from prettytable import PrettyTable
 def _string_trim(string: str, length: int = 15):
     # make sure string is string
     if isinstance(string, int):
-        string = f"{string}"
+        string = f'{string}'
     elif isinstance(string, float):
-        string = f"{string:.2f}"
+        string = f'{string:.2f}'
     else:
         string = str(string)
     if len(string) > length + 3:
-        return string[:length] + "..."
+        return string[:length] + '...'
     else:
         return string
 
@@ -30,7 +30,7 @@ def _tablist(head: List[Any],
     # By the way, the head should with different starts, which
     # can largely avoid this error.
     assert len(head) == len(
-        set(head)), "String trim operation make some head with the some name."
+        set(head)), 'String trim operation make some head with the some name.'
     table = PrettyTable(head)
     if multi_rows:
         for d in data:
@@ -45,10 +45,10 @@ def tablist(head: List[Any],
             data: List[Any],
             items_per_row: int = 8,
             force_in_one_row: bool = False) -> str:
-    """
+    '''
         If len(head) > items_per_row, we will split into multi-tables.
         If force_in_one_row is True, items_per_row will be ignored.
-    """
+    '''
     table_list = []
     if force_in_one_row:
         i = 0
@@ -70,4 +70,4 @@ def tablist(head: List[Any],
             else:
                 table_list.append(_tablist(head[i:], data[i:]))
             i += items_per_row
-    return "\n".join(table_list)
+    return '\n'.join(table_list)

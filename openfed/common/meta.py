@@ -5,7 +5,7 @@ from openfed.utils import openfed_class_fmt, tablist
 
 
 class Meta(AttrDict):
-    """A attributed dictionary to delivery message. It contains :attr:`mode` and
+    '''A attributed dictionary to delivery message. It contains :attr:`mode` and
     :attr:`version`.
 
     .. Example::
@@ -42,7 +42,7 @@ class Meta(AttrDict):
         +-------+---------+
         | train |    -1   |
         +-------+---------+
-    """
+    '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'mode' not in self:

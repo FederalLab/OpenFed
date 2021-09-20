@@ -7,11 +7,11 @@ def clear(filepath):
         cur_path = os.path.join(filepath, fd)
         if os.path.isdir(cur_path):
             if fd == '__pycache__':
-                print(f"rm -rf {cur_path}")
-                os.system(f"rm -rf {cur_path}")
+                print(f'rm -rf {cur_path}')
+                os.system(f'rm -rf {cur_path}')
             else:
                 clear(cur_path)
 
 
 if __name__ == '__main__':
-    clear(".")
+    clear('.')

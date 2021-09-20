@@ -11,12 +11,12 @@ from .topo import FederatedGroup, Node, Topology
 def build_federated_group(
         topo: Topology,
         node: Node) -> Tuple[List[FederatedGroup], List[FederatedGroup]]:
-    r"""Build the federated group for node.
+    r'''Build the federated group for node.
 
     Args:
         topo: The topology map contains related information.
         node: The node to build the federated group.
-    """
+    '''
     # aggregator group
     aggregator_group = []
     collaborator_group = []
@@ -48,13 +48,13 @@ def build_federated_group(
 
 def analysis(topo: Topology, node: Union[Node,
                                          str]) -> List[FederatedProperties]:
-    r"""Build the federated group for node.
+    r'''Build the federated group for node.
 
     Args:
         topo: The topology map contains related information.
         node: The node to build the federated group. If string is provided, we
             will use the string as the nick name of the node.
-    """
+    '''
     if isinstance(node, str):
         node = topo.fetch_node_via_nick_name(node)  # type: ignore
         assert node, 'Invalid node.'
@@ -97,7 +97,7 @@ def analysis(topo: Topology, node: Union[Node,
                         break
                 assert rank > 0
         else:
-            raise RuntimeError("Build aggregator federated group failed.")
+            raise RuntimeError('Build aggregator federated group failed.')
 
         fgp = fg.federated_properties
 

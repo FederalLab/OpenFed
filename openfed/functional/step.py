@@ -8,7 +8,7 @@ from openfed.functional import const as const
 
 
 def count_step(counts: Union[List[int], int]):
-    r"""Stops the loop according to the number of received models.
+    r'''Stops the loop according to the number of received models.
 
     Args:
         counts: If the number of received models is greater than counts, stop
@@ -20,7 +20,7 @@ def count_step(counts: Union[List[int], int]):
         >>> # Stop when receive the fifth models.
         >>> # Then continue to receive the next fifteen models.
         >>> count_step([5, 15])
-    """
+    '''
     _default_maintainer = DefaultMaintainer._default_maintainer
 
     assert _default_maintainer, \
@@ -68,7 +68,7 @@ def count_step(counts: Union[List[int], int]):
 
 
 def period_step(period: float):
-    r"""Stops the loop period.
+    r'''Stops the loop period.
 
     Args:
         period: The period second time to stop.
@@ -76,7 +76,7 @@ def period_step(period: float):
     .. Example::
 
         >>> period_step(15) # Stop the loop every 15 seconds.
-    """
+    '''
     _default_maintainer = DefaultMaintainer._default_maintainer
 
     assert _default_maintainer, \
@@ -118,7 +118,7 @@ def period_step(period: float):
 
 
 def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
-    r"""Dispatch a part id from part list and stop based the count.
+    r'''Dispatch a part id from part list and stop based the count.
 
     Args:
         counts: If the number of received models is greater than counts, stop
@@ -130,7 +130,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
         >>> dispatch_step(15, dict(train=list(range(100))))
         >>> dispatch_step([15, 20], dict(train=list(range(100),
         >>>     test=list(range(50)))))
-    """
+    '''
     _default_maintainer = DefaultMaintainer._default_maintainer
 
     assert _default_maintainer, \

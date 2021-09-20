@@ -13,7 +13,7 @@ class ElasticOptimizer(FederatedOptimizer):
                  momentum: float = 0.9,
                  max_acg_step=-1):
         if not 0.0 <= momentum <= 1.0:
-            raise ValueError(f"Invalid momentum value: {momentum}")
+            raise ValueError(f'Invalid momentum value: {momentum}')
 
         self.momentum = momentum
         super(ElasticOptimizer, self).__init__(optim, role, max_acg_step)

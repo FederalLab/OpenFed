@@ -21,7 +21,7 @@ def set_store_value(store, key, value) -> bool:
     try:
         store.set(key, json_str)
     except Exception as e:
-        warnings.warn(f"Set store value failed. {e}")
+        warnings.warn(f'Set store value failed. {e}')
         return False
     finally:
         return True
@@ -31,15 +31,15 @@ def get_store_value(store, key) -> Any:
     try:
         bytes = store.get(key)
     except Exception as e:
-        warnings.warn(f"Get store value failed. {e}")
+        warnings.warn(f'Get store value failed. {e}')
         bytes = b''
     json_str = str(bytes, encoding='utf-8')
     return json.loads(json_str)
 
 
 class Pipe():
-    r"""
-    """
+    r'''
+    '''
     store: Any
     pg: Any
     dist_props: DistributedProperties
@@ -208,7 +208,7 @@ class Pipe():
 
     def push(self, data):
         assert distributed_c10d._get_group_size(self.pg) == 2,\
-            "Pipe is only designed for point to point communication."
+            'Pipe is only designed for point to point communication.'
 
         rank = collaborator_rank if self.aggregator else aggregator_rank
         rank = distributed_c10d._get_global_rank(self.pg, rank) \
@@ -218,7 +218,7 @@ class Pipe():
 
     def pull(self) -> Any:
         assert distributed_c10d._get_group_size(self.pg) == 2,\
-            "Pipe is only designed for point to point communication."
+            'Pipe is only designed for point to point communication.'
 
         world_size = distributed_c10d.get_world_size()
 
@@ -242,7 +242,7 @@ class Pipe():
     @property
     def meta(self) -> Meta:
         meta_dict = self.get(openfed_meta)
-        assert self.read_successfully, "read meta info failed"
+        assert self.read_successfully, 'read meta info failed'
         return Meta(**meta_dict)
 
     def set_meta(self, meta: Meta):
@@ -268,8 +268,8 @@ class Pipe():
         data = [self.nick_name, self._get_state()]
         description = tablist(head, data, force_in_one_row=True)
 
-        other_description = "dist props: \n" + str(self.dist_props) + \
-            "fed props: \n " + str(self.fed_props)
+        other_description = 'dist props: \n' + str(self.dist_props) + \
+            'fed props: \n ' + str(self.fed_props)
         return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description + "\n" +
+                                        description=description + '\n' +
                                         other_description)

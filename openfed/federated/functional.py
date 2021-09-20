@@ -16,11 +16,11 @@ openfed_default_pg_timeout = timedelta(seconds=100)
 
 
 def build_point2point_group(rank: int = 0) -> List:
-    r"""Builds process groups between two ranks.
+    r'''Builds process groups between two ranks.
 
     Args:
         rank: The rank of the target process group. Default: ``0``
-    """
+    '''
     if distributed_c10d.get_world_size() == 2:
         return [distributed_c10d._get_default_group()]
 
@@ -40,7 +40,7 @@ def joint_federated_group(backend,
                           init_method=None,
                           world_size=-1,
                           rank=-1) -> List:
-    r"""Joints federated group. We will build a store manually used for meta
+    r'''Joints federated group. We will build a store manually used for meta
     exchange.
 
     .. warning ::
@@ -65,7 +65,7 @@ def joint_federated_group(backend,
         rank: Rank of current node (it should be a number between 0 and
             ``world_size``-1). If `-1` is provided, rank will be specified
             during runtime. Default: -1
-    """
+    '''
     # build a store
     rendezvous_iterator = rendezvous(init_method,
                                      rank,

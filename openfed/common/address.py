@@ -5,7 +5,7 @@ from openfed.utils import openfed_class_fmt, tablist
 
 
 class Address(object):
-    r"""Contains `backend`, `init_method`, `world_size` and `rank` message to
+    r'''Contains `backend`, `init_method`, `world_size` and `rank` message to
     build the connection between different federated groups.
 
     .. warning ::
@@ -48,7 +48,7 @@ class Address(object):
         +---------+---------------------+------------+------+
         |   mpi   | file:///tmp/open... |     10     |  0   |
         +---------+---------------------+------------+------+
-    """
+    '''
 
     backend: str
     init_method: str
@@ -78,7 +78,7 @@ class Address(object):
             # You can specify `nccl` backend currently, but it may not
             # bring much different with `gloo`.
 
-            warnings.warn('"nccl" backend is used.')
+            warnings.warn('nccl backend is used.')
 
         assert backend in ['gloo', 'mpi', 'nccl', 'null']
         assert 1 <= world_size
@@ -99,12 +99,12 @@ class Address(object):
 
 
 default_tcp_address = Address(
-    backend="gloo",
+    backend='gloo',
     init_method='tcp://localhost:1994',
 )
 
 default_file_address = Address(
-    backend="gloo",
+    backend='gloo',
     init_method='file:///tmp/openfed.sharedfile',
 )
 

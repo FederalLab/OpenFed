@@ -25,8 +25,8 @@ def load_param_states(optim: Optimizer, param_states: Dict[Tensor, Any]):
                 fail += 1
     if fail > 0:
         warnings.warn(
-            f"Load param state for {success} params, "
-            f"{fail} params are ignored."
+            f'Load param state for {success} params, '
+            f'{fail} params are ignored.'
         )
 
 
@@ -201,7 +201,7 @@ def elastic_aggregation(data_list: List[Dict[Tensor, Any]],
 
         if p.requires_grad:
             assert 'importance' in state, \
-                "elastic aggregation requires `importance` state."
+                'elastic aggregation requires `importance` state.'
             norm_importance = state['importance'] / state['importance'].max()
             weight = 1 + quantile - norm_importance
             grad = p - state['param']
@@ -268,9 +268,9 @@ def paillier_aggregation(data_list: List[Dict[Tensor, Any]],
         # decode
         keys = [k[:-3] for k in state if k.endswith('_c1')]
         for k in keys:
-            c1 = state[f"{k}_c1"]
+            c1 = state[f'{k}_c1']
             c2 = state[f'{k}_c2']
-            del state[f"{k}_c1"]
+            del state[f'{k}_c1']
             del state[f'{k}_c2']
             data = decode(c1, c2, received_numbers)
             state[k] = data[:p.numel()].reshape_as(p)

@@ -4,7 +4,7 @@ after_destroy = 'after_destroy'
 after_download = 'after_download'
 after_upload = 'after_upload'
 
-at_first = "at_first"
+at_first = 'at_first'
 at_failed = 'at_failed'
 at_invalid_state = 'at_invalid_state'
 at_last = 'at_last'

@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from openfed.common.meta import Meta
 from openfed.federated import (FederatedProperties, Pipe, init_federated_group,
-                               is_collaborator, is_aggregator)
+                               is_aggregator, is_collaborator)
 from openfed.functional.const import (after_destroy, after_download,
                                       after_upload, at_failed, at_first,
                                       at_invalid_state, at_last,
@@ -22,7 +22,7 @@ from .functional import fed_context
 
 
 class Maintainer(object):
-    r"""The user interface for OpenFed.
+    r'''The user interface for OpenFed.
 
     Args:
         fed_props: The federated group belongs to.
@@ -42,7 +42,7 @@ class Maintainer(object):
         +------------------+-----------+-------+
         >>> with mt:
         >>>     openfed.F.paillier(public_key)
-    """
+    '''
     pipe: Pipe
     pipes: List[Pipe]
     current_step: str
@@ -106,13 +106,13 @@ class Maintainer(object):
 
     @property
     def anti_nick_name(self) -> str:
-        r"""Returns nick name of the other side.
-        """
+        r'''Returns nick name of the other side.
+        '''
         assert self.pipe
         return self.pipe.nick_name
 
     def register_package_hook(self, nice: int, package_hook: Callable):
-        r"""Register a package hook.
+        r'''Register a package hook.
 
         Args:
             nice: Priority of the hook, ``0`` is the first hook to be
@@ -131,11 +131,11 @@ class Maintainer(object):
             >>>             state[k] = v.to(p)
             >>>     return state
             >>> maintainer.register_package_hook(nice=10, package_hook=package)
-        """
+        '''
         self._package_hooks.put((package_hook, nice))
 
     def register_unpackage_hook(self, nice: int, unpackage_hook: Callable):
-        r"""Register an unpackage hook.
+        r'''Register an unpackage hook.
 
         Args:
             nice: Priority of the hook, ``0`` is the first hook to be
@@ -155,14 +155,14 @@ class Maintainer(object):
             >>>     return state
             >>> maintainer.register_unpackage_hook(nice=10,
             >>>                                    package_hook=unpackage)
-        """
+        '''
         self._unpackage_hooks.put((unpackage_hook, nice))
 
     def register_step_hook(self,
                            nice: int,
                            step_hook: Callable,
                            step_name: Optional[str] = None):
-        r"""Register a step hook.
+        r'''Register a step hook.
 
         Args:
             nice: Priority of the hook, ``0`` is the first hook to be
@@ -189,30 +189,30 @@ class Maintainer(object):
             >>> _default_maintainer.register_step_hook(nice=50,
             ...                                  step_hook=before_upload_hook,
             ...                                  step_name=before_upload)
-        """
+        '''
         step_name = step_name or step_hook.step_name
-        assert step_name, "Step name must be a valid string."
+        assert step_name, 'Step name must be a valid string.'
 
         self._step_hooks[step_name].put((step_hook, nice))
 
     def build_connection(self):
-        r"""Builds connection to the given federated group.
-        """
+        r'''Builds connection to the given federated group.
+        '''
         pipes = init_federated_group(self.fed_props)
 
-        assert pipes, "init_federated_group failed."
+        assert pipes, 'init_federated_group failed.'
 
         self.pipes += pipes
 
         self.pipe = pipes[0]
 
     def update_version(self, version: Optional[Any] = None):
-        r"""Updates inner version.
+        r'''Updates inner version.
 
         Args:
             version: The newer version. If not given, we will increment the
                 inner version by 1. Default:``None``
-        """
+        '''
         if version is not None:
             self.version = version
         else:
@@ -220,16 +220,16 @@ class Maintainer(object):
         self.meta['version'] = self.version
 
     def load_state_dict(self, state_dict: Dict[str, Tensor]):
-        r"""Loads state dict to exchange with other end.
+        r'''Loads state dict to exchange with other end.
 
         Args:
             state_dict: State dict to exchange with.
-        """
+        '''
         self.state_dict.update(state_dict)
 
     @fed_context
     def transfer(self, to: bool) -> Union[Any, None]:
-        r"""Transfer data to another end.
+        r'''Transfer data to another end.
 
         Args:
             to: If ``True``, upload the data to the other end. If ``False``,
@@ -237,15 +237,15 @@ class Maintainer(object):
 
         Returns:
             If download was successful, return the downloaded data.
-        """
+        '''
         if to:
             self.pipe.upload(self.packaged_data)
         else:
             return self.pipe.download()
 
     def download(self) -> bool:
-        r"""Downloads data from the other end.
-        """
+        r'''Downloads data from the other end.
+        '''
         # clear data before download
         self.data.clear()
         data = self.transfer(to=False)
@@ -272,8 +272,8 @@ class Maintainer(object):
         return True
 
     def upload(self) -> bool:
-        r"""Uploads data to the other end.
-        """
+        r'''Uploads data to the other end.
+        '''
         assert self.packaged_data
 
         for n, p in self.state_dict.items():
@@ -372,13 +372,13 @@ class Maintainer(object):
     def package(self,
                 optim_list: Optional[Any] = None,
                 state_keys: Optional[List[str]] = None):
-        r"""Package data to upload.
+        r'''Package data to upload.
 
         Args:
             optim_list: The state of optim will be uploaded to.
             state_keys: The state keys to be uploaded. If ``None``, upload all
                 state. Default: ``None``.
-        """
+        '''
         self.packaged_data.clear()
         if optim_list and not isinstance(optim_list, list):
             optim_list = [
@@ -403,7 +403,7 @@ class Maintainer(object):
     def unpackage(self,
                   optim_list: Optional[Any] = None,
                   state_keys: Optional[List[str]] = None):
-        """Unpackage state to optim.
+        '''Unpackage state to optim.
 
         .. note::
             This operation will automatically load the `param` property to
@@ -413,7 +413,7 @@ class Maintainer(object):
             optim_list: The state of optim will be rewritten to.
             state_keys: The state keys to be rewritten. If ``None``,
                 rewrite all state. Default: ``None``.
-        """
+        '''
         assert self.data
         if optim_list and not isinstance(optim_list, list):
             optim_list = [
@@ -438,8 +438,8 @@ class Maintainer(object):
                                     state[key] = p_data[key]
 
     def clear(self):
-        r"""Clears inner cached data.
-        """
+        r'''Clears inner cached data.
+        '''
         self.data_list.clear()
         self.meta_list.clear()
 
@@ -448,7 +448,7 @@ class Maintainer(object):
         self.pipes.clear()
 
     def manual_stop(self):
-        r"""Stop while loop in :func:`_aggregator_step`."""
+        r'''Stop while loop in :func:`_aggregator_step`.'''
         self.stopped = True
 
     def __enter__(self):

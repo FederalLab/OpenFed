@@ -8,7 +8,7 @@ from openfed.utils import openfed_class_fmt, tablist
 
 
 class DistributedProperties(object):
-    r"""Keeps all distributed properties in this class, so that we can build
+    r'''Keeps all distributed properties in this class, so that we can build
     multi-process groups.
 
     Args:
@@ -25,7 +25,7 @@ class DistributedProperties(object):
         ...     ...
         ...
         Ellipsis
-    """
+    '''
     # Use to save the default distributed probabilities
     _default_WORLD = distributed_c10d.group.WORLD
     _default_pg_map = distributed_c10d._pg_map
@@ -108,11 +108,11 @@ class DistributedProperties(object):
     def __repr__(self):
         return openfed_class_fmt.format(
             class_name=self.__class__.__name__,
-            description=f"GroupCount: {self._group_count}")
+            description=f'GroupCount: {self._group_count}')
 
 
 class FederatedProperties(object):
-    r"""Keeps all federated properties in this class, so that we can build
+    r'''Keeps all federated properties in this class, so that we can build
     multi-process groups.
 
     Args:
@@ -137,7 +137,7 @@ class FederatedProperties(object):
         +---------+---------------------+------------+------+
         |   gloo  | tcp://localhost:... |     2      |  -1  |
         +---------+---------------------+------------+------+
-    """
+    '''
     role: str
     nick_name: str
     address: Address
@@ -153,5 +153,5 @@ class FederatedProperties(object):
         description = tablist(head, data, force_in_one_row=True)
         other_description = str(self.address)
         return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description + "\n" +
+                                        description=description + '\n' +
                                         other_description)

@@ -7,7 +7,7 @@ from openfed.utils import openfed_title
 
 
 class TopoBuilder(cmd.Cmd):
-    r"""A script to build topology more easily.
+    r'''A script to build topology more easily.
 
     Example::
 
@@ -161,8 +161,8 @@ class TopoBuilder(cmd.Cmd):
         | gamma  |   .    |   .   |  ^   |   .   |
         +--------+--------+-------+------+-------+
         <OpenFed>: exit
-    """
-    intro = "A script to build topology."
+    '''
+    intro = 'A script to build topology.'
 
     @property
     def prompt(self):
@@ -173,35 +173,35 @@ class TopoBuilder(cmd.Cmd):
         self.topology = Topology()
 
     def do_add_node(self, *args, **kwargs):
-        r"""Add a new node to the topology.
-        """
-        nick_name = input("Nick Name\n")
+        r'''Add a new node to the topology.
+        '''
+        nick_name = input('Nick Name\n')
         while True:
-            flag = input("Does this node requires address? (Y/n)\n")
+            flag = input('Does this node requires address? (Y/n)\n')
             flag = flag.lower()
             if flag not in ['y', 'n']:
-                print("Invalid choice.")
+                print('Invalid choice.')
             else:
                 break
         if flag == 'y':
             while True:
-                backend = input("Backend (gloo, mpi, nccl)\n")
+                backend = input('Backend (gloo, mpi, nccl)\n')
                 if backend in ['gloo', 'mpi', 'nccl']:
                     break
                 else:
-                    print("Invalid backend.")
+                    print('Invalid backend.')
             while True:
                 init_method = input(
-                    "Init method i.e., "
-                    "'tcp://localhost:1994', "
-                    "file:///tmp/openfed.sharedfile)\n"
+                    'Init method i.e., '
+                    'tcp://localhost:1994, '
+                    'file:///tmp/openfed.sharedfile)\n'
                 )
                 try:
                     address = Address(backend, init_method)
                     break
                 except Exception as e:
                     print(e)
-                    print("Invalid address.")
+                    print('Invalid address.')
         else:
             address = empty_address
         node = Node(nick_name, address)
@@ -210,24 +210,24 @@ class TopoBuilder(cmd.Cmd):
         self.topology.add_node(node)
 
     def do_build_edge(self, *args, **kwargs):
-        r"""Build an edge between two nodes.
-        """
+        r'''Build an edge between two nodes.
+        '''
         while True:
-            start = input("Start node's nick name\n")
+            start = input('Start node nick name\n')
             start_node = self.topology.fetch_node_via_nick_name(start)
             if start_node is not None:
                 break
             else:
-                print("Invalid start node.")
+                print('Invalid start node.')
                 return
 
         while True:
-            end = input("End node's nick name\n")
+            end = input('End node nick name\n')
             end_node = self.topology.fetch_node_via_nick_name(end)
             if end_node is not None:
                 break
             else:
-                print("Invalid end node.")
+                print('Invalid end node.')
                 return
 
         edge = Edge(start_node, end_node)
@@ -236,34 +236,34 @@ class TopoBuilder(cmd.Cmd):
         self.topology.add_edge(edge)
 
     def do_save(self, *args, **kwargs):
-        r"""Save topology to disk.
-        """
-        filename = input("Filename:\n")
+        r'''Save topology to disk.
+        '''
+        filename = input('Filename:\n')
         self.topology.save(filename)
 
         print(self.topology)
 
     def do_load(self, *args, **kwargs):
-        r"""Load topology from disk.
-        """
-        filename = input("Filename:\n")
+        r'''Load topology from disk.
+        '''
+        filename = input('Filename:\n')
         self.topology.load(filename)
         print(self.topology)
 
     def do_plot(self, *args, **kwargs):
-        r"""Plot topology.
-        """
+        r'''Plot topology.
+        '''
         print(self.topology)
 
     def do_remove_edge(self, *args, **kwargs):
-        r"""Removes an edge from the topology.
-        """
+        r'''Removes an edge from the topology.
+        '''
         for i, e in enumerate(self.topology.edges):
-            print(f"{i}\n")
+            print(f'{i}\n')
             print(e)
         while True:
             edge_idx = input(
-                "The index of the edge to remove (-1 to quite.)\n")
+                'The index of the edge to remove (-1 to quite.)\n')
             edge_idx = int(edge_idx)
             if edge_idx == -1:
                 return
@@ -273,17 +273,17 @@ class TopoBuilder(cmd.Cmd):
                     return
                 except Exception as e:
                     print(e)
-                    print("Removed edge failed.")
+                    print('Removed edge failed.')
 
     def do_remove_node(self, *args, **kwargs):
-        r"""Removes a node from the topology.
-        """
+        r'''Removes a node from the topology.
+        '''
         for i, n in enumerate(self.topology.nodes):
-            print(f"{i}\n")
+            print(f'{i}\n')
             print(n)
         while True:
             node_idx = input(
-                "The index of the node to remove (-1 to quite.)\n")
+                'The index of the node to remove (-1 to quite.)\n')
             node_idx = int(node_idx)
             if node_idx == -1:
                 return
@@ -292,20 +292,20 @@ class TopoBuilder(cmd.Cmd):
                     self.topology.remove_node(node_idx)
                 except Exception as e:
                     print(e)
-                    print("Removed edge failed.")
+                    print('Removed edge failed.')
 
     def do_clear_useless_nodes(self, *args, **kwargs):
-        r"""Clears all invalid nodes from the topology.
-        """
+        r'''Clears all invalid nodes from the topology.
+        '''
         self.topology.clear_useless_nodes()
 
         print(self.topology)
 
     def do_exit(self, *args, **kwargs):
-        r"""Exits this script."""
+        r'''Exits this script.'''
         exit(0)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     topo_builder = TopoBuilder()
     topo_builder.cmdloop()

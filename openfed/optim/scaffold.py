@@ -22,16 +22,16 @@ class ScaffoldOptimizer(FederatedOptimizer):
         self.init_c_para_flag = False
 
     def init_c_para(self):
-        """Call this function after glue operation.
-        """
+        '''Call this function after glue operation.
+        '''
         for group in self.param_groups:
-            for p in group["params"]:
+            for p in group['params']:
                 if p.requires_grad:
-                    self.state[p]["c_para"] = torch.zeros_like(p)
+                    self.state[p]['c_para'] = torch.zeros_like(p)
         self.init_c_para_flag = True
 
     def acg(self, model, dataloader):
-        """Accumulate gradients for SCAFFOLD.
+        '''Accumulate gradients for SCAFFOLD.
         Args:
             model: The model to test.
             dataloader: The data loader to iterate over.
@@ -39,7 +39,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
         .. note::
             This function only be called if you do not specify the `lr` in
             `__init__` process.
-        """
+        '''
         if self.init_c_para_flag is False:
             self.init_c_para()
 
@@ -68,24 +68,24 @@ class ScaffoldOptimizer(FederatedOptimizer):
                     continue
                 state = self.state[p]
 
-                if "init_p_g" not in state:
-                    state["init_p_g"] = p.grad.clone().detach()
-                    state["init_p_g_cnt"] = 1
+                if 'init_p_g' not in state:
+                    state['init_p_g'] = p.grad.clone().detach()
+                    state['init_p_g_cnt'] = 1
                 else:
-                    g = (state["init_p_g"] * state["init_p_g_cnt"] +
-                         p.grad) / (state["init_p_g_cnt"] + 1)
-                    state["init_p_g"].copy_(g)
+                    g = (state['init_p_g'] * state['init_p_g_cnt'] +
+                         p.grad) / (state['init_p_g_cnt'] + 1)
+                    state['init_p_g'].copy_(g)
                     state['init_p_g_cnt'] += 1
 
     def _collaborator_step(self, closure=None):
-        """Performs a single optimization step.
+        '''Performs a single optimization step.
 
         Args:
 
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
             acg: accumulate gradient.
-        """
+        '''
         loss = None
         if closure is not None:
             with torch.enable_grad():
@@ -97,32 +97,32 @@ class ScaffoldOptimizer(FederatedOptimizer):
                     continue
                 state = self.state[p]
 
-                if "init_p" not in state:
-                    state["init_p"] = p.clone().detach()
+                if 'init_p' not in state:
+                    state['init_p'] = p.clone().detach()
                 if 'step' not in state:
-                    state["step"] = 0
+                    state['step'] = 0
 
-                state["step"] += 1
+                state['step'] += 1
                 # Modifed gradients
-                if "c_para_i" not in state:
-                    c_para_i = state["c_para_i"] = torch.zeros_like(p)
+                if 'c_para_i' not in state:
+                    c_para_i = state['c_para_i'] = torch.zeros_like(p)
                 else:
-                    c_para_i = state["c_para_i"]
+                    c_para_i = state['c_para_i']
                 # c_para will be loaded from agg/deliver automatically.
-                assert "c_para" in state, \
-                    "c_para must be loaded from agg/deliver."
-                c_para = state["c_para"]
+                assert 'c_para' in state, \
+                    'c_para must be loaded from agg/deliver.'
+                c_para = state['c_para']
                 p.grad.add_(c_para - c_para_i, alpha=1)
 
         return loss
 
     def _aggregator_step(self, closure=None):
-        """Performs a single optimization step.
+        '''Performs a single optimization step.
 
         Args:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
-        """
+        '''
         loss = None
         if closure is not None:
             with torch.enable_grad():
@@ -136,11 +136,11 @@ class ScaffoldOptimizer(FederatedOptimizer):
                 # Update aggregator
                 if 'c_para' not in state:
                     state['c_para'] = torch.zeros_like(p)
-                c_para = state["c_para"]
-                if "c_para_i" not in state:
-                    c_para_i = state["c_para_i"] = torch.zeros_like(p)
+                c_para = state['c_para']
+                if 'c_para_i' not in state:
+                    c_para_i = state['c_para_i'] = torch.zeros_like(p)
                 else:
-                    c_para_i = state["c_para_i"]
+                    c_para_i = state['c_para_i']
 
                 c_para_i.add_(c_para)
 
@@ -150,46 +150,46 @@ class ScaffoldOptimizer(FederatedOptimizer):
         return loss
 
     def _collaborator_round(self):
-        """Scaffold do a special round operation.
+        '''Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
-        """
+        '''
 
         for group in self.param_groups:
-            for p in group["params"]:
+            for p in group['params']:
                 if p.grad is None:
                     continue
                 state = self.state[p]
-                c_para_i = state["c_para_i"]
+                c_para_i = state['c_para_i']
                 # Update collaborator
                 if self.acg_loss_fn is not None:
                     # Use the first way to update c_para
-                    assert "init_p_g" in state, \
-                        "You should accumulate init_p_g first!"
-                    c_para_i.copy_(state["init_p_g"])
+                    assert 'init_p_g' in state, \
+                        'You should accumulate init_p_g first!'
+                    c_para_i.copy_(state['init_p_g'])
                 else:
                     # Use the second way to update c_para
-                    c_para_i.copy_(c_para_i - state["c_para"] + 1 /
-                                   (state["step"] * group['lr']) *
-                                   (state["init_p"] - p))
+                    c_para_i.copy_(c_para_i - state['c_para'] + 1 /
+                                   (state['step'] * group['lr']) *
+                                   (state['init_p'] - p))
                 if 'c_para' not in state:
-                    state["c_para"] = c_para_i
+                    state['c_para'] = c_para_i
                 else:
-                    state["c_para"].copy_(c_para_i - state["c_para"])
+                    state['c_para'].copy_(c_para_i - state['c_para'])
 
     def _aggregator_round(self):
-        """Scaffold do a special round operation.
+        '''Scaffold do a special round operation.
         Do not forget to call this when the round is finished.
-        """
+        '''
 
         for group in self.param_groups:
-            for p in group["params"]:
+            for p in group['params']:
                 if p.grad is None:
                     continue
                 state = self.state[p]
-                c_para_i = state["c_para_i"]
+                c_para_i = state['c_para_i']
                 if 'c_para' not in state:
                     state['c_para'] = torch.zeros_like(p)
-                state["c_para"].copy_(c_para_i - state["c_para"])
+                state['c_para'].copy_(c_para_i - state['c_para'])
 
     def clear_state_dict(self):
         super().clear_state_dict(keys=['init_p_g', 'init_p_g_cnt', 'init_p'])
