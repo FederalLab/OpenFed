@@ -37,8 +37,8 @@ class FederatedDataset(Dataset):
 
 
 class PartitionerDataset(FederatedDataset):
-    """PartitionerDataset can make a non-federated dataset as a 
-    federated dataset via specify different partition methods. 
+    """PartitionerDataset can make a non-federated dataset as a
+    federated dataset via specify different partition methods.
     It is useful while exploring the influence of non-iid experiments.
 
     Args:
@@ -60,7 +60,7 @@ class PartitionerDataset(FederatedDataset):
                                                  self.data_index_list())
 
     def data_index_list(self) -> List:
-        """Rewrite for your dataset. 
+        """Rewrite for your dataset.
         If dataset.classes is not existed, you should rewrite this method.
         """
         if not hasattr(self.dataset, "classes") and not hasattr(

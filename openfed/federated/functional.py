@@ -12,7 +12,7 @@ from .const import aggregator_rank, collaborator_rank
 from .pipe import Pipe
 from .props import DistributedProperties, FederatedProperties
 
-default_pg_timeout = timedelta(seconds=100)
+openfed_default_pg_timeout = timedelta(seconds=100)
 
 
 def build_point2point_group(rank: int = 0) -> List:
@@ -70,7 +70,7 @@ def joint_federated_group(backend,
     rendezvous_iterator = rendezvous(init_method,
                                      rank,
                                      world_size,
-                                     timeout=default_pg_timeout)
+                                     timeout=openfed_default_pg_timeout)
     store, rank, world_size = next(rendezvous_iterator)
     store.set_timeout(default_pg_timeout)
 

@@ -9,11 +9,11 @@ from torch import Tensor
 
 
 class Key(object):
-    def __init__(self, n_lwe, bits, l, bound):
+    def __init__(self, n_lwe, bits, lines, bound):
         self.n_lwe = n_lwe
         self.bits = bits
         self.bits_safe = bits - 8
-        self.l = l
+        self.lines = lines
         self.bound = bound
 
         self.p = 2**self.bits + 1
@@ -23,10 +23,10 @@ class Key(object):
         torch.save(self.state_dict(), key_file)
 
     def __repr__(self):
-        head = ['n_lwe', 'bits', 'bits_safe', 'l', 'bound', 'p', 'q']
+        head = ['n_lwe', 'bits', 'bits_safe', 'lines', 'bound', 'p', 'q']
         data = [
-            self.n_lwe, self.bits, self.bits_safe, self.l, self.bound, self.p,
-            self.q
+            self.n_lwe, self.bits, self.bits_safe, self.lines, self.bound,
+            self.p, self.q
         ]
         description = tablist(head, data, force_in_one_row=True)
 
@@ -39,8 +39,8 @@ class Key(object):
 
 
 class PublicKey(Key):
-    def __init__(self, A, P, n_lwe, bits, l, bound, **kwargs):
-        super().__init__(n_lwe, bits, l, bound)
+    def __init__(self, A, P, n_lwe, bits, lines, bound, **kwargs):
+        super().__init__(n_lwe, bits, lines, bound)
         self.A = A
         self.P = P
 
@@ -51,7 +51,7 @@ class PublicKey(Key):
             n_lwe=self.n_lwe,
             bits=self.bits,
             bits_safe=self.bits_safe,
-            l=self.l,
+            lines=self.lines,
             bound=self.bound,
             p=self.p,
             q=self.q,
@@ -63,8 +63,8 @@ class PublicKey(Key):
 
 
 class PrivateKey(Key):
-    def __init__(self, S, n_lwe, bits, l, bound, **kwargs):
-        super().__init__(n_lwe, bits, l, bound)
+    def __init__(self, S, n_lwe, bits, lines, bound, **kwargs):
+        super().__init__(n_lwe, bits, lines, bound)
         self.S = S
 
     def state_dict(self):
@@ -73,7 +73,7 @@ class PrivateKey(Key):
             n_lwe=self.n_lwe,
             bits=self.bits,
             bits_safe=self.bits_safe,
-            l=self.l,
+            lines=self.lines,
             bound=self.bound,
             p=self.p,
             q=self.q,
@@ -112,17 +112,17 @@ def get_uniform_random_matrix(m, n, q):
 
 def key_gen(n_lwe: int = 3000,
             bits: int = 32,
-            l: int = 2**6,
+            lines: int = 2**6,
             bound: int = 2**3):
     p = 2**bits + 1
     q = 2**bits
-    R = get_discrete_gaussian_random_matrix(n_lwe, l, bits)
-    S = get_discrete_gaussian_random_matrix(n_lwe, l, bits)
+    R = get_discrete_gaussian_random_matrix(n_lwe, lines, bits)
+    S = get_discrete_gaussian_random_matrix(n_lwe, lines, bits)
     A = get_uniform_random_matrix(n_lwe, n_lwe, q)
 
     P = p * R - torch.matmul(A, S)
-    return PublicKey(A, P, n_lwe, bits, l,
-                     bound), PrivateKey(S, n_lwe, bits, l, bound)
+    return PublicKey(A, P, n_lwe, bits, lines,
+                     bound), PrivateKey(S, n_lwe, bits, lines, bound)
 
 
 def paillier_enc(public_key: PublicKey, m: Tensor) -> Ciphertext:
@@ -130,18 +130,18 @@ def paillier_enc(public_key: PublicKey, m: Tensor) -> Ciphertext:
                                              public_key.bits).to(m)
     e2 = get_discrete_gaussian_random_vector(public_key.n_lwe,
                                              public_key.bits).to(m)
-    e3 = get_discrete_gaussian_random_vector(public_key.l,
+    e3 = get_discrete_gaussian_random_vector(public_key.lines,
                                              public_key.bits).to(m)
 
     A = public_key.A.to(m)
     P = public_key.P.to(m)
 
-    if len(m) % public_key.l != 0:
+    if len(m) % public_key.lines != 0:
         m = torch.cat(
-            (m, torch.zeros(public_key.l - len(m) % public_key.l).type_as(m)),
-            0)
+            (m, torch.zeros(public_key.lines -
+                            len(m) % public_key.lines).type_as(m)), 0)
 
-    m = m.reshape(-1, public_key.l)
+    m = m.reshape(-1, public_key.lines)
 
     c1 = torch.matmul(e1, A) + public_key.p * e2
     c2 = torch.matmul(e1, P) + public_key.p * e3
@@ -168,7 +168,8 @@ def long_to_float(private_key: PrivateKey, tensor: Tensor, denominator: float):
 def paillier(public_key: Union[str, PublicKey]):
     _default_maintainer = DefaultMaintainer._default_maintainer
 
-    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
+    assert _default_maintainer, \
+        'Define a maintainer and use `with maintainer` context.'
 
     if isinstance(public_key, str):
         public_key = PublicKey.load(public_key)

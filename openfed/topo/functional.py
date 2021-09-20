@@ -52,7 +52,7 @@ def analysis(topo: Topology, node: Union[Node,
 
     Args:
         topo: The topology map contains related information.
-        node: The node to build the federated group. If string is provided, we 
+        node: The node to build the federated group. If string is provided, we
             will use the string as the nick name of the node.
     """
     if isinstance(node, str):
@@ -97,7 +97,7 @@ def analysis(topo: Topology, node: Union[Node,
                         break
                 assert rank > 0
         else:
-            raise RuntimeError(f"Build aggregator federated group failed.")
+            raise RuntimeError("Build aggregator federated group failed.")
 
         fgp = fg.federated_properties
 

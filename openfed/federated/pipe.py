@@ -169,7 +169,8 @@ class Pipe():
         return self._get_state() == offline
 
     def transfer(self, to: bool, data: Optional[Any] = None) -> Any:
-        if self.is_offline: raise DeviceOffline(self)
+        if self.is_offline: 
+            raise DeviceOffline(self)
 
         def _state():
             return self.is_pulling if to else self.is_pushing
@@ -182,7 +183,8 @@ class Pipe():
 
             tic = time.time()
             while not _state():
-                if self.is_offline: raise DeviceOffline(self)
+                if self.is_offline: 
+                    raise DeviceOffline(self)
                 toc = time.time()
                 if timedelta(seconds=toc - tic) > timedelta(minutes=30):
                     raise DeviceOffline(self)

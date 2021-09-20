@@ -24,17 +24,16 @@ from .functional import fed_context
 class Maintainer(object):
     r"""The user interface for OpenFed.
 
-    Args: 
+    Args:
         fed_props: The federated group belongs to.
         state_dict: Indicates tensors exchanged. If not specified, you should
             load it via :func:``load_state_dict``. Default: ``None``
-    
+
     Example::
 
         >>> mt = Maintainer(fed_props, network.state_dict(keep_vars=True))
 
         >>> print(mt)
-        [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
         <OpenFed> Maintainer
         +------------------+-----------+-------+
         |       role       | nick_name | pipes |
@@ -116,9 +115,10 @@ class Maintainer(object):
         r"""Register a package hook.
 
         Args:
-            nice: Priority of the hook, ``0`` is the first hook to be registered.
-            package_hook: Package hook. It should take in `state` and `p`, returns
-                modified `state`.
+            nice: Priority of the hook, ``0`` is the first hook to be 
+                registered.
+            package_hook: Package hook. It should take in `state` and `p`, 
+                returns modified `state`.
 
         .. note::
             All package hooks will be called in :func:``upload``.
@@ -138,9 +138,10 @@ class Maintainer(object):
         r"""Register an unpackage hook.
 
         Args:
-            nice: Priority of the hook, ``0`` is the first hook to be registered.
-            unpackage_hook: Package hook. It should take in `state` and `p`, returns
-                modified `state`.
+            nice: Priority of the hook, ``0`` is the first hook to be 
+                registered.
+            unpackage_hook: Package hook. It should take in `state` and `p`, 
+                returns modified `state`.
 
         .. note::
             All unpackage hooks will be called in :func:``download``.
@@ -152,7 +153,8 @@ class Maintainer(object):
             >>>         if v is not None:
             >>>             state[k] = v.to(p)
             >>>     return state
-            >>> maintainer.register_unpackage_hook(nice=10, package_hook=unpackage)
+            >>> maintainer.register_unpackage_hook(nice=10, 
+            >>>                                    package_hook=unpackage)
         """
         self._unpackage_hooks.put((unpackage_hook, nice))
 
@@ -163,14 +165,15 @@ class Maintainer(object):
         r"""Register a step hook.
 
         Args:
-            nice: Priority of the hook, ``0`` is the first hook to be registered.
+            nice: Priority of the hook, ``0`` is the first hook to be 
+                registered.
             step_hook: Step hook. It should take in `maintainer`, 
                 returns ``None`` or ``bool``.
             step_name: When to apply this step hook.
 
         .. note::
-            Step hook is used to control the behavior of `aggregator`. It will be 
-            called in :func:``_aggregator_step``.
+            Step hook is used to control the behavior of `aggregator`. 
+            It will be called in :func:``_aggregator_step``.
 
         Example::
 
@@ -184,8 +187,8 @@ class Maintainer(object):
             >>>         return True
 
             >>> _default_maintainer.register_step_hook(nice=50,
-            ...                                     step_hook=before_upload_hook,
-            ...                                     step_name=before_upload)
+            ...                                  step_hook=before_upload_hook,
+            ...                                  step_name=before_upload)
         """
         step_name = step_name or step_hook.step_name
         assert step_name, "Step name must be a valid string."

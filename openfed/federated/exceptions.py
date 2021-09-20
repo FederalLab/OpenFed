@@ -3,7 +3,7 @@
 
 class DeviceOffline(Exception):
     """Raises an exception if the device is offline.
-    
+
     .. Example::
 
         >>> raise DeviceOffline()

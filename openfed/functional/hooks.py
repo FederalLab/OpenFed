@@ -6,7 +6,8 @@ from openfed.core.const import DefaultMaintainer
 def device_alignment():
     _default_maintainer = DefaultMaintainer._default_maintainer
 
-    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
+    assert _default_maintainer, \
+        'Define a maintainer and use `with maintainer` context.'
 
     def package(state, p):
         for k, v in state.items():
@@ -29,7 +30,8 @@ def device_alignment():
 def sign_gradient_clip(epsilon=0.001):
     _default_maintainer = DefaultMaintainer._default_maintainer
 
-    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
+    assert _default_maintainer, \
+        'Define a maintainer and use `with maintainer` context.'
 
     if _default_maintainer.aggregator:
 
