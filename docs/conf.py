@@ -18,9 +18,9 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
-import sys
 
 import pytorch_sphinx_theme  # type: ignore
+import sys
 from m2r import MdInclude
 from recommonmark.transform import AutoStructify
 from sphinx.builders.html import StandaloneHTMLBuilder

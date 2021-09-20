@@ -1,5 +1,6 @@
 # Copyright (c) FederalLab. All rights reserved.
 import torch
+
 from openfed.core.const import DefaultMaintainer
 
 
@@ -23,8 +24,8 @@ def device_alignment():
                 state[k] = v.to(p)
         return state
 
-    _default_maintainer.register_unpackage_hook(nice=0,
-                                                unpackage_hook=unpackage)
+    _default_maintainer.register_unpackage_hook(
+        nice=0, unpackage_hook=unpackage)
 
 
 def sign_gradient_clip(epsilon=0.001):
@@ -39,8 +40,8 @@ def sign_gradient_clip(epsilon=0.001):
             state['param'] = p - epsilon * state['param']
             return state
 
-        _default_maintainer.register_unpackage_hook(nice=80,
-                                                    unpackage_hook=unpackage)
+        _default_maintainer.register_unpackage_hook(
+            nice=80, unpackage_hook=unpackage)
     else:
 
         def package(state, p):
@@ -49,5 +50,5 @@ def sign_gradient_clip(epsilon=0.001):
                                         state['original_param'])
             return state
 
-        _default_maintainer.register_package_hook(nice=20,
-                                                  package_hook=package)
+        _default_maintainer.register_package_hook(
+            nice=20, package_hook=package)

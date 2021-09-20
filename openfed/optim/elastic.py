@@ -1,12 +1,13 @@
 # Copyright (c) FederalLab. All rights reserved.
 import torch
 import torch.nn.functional as F
-from openfed.federated import collaborator
 
+from openfed.federated import collaborator
 from .fed_optim import FederatedOptimizer
 
 
 class ElasticOptimizer(FederatedOptimizer):
+
     def __init__(self,
                  optim,
                  role: str = collaborator,
@@ -45,9 +46,8 @@ class ElasticOptimizer(FederatedOptimizer):
 
                 if 'importance' not in state:
                     state['importance'] = torch.zeros_like(p)
-                state['importance'].mul_(self.momentum).add_(grad,
-                                                             alpha=1 -
-                                                             self.momentum)
+                state['importance'].mul_(self.momentum).add_(
+                    grad, alpha=1 - self.momentum)
 
     def clear_state_dict(self):
         return super().clear_state_dict(keys=['importance'])

@@ -1,14 +1,16 @@
 # Copyright (c) FederalLab. All rights reserved.
 from abc import abstractmethod
-from typing import Union
 
 import torch
+from torch import Tensor
+from typing import Union
+
 from openfed.core.const import DefaultMaintainer
 from openfed.utils import openfed_class_fmt, tablist
-from torch import Tensor
 
 
 class Key(object):
+
     def __init__(self, n_lwe, bits, lines, bound):
         self.n_lwe = n_lwe
         self.bits = bits
@@ -30,8 +32,8 @@ class Key(object):
         ]
         description = tablist(head, data, force_in_one_row=True)
 
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__, description=description)
 
     @abstractmethod
     def state_dict(self):
@@ -39,6 +41,7 @@ class Key(object):
 
 
 class PublicKey(Key):
+
     def __init__(self, A, P, n_lwe, bits, lines, bound, **kwargs):
         super().__init__(n_lwe, bits, lines, bound)
         self.A = A
@@ -63,6 +66,7 @@ class PublicKey(Key):
 
 
 class PrivateKey(Key):
+
     def __init__(self, S, n_lwe, bits, lines, bound, **kwargs):
         super().__init__(n_lwe, bits, lines, bound)
         self.S = S
@@ -85,14 +89,15 @@ class PrivateKey(Key):
 
 
 class Ciphertext(object):
+
     def __init__(self, c1, c2):
         self.c1 = c1
         self.c2 = c2
 
     def __repr__(self):
         description = f'c1: {self.c1}, c2: {self.c2}'
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__, description=description)
 
     def __add__(self, other):
         return Ciphertext(self.c1 + other.c1, self.c2 + other.c2)
@@ -190,5 +195,5 @@ def paillier(public_key: Union[str, PublicKey]):
                     paillier_state[f'{k}_c2'] = ciphertext.c2
             return paillier_state
 
-        _default_maintainer.register_package_hook(nice=90,
-                                                  package_hook=package)
+        _default_maintainer.register_package_hook(
+            nice=90, package_hook=package)

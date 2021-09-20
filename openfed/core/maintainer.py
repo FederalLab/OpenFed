@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from queue import PriorityQueue
+from torch import Tensor
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from openfed.common.meta import Meta
@@ -15,8 +16,6 @@ from openfed.functional.const import (after_destroy, after_download,
                                       before_destroy, before_download,
                                       before_upload)
 from openfed.utils import openfed_class_fmt, tablist
-from torch import Tensor
-
 from .const import DefaultMaintainer
 from .functional import fed_context
 
@@ -462,5 +461,5 @@ class Maintainer(object):
         head = ['role', 'nick_name', 'pipes']
         data = [self.role, self.nick_name, len(self.pipes)]
         description = tablist(head, data, force_in_one_row=True)
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__, description=description)

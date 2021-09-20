@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
+import numpy as np
 from typing import List
 
-import numpy as np
 from openfed.utils import tablist
 
 

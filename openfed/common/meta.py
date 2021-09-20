@@ -1,6 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 
 from addict import Dict as AttrDict
+
 from openfed.utils import openfed_class_fmt, tablist
 
 
@@ -43,6 +44,7 @@ class Meta(AttrDict):
         | train |    -1   |
         +-------+---------+
     '''
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'mode' not in self:

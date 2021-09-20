@@ -1,10 +1,10 @@
 # Copyright (c) FederalLab. All rights reserved.
 from openfed.federated import collaborator
-
 from .fed_optim import FederatedOptimizer
 
 
 class ProxOptimizer(FederatedOptimizer):
+
     def __init__(self,
                  optim,
                  role: str = collaborator,

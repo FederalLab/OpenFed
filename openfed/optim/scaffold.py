@@ -1,14 +1,14 @@
 # Copyright (c) FederalLab. All rights reserved.
-from typing import Callable, Union
-
 import torch
 import torch.nn.functional as F
-from openfed.federated import collaborator
+from typing import Callable, Union
 
+from openfed.federated import collaborator
 from .fed_optim import FederatedOptimizer
 
 
 class ScaffoldOptimizer(FederatedOptimizer):
+
     def __init__(self,
                  optim,
                  role: str = collaborator,
@@ -73,7 +73,8 @@ class ScaffoldOptimizer(FederatedOptimizer):
                     state['init_p_g_cnt'] = 1
                 else:
                     g = (state['init_p_g'] * state['init_p_g_cnt'] +
-                         p.grad) / (state['init_p_g_cnt'] + 1)
+                         p.grad) / (
+                             state['init_p_g_cnt'] + 1)
                     state['init_p_g'].copy_(g)
                     state['init_p_g_cnt'] += 1
 

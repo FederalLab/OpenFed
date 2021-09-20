@@ -4,7 +4,6 @@ from openfed.common import Address
 from openfed.federated import (FederatedProperties, aggregator,
                                aggregator_rank, collaborator,
                                collaborator_rank)
-
 from .topo import FederatedGroup, Node, Topology
 
 

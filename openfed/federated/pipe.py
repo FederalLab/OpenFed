@@ -1,14 +1,14 @@
 # Copyright (c) FederalLab. All rights reserved.
+import warnings
+
 import json
 import time
-import warnings
+import torch.distributed.distributed_c10d as distributed_c10d
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
-import torch.distributed.distributed_c10d as distributed_c10d
 from openfed.common import Meta
 from openfed.utils import openfed_class_fmt, tablist
-
 from .const import (aggregator, aggregator_rank, collaborator,
                     collaborator_rank, nick_name, offline, openfed_identity,
                     openfed_meta, openfed_status, pull, push, zombie)
@@ -115,13 +115,14 @@ class Pipe():
         self.dist_props = dist_props
         self.fed_props = fed_props
 
-        set_store_value(store=self.store,
-                        key=self._i_key,
-                        value={
-                            openfed_status: zombie,
-                            openfed_meta: Meta(),
-                            nick_name: self.fed_props.nick_name,
-                        })
+        set_store_value(
+            store=self.store,
+            key=self._i_key,
+            value={
+                openfed_status: zombie,
+                openfed_meta: Meta(),
+                nick_name: self.fed_props.nick_name,
+            })
 
         self._i_backup_info = get_store_value(self.store, self._i_key)
         self._u_backup_info = get_store_value(self.store, self._u_key)
@@ -270,6 +271,6 @@ class Pipe():
 
         other_description = 'dist props: \n' + str(self.dist_props) + \
             'fed props: \n ' + str(self.fed_props)
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description + '\n' +
-                                        other_description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__,
+            description=description + '\n' + other_description)

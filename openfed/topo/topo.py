@@ -1,8 +1,9 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
-from typing import List, Union, overload
 
 import torch
+from typing import List, Union, overload
+
 from openfed.common import Address
 from openfed.federated import (FederatedProperties, is_aggregator,
                                is_collaborator)
@@ -10,6 +11,7 @@ from openfed.utils import openfed_class_fmt, tablist
 
 
 class Node(object):
+
     def __init__(self, nick_name: str, address: Address):
         self.nick_name = nick_name
         self.address = address
@@ -20,14 +22,15 @@ class Node(object):
 
     def __repr__(self):
         description = 'nick name: ' + self.nick_name + '\n' + str(self.address)
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__, description=description)
 
 
 class Edge(object):
     '''Edge, start node will be regarded as collaborator,
     end node will be regarded as aggregator.
     '''
+
     def __init__(
         self,
         start: Node,
@@ -45,8 +48,8 @@ class Edge(object):
 
     def __repr__(self):
         description = f'|{self.start.nick_name} -> {self.end.nick_name}.'
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__, description=description)
 
 
 class FederatedGroup(object):

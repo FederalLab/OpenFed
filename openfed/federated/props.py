@@ -1,8 +1,8 @@
 # Copyright (c) FederalLab. All rights reserved.
+import torch.distributed.distributed_c10d as distributed_c10d
 from threading import Lock
 from typing import Any, Dict, Optional, Tuple
 
-import torch.distributed.distributed_c10d as distributed_c10d
 from openfed.common import Address
 from openfed.utils import openfed_class_fmt, tablist
 
@@ -152,6 +152,6 @@ class FederatedProperties(object):
         data = [self.role, self.nick_name]
         description = tablist(head, data, force_in_one_row=True)
         other_description = str(self.address)
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description + '\n' +
-                                        other_description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__,
+            description=description + '\n' + other_description)
