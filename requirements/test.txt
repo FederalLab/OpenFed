@@ -1,9 +1,9 @@
+PyTurboJPEG
 coverage
 lmdb
 onnx==1.7.0
 onnxoptimizer
 onnxruntime>=1.8.0
 pytest
-PyTurboJPEG
 scipy
 tiffile

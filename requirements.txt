@@ -1,4 +1,4 @@
+addict
 prettytable
 torch
 tqdm
-addict
