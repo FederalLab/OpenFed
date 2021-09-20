@@ -55,14 +55,13 @@ class Address(object):
     world_size: int
     rank: int
 
-    def __init__(self, 
-        backend:str='gloo', 
-        init_method:str='tcp://localhost:1994', 
-        world_size:int=2, 
-        rank:int=-1):
-        assert init_method.startswith(
-            'file://') or init_method.startswith(
-                'tcp://') or init_method.startswith('null')
+    def __init__(self,
+                 backend: str = 'gloo',
+                 init_method: str = 'tcp://localhost:1994',
+                 world_size: int = 2,
+                 rank: int = -1):
+        assert init_method.startswith('file://') or init_method.startswith(
+            'tcp://') or init_method.startswith('null')
 
         if backend == 'nccl':
             # `nccl` backend can largely speed up the directly communication
@@ -70,13 +69,13 @@ class Address(object):
             # function to transfer any tensor between two nodes.
             # The gather_object() function will first cast object to cpu tensor
             # and then move it to the original GPU directly.
-            # This will cause device mis-alignment when two nodes 
+            # This will cause device mis-alignment when two nodes
             # using different GPU ids.
-            # Considering that Federated Learning mostly deals 
+            # Considering that Federated Learning mostly deals
             # with communication among different devices,
             # such as cpu and gpu, we are not planning
             # to fix it.
-            # You can specify `nccl` backend currently, but it may not 
+            # You can specify `nccl` backend currently, but it may not
             # bring much different with `gloo`.
 
             warnings.warn('"nccl" backend is used.')
@@ -95,21 +94,21 @@ class Address(object):
         data = [self.backend, self.init_method, self.world_size, self.rank]
         description = tablist(head, data, force_in_one_row=True)
 
-        return openfed_class_fmt.format(
-            class_name=self.__class__.__name__,
-            description=description)
+        return openfed_class_fmt.format(class_name=self.__class__.__name__,
+                                        description=description)
+
 
 default_tcp_address = Address(
-    backend     = "gloo",
-    init_method = 'tcp://localhost:1994',
+    backend="gloo",
+    init_method='tcp://localhost:1994',
 )
 
 default_file_address = Address(
-    backend     = "gloo",
-    init_method = 'file:///tmp/openfed.sharedfile',
+    backend="gloo",
+    init_method='file:///tmp/openfed.sharedfile',
 )
 
 empty_address = Address(
-    backend = 'null',
-    init_method = 'null',
+    backend='null',
+    init_method='null',
 )

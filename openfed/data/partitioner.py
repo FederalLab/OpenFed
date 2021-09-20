@@ -43,11 +43,11 @@ class PowerLawPartitioner(Partitioner):
         cursor = [0 for _ in range(classes)]
         for p in range(total_parts):
             for c in range(min_classes):
-                l = (p + c) % classes
-                data_index = data_index_list[l]
-                start, end = cursor[l], cursor[l] + samples
+                label = (p + c) % classes
+                data_index = data_index_list[label]
+                start, end = cursor[label], cursor[label] + samples
                 parts_index_list[p] += data_index[start:end].tolist()
-                cursor[l] = end
+                cursor[label] = end
 
         # power law
         props = np_random.lognormal(self.mean,
@@ -58,16 +58,16 @@ class PowerLawPartitioner(Partitioner):
 
         for p in range(total_parts):
             for c in range(min_classes):
-                l = (p + c) % classes
-                data_index = data_index_list[l]
+                label = (p + c) % classes
+                data_index = data_index_list[label]
                 data_samples = len(data_index)
-                num_samples = (data_samples -
-                               cursor[l]) * normalized_props[l, p % classes, c]
+                num_samples = (data_samples - cursor[label]
+                               ) * normalized_props[label, p % classes, c]
                 num_samples = max(1, int(num_samples))
-                if cursor[l] + num_samples <= data_samples:
-                    start, end = cursor[l], cursor[l] + num_samples
+                if cursor[label] + num_samples <= data_samples:
+                    start, end = cursor[label], cursor[label] + num_samples
                     parts_index_list[p] += data_index[start:end].tolist()
-                    cursor[l] = end
+                    cursor[label] = end
         return [np.array(p) for p in parts_index_list]
 
 

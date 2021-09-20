@@ -19,7 +19,7 @@ def count_step(counts: Union[List[int], int]):
         >>> count_step(15) # Stop when receive the fifteen-th models.
         >>> # Stop when receive the fifth models.
         >>> # Then continue to receive the next fifteen models.
-        >>> count_step([5, 15]) 
+        >>> count_step([5, 15])
     """
     _default_maintainer = DefaultMaintainer._default_maintainer
 
@@ -128,7 +128,8 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
     .. Example::
 
         >>> dispatch_step(15, dict(train=list(range(100))))
-        >>> dispatch_step([15, 20], dict(train=list(range(100), test=list(range(50)))))
+        >>> dispatch_step([15, 20], dict(train=list(range(100),
+        >>>     test=list(range(50)))))
     """
     _default_maintainer = DefaultMaintainer._default_maintainer
 

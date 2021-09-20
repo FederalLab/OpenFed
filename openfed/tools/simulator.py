@@ -148,9 +148,11 @@ def main():
                 subprocess_file_handles.append((stdout_handle, stderr_handle))
                 stdout_name = stdout_handle.name
                 stderr_name = stderr_handle.name
-                print(f"""Note: Stdout and stderr for 
-                     node {node_rank} rank {local_rank} will
-                be written to {stdout_name}, {stderr_name} respectively.""")
+                print(
+                    "Note: Stdout and stderr for "
+                    f"node {node_rank} rank {local_rank} will "
+                    f"be written to {stdout_name}, {stderr_name} respectively."
+                )
 
         sig_names = {2: "SIGINT", 15: "SIGTERM"}
         last_return_code = None
@@ -160,11 +162,9 @@ def main():
         signal.signal(signal.SIGTERM, sigkill_handler)
 
         stdout_handle = None if not subprocess_file_handles\
-            else subprocess_file_handles[
-            local_rank][0]
+            else subprocess_file_handles[local_rank][0]
         stderr_handle = None if not subprocess_file_handles\
-            else subprocess_file_handles[
-            local_rank][1]
+            else subprocess_file_handles[local_rank][1]
         process = subprocess.Popen(cmd,
                                    env=os.environ.copy(),
                                    stdout=stdout_handle,
