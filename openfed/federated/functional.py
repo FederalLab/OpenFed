@@ -44,27 +44,27 @@ def joint_federated_group(backend,
     exchange.
 
     .. warning ::
-        ``env://`` is not allowed to be used to avoid conflicts with distributed
-        learning in `PyTorch`.
+        ``env://`` is not allowed to be used to avoid conflicts with
+        distributed learning in `PyTorch`.
 
     Args:
         backend: The backend to used. Depending on build-time configurations,
             valid values include ``mpi``, ``gloo`` and  ``nccl``, which depends
             on the `PyTorch` you installed. This field should be given as a
             lowercase string (e.g., ``gloo``), which can also be accessed via
-            :class:`Backend` attributes (e.g., ``Backend.GLOO``). ``nccl`` is 
-            not recommended currently, for that we will always move the tensor 
-            to `cpu` first before sending to other nodes to avoiding device 
-            disalignment between `cpu` and `gpu`. Thus, ``nccl`` will not speed 
+            :class:`Backend` attributes (e.g., ``Backend.GLOO``). ``nccl`` is
+            not recommended currently, for that we will always move the tensor
+            to `cpu` first before sending to other nodes to avoiding device
+            disalignment between `cpu` and `gpu`. Thus, ``nccl`` will not speed
             up the communication phase in `OpenFed`. Default: ``'gloo'``.
         init_method: URL specifying how to initialize the federated group. Such
-            as: ``tcp://localhost:1994``, ``file:///tmp/sharefile``. If you use 
-            ``file://``, make sure the file is not existing. 
+            as: ``tcp://localhost:1994``, ``file:///tmp/sharefile``. If you use
+            ``file://``, make sure the file is not existing.
             Default: ``'tcp://localhost:1994'``
         world_size: Number of nodes in federated group. Default: ``2``
-        rank: Rank of current node (it should be a number between 0 and 
-            ``world_size``-1). If `-1` is provided, rank will be specified during
-            runtime. Default: -1
+        rank: Rank of current node (it should be a number between 0 and
+            ``world_size``-1). If `-1` is provided, rank will be specified
+            during runtime. Default: -1
     """
     # build a store
     rendezvous_iterator = rendezvous(init_method,
@@ -81,8 +81,10 @@ def joint_federated_group(backend,
     # rank is always set to 0 for that we want to build a
     # point2point connection between the master and each nodes.
     # If the address is a point2point one, we should use the aggregator rank.
-    # If the address is a shared multi-node one, we take the rank 0 as the aggregator rank.
-    # And the re-arranged rank will be set to the ideal rank order in function call.
+    # If the address is a shared multi-node one, we take the rank 0 as
+    # the aggregator rank.
+    # And the re-arranged rank will be set to the ideal rank order
+    # in function call.
     sub_pg_list = build_point2point_group(
         aggregator_rank if distributed_c10d.get_world_size() == 2 else 0)
 

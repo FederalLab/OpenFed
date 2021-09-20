@@ -20,7 +20,7 @@ class API(Thread):
         kwargs: thread arguments.
 
     Example::
-        
+
         >>> api = openfed.API(mt, fed_optim, rounds, agg_func)
         >>> # 1. run it on thread
         >>> api.start()

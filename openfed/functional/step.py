@@ -9,11 +9,11 @@ from openfed.functional import const as const
 
 def count_step(counts: Union[List[int], int]):
     r"""Stops the loop according to the number of received models.
-    
+
     Args:
         counts: If the number of received models is greater than counts, stop
             the loop immediately and turn to next count.
-        
+
     .. Example::
 
         >>> count_step(15) # Stop when receive the fifteen-th models.
@@ -23,7 +23,8 @@ def count_step(counts: Union[List[int], int]):
     """
     _default_maintainer = DefaultMaintainer._default_maintainer
 
-    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
+    assert _default_maintainer, \
+        'Define a maintainer and use `with maintainer` context.'
 
     if isinstance(counts, int):
         counts = [
@@ -68,17 +69,18 @@ def count_step(counts: Union[List[int], int]):
 
 def period_step(period: float):
     r"""Stops the loop period.
-    
+
     Args:
         period: The period second time to stop.
-        
+
     .. Example::
 
         >>> period_step(15) # Stop the loop every 15 seconds.
     """
     _default_maintainer = DefaultMaintainer._default_maintainer
 
-    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
+    assert _default_maintainer, \
+        'Define a maintainer and use `with maintainer` context.'
 
     if _default_maintainer.aggregator:
 
@@ -117,12 +119,12 @@ def period_step(period: float):
 
 def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
     r"""Dispatch a part id from part list and stop based the count.
-    
+
     Args:
         counts: If the number of received models is greater than counts, stop
             the loop immediately and turn to next count.
         parts_list: The part list to dispatch.
-        
+
     .. Example::
 
         >>> dispatch_step(15, dict(train=list(range(100))))
@@ -130,7 +132,8 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
     """
     _default_maintainer = DefaultMaintainer._default_maintainer
 
-    assert _default_maintainer, 'Define a maintainer and use `with maintainer` context.'
+    assert _default_maintainer, \
+        'Define a maintainer and use `with maintainer` context.'
 
     if isinstance(counts, int):
         counts = [

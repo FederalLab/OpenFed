@@ -57,8 +57,7 @@ def tablist(head: List[Any],
             if i + len(head) <= len(data):
                 rows.append(data[i:i + len(head)])
             else:
-                l = len(data) - i
-                rows.append(data[i:] + [' '] * l)
+                rows.append(data[i:] + [' '] * len(data) - i)
             i += len(head)
         table_list.append(_tablist(head, rows, multi_rows=True))
     else:

@@ -37,7 +37,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
             dataloader: The data loader to iterate over.
 
         .. note::
-            This function only be called if you do not specify the `lr` in 
+            This function only be called if you do not specify the `lr` in
             `__init__` process.
         """
         if self.init_c_para_flag is False:
