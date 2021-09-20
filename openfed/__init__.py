@@ -7,10 +7,11 @@ from openfed import optim as optim
 from openfed import topo as topo
 from openfed.api import API as API
 
-from .common import *
-from .utils import *
+from .common import (Address, Meta, default_file_address, default_tcp_address,
+                     empty_address)
+from .utils import (openfed_class_fmt, openfed_title, seed_everything, tablist,
+                    time_string)
 from .version import __version__
-
 
 __all__ = [
     'core',

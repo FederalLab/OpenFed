@@ -13,7 +13,7 @@ class DistributedProperties(object):
 
     Args:
         lock: A lock used to protect distributed properties. Default: ``None``
-    
+
     .. Example::
 
         >>> dist_props = DistributedProperties()
@@ -23,7 +23,7 @@ class DistributedProperties(object):
 
         >>> with dist_props:
         ...     ...
-        ... 
+        ...
         Ellipsis
     """
     # Use to save the default distributed probabilities
@@ -66,20 +66,24 @@ class DistributedProperties(object):
         DistributedProperties._default_pg_names = distributed_c10d._pg_names
         distributed_c10d._pg_names = self._pg_names
 
-        DistributedProperties._default_pg_group_ranks = distributed_c10d._pg_group_ranks
+        DistributedProperties._default_pg_group_ranks = \
+            distributed_c10d._pg_group_ranks
         distributed_c10d._pg_group_ranks = self._pg_group_ranks
 
-        DistributedProperties._default_pg_init_method = distributed_c10d._default_pg_init_method
+        DistributedProperties._default_pg_init_method = \
+            distributed_c10d._default_pg_init_method
         distributed_c10d._default_pg_init_method = self._pg_init_method
 
-        DistributedProperties._default_group_count = distributed_c10d._group_count
+        DistributedProperties._default_group_count = \
+            distributed_c10d._group_count
         distributed_c10d._group_count = self._group_count
 
     def __exit__(self, exc_type, exc_value, trace):
         # save individual value and load default value
         self._WORLD = distributed_c10d.group.WORLD
         distributed_c10d.group.WORLD = DistributedProperties._default_WORLD
-        distributed_c10d.GroupMember.WORLD = DistributedProperties._default_WORLD
+        distributed_c10d.GroupMember.WORLD = \
+            DistributedProperties._default_WORLD
 
         self._pg_map = distributed_c10d._pg_map
         distributed_c10d._pg_map = DistributedProperties._default_pg_map
@@ -88,13 +92,16 @@ class DistributedProperties(object):
         distributed_c10d._pg_names = DistributedProperties._default_pg_names
 
         self._pg_group_ranks = distributed_c10d._pg_group_ranks
-        distributed_c10d._pg_group_ranks = DistributedProperties._default_pg_group_ranks
+        distributed_c10d._pg_group_ranks = \
+            DistributedProperties._default_pg_group_ranks
 
         self._pg_init_method = distributed_c10d._default_pg_init_method
-        distributed_c10d._default_pg_init_method = DistributedProperties._default_pg_init_method
+        distributed_c10d._default_pg_init_method = \
+            DistributedProperties._default_pg_init_method
 
         self._group_count = distributed_c10d._group_count
-        distributed_c10d._group_count = DistributedProperties._default_group_count
+        distributed_c10d._group_count = \
+            DistributedProperties._default_group_count
 
         self.lock.release()
 
@@ -115,7 +122,8 @@ class FederatedProperties(object):
 
     Examples::
 
-        >>> fed_props = FederatedProperties('aggregator', 'openfed_node', default_tcp_address)
+        >>> fed_props = FederatedProperties('aggregator',
+        >>>     'openfed_node', default_tcp_address)
         >>> fed_props
         <OpenFed> FederatedProperties
         +--------+--------------+

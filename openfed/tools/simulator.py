@@ -12,7 +12,7 @@ import time
 from argparse import REMAINDER, ArgumentParser
 from typing import IO, Any, List, Optional
 
-from openfed.topo import Topology, analysis
+from openfed.topo import Topology
 from openfed.utils import openfed_title
 
 node_local_rank_stdout_filename = "openfed_node_{}_local_rank_{}_stdout"
@@ -52,11 +52,13 @@ def parse_args():
         "--logdir",
         default=None,
         type=str,
-        help=f"""Relative path to write subprocess logs to. Passing in a relative
-        path will create a directory if needed, and write the stdout and stderr to files
-        {node_local_rank_stdout_filename} and {node_local_rank_stderr_filename}. Note that
-        successive runs with the  same path to write logs to will overwrite existing logs,
-        so be sure to save logs as needed. (The logs of rank 0 will be directly printed to the screen.)""",
+        help=f"""Relative path to write subprocess logs to.
+        Passing in a relative path will create a directory if needed,
+        and write the stdout and stderr to files
+        {node_local_rank_stdout_filename} and {node_local_rank_stderr_filename}.
+        Note that successive runs with the  same path to write logs to will
+        overwrite existing logs, so be sure to save logs as needed.
+        (The logs of rank 0 will be directly printed to the screen.)""",
     )
 
     # positional
@@ -91,7 +93,7 @@ def main():
 
     subprocess_file_handles = []
 
-    def sigkill_handler(signum, frame):
+    def sigkill_handler(signum, *args):
         for process in processes:
             print(f"Killing subprocess {process.pid}")
             try:
@@ -115,13 +117,11 @@ def main():
                 cmd.append("-m")
         else:
             if not args.use_env:
-                raise ValueError(
-                    "When using the '--no_python' flag, you must also set the '--use_env' flag."
-                )
+                raise ValueError("When using the '--no_python' flag, "
+                                 "you must also set the '--use_env' flag.")
             if args.module:
-                raise ValueError(
-                    "Don't use both the '--no_python' flag and the '--module' flag at the same time."
-                )
+                raise ValueError("Don't use both the '--no_python' flag "
+                                 "and the '--module' flag at the same time.")
 
         cmd.append(args.training_script)
 
@@ -148,8 +148,8 @@ def main():
                 subprocess_file_handles.append((stdout_handle, stderr_handle))
                 stdout_name = stdout_handle.name
                 stderr_name = stderr_handle.name
-                print(
-                    f"""Note: Stdout and stderr for node {node_rank} rank {local_rank} will
+                print(f"""Note: Stdout and stderr for 
+                     node {node_rank} rank {local_rank} will
                 be written to {stdout_name}, {stderr_name} respectively.""")
 
         sig_names = {2: "SIGINT", 15: "SIGTERM"}
@@ -159,9 +159,11 @@ def main():
         signal.signal(signal.SIGINT, sigkill_handler)
         signal.signal(signal.SIGTERM, sigkill_handler)
 
-        stdout_handle = None if not subprocess_file_handles else subprocess_file_handles[
+        stdout_handle = None if not subprocess_file_handles\
+            else subprocess_file_handles[
             local_rank][0]
-        stderr_handle = None if not subprocess_file_handles else subprocess_file_handles[
+        stderr_handle = None if not subprocess_file_handles\
+            else subprocess_file_handles[
             local_rank][1]
         process = subprocess.Popen(cmd,
                                    env=os.environ.copy(),
@@ -179,7 +181,8 @@ def main():
                     continue
                 else:
                     if process.returncode != 0:
-                        last_return_code = process.returncode  # for sigkill_handler
+                        # for sigkill_handler
+                        last_return_code = process.returncode
                         # not coming back
                         sigkill_handler(signal.SIGTERM, None)
                     else:

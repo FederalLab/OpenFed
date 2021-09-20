@@ -115,14 +115,14 @@ class Maintainer(object):
         r"""Register a package hook.
 
         Args:
-            nice: Priority of the hook, ``0`` is the first hook to be 
+            nice: Priority of the hook, ``0`` is the first hook to be
                 registered.
-            package_hook: Package hook. It should take in `state` and `p`, 
+            package_hook: Package hook. It should take in `state` and `p`,
                 returns modified `state`.
 
         .. note::
             All package hooks will be called in :func:``upload``.
-        
+
         Example::
 
             >>> def package(state, p):
@@ -138,9 +138,9 @@ class Maintainer(object):
         r"""Register an unpackage hook.
 
         Args:
-            nice: Priority of the hook, ``0`` is the first hook to be 
+            nice: Priority of the hook, ``0`` is the first hook to be
                 registered.
-            unpackage_hook: Package hook. It should take in `state` and `p`, 
+            unpackage_hook: Package hook. It should take in `state` and `p`,
                 returns modified `state`.
 
         .. note::
@@ -153,7 +153,7 @@ class Maintainer(object):
             >>>         if v is not None:
             >>>             state[k] = v.to(p)
             >>>     return state
-            >>> maintainer.register_unpackage_hook(nice=10, 
+            >>> maintainer.register_unpackage_hook(nice=10,
             >>>                                    package_hook=unpackage)
         """
         self._unpackage_hooks.put((unpackage_hook, nice))
@@ -165,14 +165,14 @@ class Maintainer(object):
         r"""Register a step hook.
 
         Args:
-            nice: Priority of the hook, ``0`` is the first hook to be 
+            nice: Priority of the hook, ``0`` is the first hook to be
                 registered.
-            step_hook: Step hook. It should take in `maintainer`, 
+            step_hook: Step hook. It should take in `maintainer`,
                 returns ``None`` or ``bool``.
             step_name: When to apply this step hook.
 
         .. note::
-            Step hook is used to control the behavior of `aggregator`. 
+            Step hook is used to control the behavior of `aggregator`.
             It will be called in :func:``_aggregator_step``.
 
         Example::
@@ -232,9 +232,9 @@ class Maintainer(object):
         r"""Transfer data to another end.
 
         Args:
-            to: If ``True``, upload the data to the other end. If ``False``, 
+            to: If ``True``, upload the data to the other end. If ``False``,
                 download data from the other end.
-        
+
         Returns:
             If download was successful, return the downloaded data.
         """
@@ -333,7 +333,8 @@ class Maintainer(object):
         while not self.stopped and len(self.pipes) > 0:
             step(at_new_episode)
             for i, pipe in enumerate(self.pipes):
-                if self.stopped: break
+                if self.stopped:
+                    break
 
                 self.pipe = pipe
                 step(at_first)
@@ -375,7 +376,7 @@ class Maintainer(object):
 
         Args:
             optim_list: The state of optim will be uploaded to.
-            state_keys: The state keys to be uploaded. If ``None``, upload all 
+            state_keys: The state keys to be uploaded. If ``None``, upload all
                 state. Default: ``None``.
         """
         self.packaged_data.clear()
@@ -405,13 +406,13 @@ class Maintainer(object):
         """Unpackage state to optim.
 
         .. note::
-            This operation will automatically load the `param` property to 
+            This operation will automatically load the `param` property to
             state_dict by a replace operation.
-        
+
         Args:
             optim_list: The state of optim will be rewritten to.
-            state_keys: The state keys to be rewritten. If ``None``, rewrite all 
-                state. Default: ``None``.
+            state_keys: The state keys to be rewritten. If ``None``,
+                rewrite all state. Default: ``None``.
         """
         assert self.data
         if optim_list and not isinstance(optim_list, list):

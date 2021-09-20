@@ -18,7 +18,7 @@ class TopoBuilder(cmd.Cmd):
         Documented commands (type help <topic>):
         ========================================
         add_node    clear_useless_nodes  help  plot         remove_node
-        build_edge  exit                 load  remove_edge  save       
+        build_edge  exit                 load  remove_edge  save
 
         <OpenFed>: add_node
         Nick Name
@@ -27,7 +27,8 @@ class TopoBuilder(cmd.Cmd):
         y
         Backend (gloo, mpi, nccl)
         gloo
-        Init method i.e., 'tcp://localhost:1994', file:///tmp/openfed.sharedfile)
+        Init method i.e., 'tcp://localhost:1994',
+            file:///tmp/openfed.sharedfile)
         tcp://localhost:1995
         <OpenFed> Node
         nick name: server
@@ -110,7 +111,8 @@ class TopoBuilder(cmd.Cmd):
         Y
         Backend (gloo, mpi, nccl)
         mpi
-        Init method i.e., 'tcp://localhost:1994', file:///tmp/openfed.sharedfile)
+        Init method i.e., 'tcp://localhost:1994',
+            file:///tmp/openfed.sharedfile)
         file:///tmp/gamma
         <OpenFed> Node
         nick name: gamma
@@ -160,7 +162,7 @@ class TopoBuilder(cmd.Cmd):
         +--------+--------+-------+------+-------+
         <OpenFed>: exit
     """
-    intro = f"A script to build topology."
+    intro = "A script to build topology."
 
     @property
     def prompt(self):
@@ -190,7 +192,9 @@ class TopoBuilder(cmd.Cmd):
                     print("Invalid backend.")
             while True:
                 init_method = input(
-                    "Init method i.e., 'tcp://localhost:1994', file:///tmp/openfed.sharedfile)\n"
+                    "Init method i.e., "
+                    "'tcp://localhost:1994', "
+                    "file:///tmp/openfed.sharedfile)\n"
                 )
                 try:
                     address = Address(backend, init_method)

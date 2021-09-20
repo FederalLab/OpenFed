@@ -5,32 +5,32 @@ from openfed.utils import openfed_class_fmt, tablist
 
 
 class Address(object):
-    r"""Contains `backend`, `init_method`, `world_size` and `rank` message to 
+    r"""Contains `backend`, `init_method`, `world_size` and `rank` message to
     build the connection between different federated groups.
 
     .. warning ::
-        ``env://`` is not allowed to be used to avoid conflicts with distributed
-        learning in `PyTorch`.
+        ``env://`` is not allowed to be used to avoid conflicts with
+        distributed learning in `PyTorch`.
 
     Args:
         backend: The backend to used. Depending on build-time configurations,
             valid values include ``mpi``, ``gloo`` and  ``nccl``, which depends
             on the `PyTorch` you installed. This field should be given as a
             lowercase string (e.g., ``gloo``), which can also be accessed via
-            :class:`Backend` attributes (e.g., ``Backend.GLOO``). ``nccl`` is 
-            not recommended currently, for that we will always move the tensor 
-            to `cpu` first before sending to other nodes to avoiding device 
-            disalignment between `cpu` and `gpu`. Thus, ``nccl`` will not speed 
+            :class:`Backend` attributes (e.g., ``Backend.GLOO``). ``nccl`` is
+            not recommended currently, for that we will always move the tensor
+            to `cpu` first before sending to other nodes to avoiding device
+            disalignment between `cpu` and `gpu`. Thus, ``nccl`` will not speed
             up the communication phase in `OpenFed`. Default: ``'gloo'``.
         init_method: URL specifying how to initialize the federated group. Such
-            as: ``tcp://localhost:1994``, ``file:///tmp/sharefile``. If you use 
-            ``file://``, make sure the file is not existing. 
+            as: ``tcp://localhost:1994``, ``file:///tmp/sharefile``. If you use
+            ``file://``, make sure the file is not existing.
             Default: ``'tcp://localhost:1994'``
         world_size: Number of nodes in federated group. Default: ``2``
-        rank: Rank of current node (it should be a number between 0 and 
-            ``world_size``-1). If `-1` is provided, rank will be specified during
-            runtime. Default: -1
-    
+        rank: Rank of current node (it should be a number between 0 and
+            ``world_size``-1). If `-1` is provided, rank will be specified
+            during runtime. Default: -1
+
     Examples::
 
         >>> Address('gloo', 'tcp://localhost:1994', world_size=2, rank=-1)
@@ -41,7 +41,7 @@ class Address(object):
         |   gloo  | tcp://localhost:... |     2      |  -1  |
         +---------+---------------------+------------+------+
 
-        >>> Address('mpi', 'file:///tmp/openfed.sharefile', world_size=10, rank=0)
+        >>> Address('mpi', 'file:///tmp/openfed', world_size=10, rank=0)
         <OpenFed> Address
         +---------+---------------------+------------+------+
         | backend |     init_method     | world_size | rank |
@@ -65,25 +65,26 @@ class Address(object):
                 'tcp://') or init_method.startswith('null')
 
         if backend == 'nccl':
-            # `nccl` backend can largely speed up the directly communication 
-            # between two GPUs. Currently, OpenFed is based on `gather_object()` 
+            # `nccl` backend can largely speed up the directly communication
+            # between two GPUs. Currently, OpenFed is based on `gather_object()`
             # function to transfer any tensor between two nodes.
-            # The gather_object() function will first cast object to cpu tensor 
+            # The gather_object() function will first cast object to cpu tensor
             # and then move it to the original GPU directly.
-            # This will cause device mis-alignment when two nodes using different
-            # GPU ids. 
-            # Considering that Federated Learning mostly deals with communication
-            # among different devices, such as cpu and gpu, we are not planning 
+            # This will cause device mis-alignment when two nodes 
+            # using different GPU ids.
+            # Considering that Federated Learning mostly deals 
+            # with communication among different devices,
+            # such as cpu and gpu, we are not planning
             # to fix it.
-            # You can specify `nccl` backend currently, but it may not bring much
-            # different with `gloo`. 
+            # You can specify `nccl` backend currently, but it may not 
+            # bring much different with `gloo`.
 
             warnings.warn('"nccl" backend is used.')
 
         assert backend in ['gloo', 'mpi', 'nccl', 'null']
         assert 1 <= world_size
         assert -1 <= rank < world_size
-        
+
         self.backend = backend
         self.init_method = init_method
         self.world_size = world_size
@@ -95,7 +96,7 @@ class Address(object):
         description = tablist(head, data, force_in_one_row=True)
 
         return openfed_class_fmt.format(
-            class_name=self.__class__.__name__, 
+            class_name=self.__class__.__name__,
             description=description)
 
 default_tcp_address = Address(

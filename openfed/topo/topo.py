@@ -15,7 +15,8 @@ class Node(object):
         self.address = address
 
     def __eq__(self, other):
-        return self.nick_name == other.nick_name and self.address == other.address
+        return self.nick_name == other.nick_name and\
+            self.address == other.address
 
     def __repr__(self):
         description = "nick name: " + self.nick_name + '\n' + str(self.address)
@@ -24,7 +25,8 @@ class Node(object):
 
 
 class Edge(object):
-    """Edge, start node will be regarded as collaborator, end node will be regarded as aggregator.
+    """Edge, start node will be regarded as collaborator,
+    end node will be regarded as aggregator.
     """
     def __init__(
         self,

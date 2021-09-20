@@ -31,8 +31,7 @@ class PowerLawPartitioner(Partitioner):
         self.sigma = sigma
 
     def partition(self, total_parts: int, data_index_list: List) -> List:
-        """Refer to:
-            https://github.com/litian96/FedProx/blob/master/data/mnist/generate_niid.py
+        """Refer to: https://github.com/litian96/FedProx/
         """
         min_samples = self.min_samples
         min_classes = self.min_classes
@@ -77,11 +76,13 @@ class DirichletPartitioner(Partitioner):
 
     .. Examples::
 
-        >>> from openfed.data import DirichletPartitioner, PartitionerDataset, samples_distribution
+        >>> from openfed.data import DirichletPartitioner, PartitionerDataset,\
+        >>> samples_distribution
         >>> from torchvision.datasets import MNIST
         >>> from torchvision.transforms import ToTensor
         >>> dataset = PartitionerDataset(
-            MNIST(r'/tmp/', True, ToTensor(), download=True), total_parts=10, partitioner=DirichletPartitioner())
+            MNIST(r'/tmp/', True, ToTensor(), download=True), total_parts=10,
+                partitioner=DirichletPartitioner())
         >>> samples_distribution(dataset, True)
         +-------+---------+---------+----------+
         | Parts | Samples |   Mean  |   Var    |
@@ -93,20 +94,27 @@ class DirichletPartitioner(Partitioner):
     _MAX_LOOP = 10000
 
     def __init__(self, alpha: float = 100, min_samples: int = 10):
-        """
-            Obtain sample index list for each client from the Dirichlet distribution.
+        """Obtain sample index list for each client from the
+        Dirichlet distribution.
 
-            This LDA method is first proposed by :
+            This LDA method is first proposed by:
             Measuring the Effects of Non-Identical Data Distribution for
-            Federated Visual Classification (https://arxiv.org/pdf/1909.06335.pdf).
+            Federated Visual Classification
+            (https://arxiv.org/pdf/1909.06335.pdf).
 
-            This can generate nonIIDness with unbalance sample number in each label.
-            The Dirichlet distribution is a density over a K dimensional vector p whose K components are positive and sum to 1.
-            Dirichlet can support the probabilities of a K-way categorical event.
-            In FL, we can view K clients' sample number obeys the Dirichlet distribution.
-            For more details of the Dirichlet distribution, please check https://en.wikipedia.org/wiki/Dirichlet_distribution
+            This can generate nonIIDness with unbalance sample number
+            in each label.
+            The Dirichlet distribution is a density over a K dimensional
+            vector p whose K components are positive and sum to 1.
+            Dirichlet can support the probabilities of a K-way
+            categorical event.
+            In FL, we can view K clients' sample number obeys
+            the Dirichlet distribution.
+            For more details of the Dirichlet distribution,
+            please check https://en.wikipedia.org/wiki/Dirichlet_distribution
         Args:
-            alpha: a concentration parameter controlling the identicalness among clients.
+            alpha: a concentration parameter controlling
+            the identicalness among clients.
         """
 
         self.alpha = alpha
@@ -162,11 +170,13 @@ class IIDPartitioner(Partitioner):
     r"""IID partitioner.
 
     Examples::
-        >>> from openfed.data import IIDPartitioner, PartitionerDataset, samples_distribution
+        >>> from openfed.data import IIDPartitioner, PartitionerDataset,\
+        >>> samples_distribution
         >>> from torchvision.datasets import MNIST
         >>> from torchvision.transforms import ToTensor
         >>> dataset = PartitionerDataset(
-            MNIST(r'/tmp/', True, ToTensor(), download=True), total_parts=10, partitioner=IIDPartitioner())
+            MNIST(r'/tmp/', True, ToTensor(), download=True), total_parts=10,
+                partitioner=IIDPartitioner())
         >>> samples_distribution(dataset, True)
         +-------+---------+---------+------+
         | Parts | Samples |   Mean  | Var  |
