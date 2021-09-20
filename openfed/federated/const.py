@@ -4,14 +4,12 @@ collaborator = 'openfed_collaborator'
 
 
 def is_aggregator(role: str) -> bool:
-    '''Returns `True` if `role` is aggregator.
-    '''
+    """Returns `True` if `role` is aggregator."""
     return role == aggregator
 
 
 def is_collaborator(role: str) -> bool:
-    '''Returns `True` if `role` is collaborator.
-    '''
+    """Returns `True` if `role` is collaborator."""
     return role == collaborator
 
 

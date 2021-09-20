@@ -42,9 +42,10 @@ def count_step(counts: Union[List[int], int]):
                 maintainer.meta['version'] = maintainer.version
                 return True
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=before_upload_hook,
-                                               step_name=const.before_upload)
+        _default_maintainer.register_step_hook(
+            nice=50,
+            step_hook=before_upload_hook,
+            step_name=const.before_upload)
 
         idx = 0
 
@@ -55,16 +56,13 @@ def count_step(counts: Union[List[int], int]):
                 idx = idx + 1
                 idx = len(counts) % idx  # type: ignore
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=at_last_hook,
-                                               step_name=const.at_last)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=at_last_hook, step_name=const.at_last)
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=lambda x: True,
-                                               step_name=const.before_destroy)
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=lambda x: True,
-                                               step_name=const.before_download)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=lambda x: True, step_name=const.before_destroy)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=lambda x: True, step_name=const.before_download)
 
 
 def period_step(period: float):
@@ -93,9 +91,10 @@ def period_step(period: float):
                 maintainer.meta['version'] = maintainer.version
                 return True
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=before_upload_hook,
-                                               step_name=const.before_upload)
+        _default_maintainer.register_step_hook(
+            nice=50,
+            step_hook=before_upload_hook,
+            step_name=const.before_upload)
 
         tic = time.time()
 
@@ -105,16 +104,13 @@ def period_step(period: float):
                 maintainer.manual_stop()
                 tic = time.time()
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=at_last_hook,
-                                               step_name=const.at_last)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=at_last_hook, step_name=const.at_last)
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=lambda x: True,
-                                               step_name=const.before_destroy)
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=lambda x: True,
-                                               step_name=const.before_download)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=lambda x: True, step_name=const.before_destroy)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=lambda x: True, step_name=const.before_download)
 
 
 def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
@@ -164,9 +160,10 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
 
             return False
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=before_upload_hook,
-                                               step_name=const.before_upload)
+        _default_maintainer.register_step_hook(
+            nice=50,
+            step_hook=before_upload_hook,
+            step_name=const.before_upload)
 
         idx = 0
 
@@ -182,13 +179,10 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
                     parts_list_value[idx],  # type: ignore
                     counts[idx])  # type: ignore
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=at_last_hook,
-                                               step_name=const.at_last)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=at_last_hook, step_name=const.at_last)
 
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=lambda x: True,
-                                               step_name=const.before_destroy)
-        _default_maintainer.register_step_hook(nice=50,
-                                               step_hook=lambda x: True,
-                                               step_name=const.before_download)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=lambda x: True, step_name=const.before_destroy)
+        _default_maintainer.register_step_hook(
+            nice=50, step_hook=lambda x: True, step_name=const.before_download)

@@ -67,17 +67,13 @@ def joint_federated_group(backend,
             during runtime. Default: -1
     '''
     # build a store
-    rendezvous_iterator = rendezvous(init_method,
-                                     rank,
-                                     world_size,
-                                     timeout=openfed_default_pg_timeout)
+    rendezvous_iterator = rendezvous(
+        init_method, rank, world_size, timeout=openfed_default_pg_timeout)
     store, rank, world_size = next(rendezvous_iterator)
     store.set_timeout(default_pg_timeout)
 
-    distributed_c10d.init_process_group(backend,
-                                        world_size=world_size,
-                                        rank=rank,
-                                        store=store)
+    distributed_c10d.init_process_group(
+        backend, world_size=world_size, rank=rank, store=store)
     # rank is always set to 0 for that we want to build a
     # point2point connection between the master and each nodes.
     # If the address is a point2point one, we should use the aggregator rank.

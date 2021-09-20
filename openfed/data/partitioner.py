@@ -8,6 +8,7 @@ import numpy.random as np_random
 
 
 class Partitioner(object):
+
     @abstractmethod
     def partition(self, total_parts: int, data_index_list: List) -> List:
         raise NotImplementedError
@@ -17,22 +18,20 @@ class Partitioner(object):
 
 
 class PowerLawPartitioner(Partitioner):
+
     def __init__(self,
                  min_samples: int = 10,
                  min_classes: int = 2,
                  mean: float = 0.0,
                  sigma: float = 2.0):
-        '''
-        mean and sigma is used for lognormal.
-        '''
+        """mean and sigma is used for lognormal."""
         self.min_samples = min_samples
         self.min_classes = min_classes
         self.mean = mean
         self.sigma = sigma
 
     def partition(self, total_parts: int, data_index_list: List) -> List:
-        '''Refer to: https://github.com/litian96/FedProx/
-        '''
+        """Refer to: https://github.com/litian96/FedProx/"""
         min_samples = self.min_samples
         min_classes = self.min_classes
 
@@ -50,10 +49,10 @@ class PowerLawPartitioner(Partitioner):
                 cursor[label] = end
 
         # power law
-        props = np_random.lognormal(self.mean,
-                                    self.sigma,
-                                    size=(classes, total_parts // classes,
-                                          min_classes))
+        props = np_random.lognormal(
+            self.mean,
+            self.sigma,
+            size=(classes, total_parts // classes, min_classes))
         normalized_props = props / np.sum(props, (1, 2), keepdims=True)
 
         for p in range(total_parts):
@@ -94,8 +93,8 @@ class DirichletPartitioner(Partitioner):
     _MAX_LOOP = 10000
 
     def __init__(self, alpha: float = 100, min_samples: int = 10):
-        '''Obtain sample index list for each client from the
-        Dirichlet distribution.
+        """Obtain sample index list for each client from the Dirichlet
+        distribution.
 
             This LDA method is first proposed by:
             Measuring the Effects of Non-Identical Data Distribution for
@@ -115,7 +114,7 @@ class DirichletPartitioner(Partitioner):
         Args:
             alpha: a concentration parameter controlling
             the identicalness among clients.
-        '''
+        """
 
         self.alpha = alpha
         self.min_samples = min_samples
@@ -185,6 +184,7 @@ class IIDPartitioner(Partitioner):
         +-------+---------+---------+------+
         [5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996]
     '''
+
     def partition(self, total_parts: int, data_index_list: List) -> List:
 
         parts_index_list = [[] for _ in range(total_parts)]

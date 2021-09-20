@@ -3,8 +3,9 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from queue import PriorityQueue
-from torch import Tensor
 from typing import Any, Callable, Dict, List, Optional, Union
+
+from torch import Tensor
 
 from openfed.common.meta import Meta
 from openfed.federated import (FederatedProperties, Pipe, init_federated_group,
@@ -402,7 +403,7 @@ class Maintainer(object):
     def unpackage(self,
                   optim_list: Optional[Any] = None,
                   state_keys: Optional[List[str]] = None):
-        '''Unpackage state to optim.
+        """Unpackage state to optim.
 
         .. note::
             This operation will automatically load the `param` property to
@@ -412,7 +413,7 @@ class Maintainer(object):
             optim_list: The state of optim will be rewritten to.
             state_keys: The state keys to be rewritten. If ``None``,
                 rewrite all state. Default: ``None``.
-        '''
+        """
         assert self.data
         if optim_list and not isinstance(optim_list, list):
             optim_list = [

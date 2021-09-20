@@ -1,9 +1,9 @@
 # Copyright (c) FederalLab. All rights reserved.
 from abc import abstractmethod
+from typing import Union
 
 import torch
 from torch import Tensor
-from typing import Union
 
 from openfed.core.const import DefaultMaintainer
 from openfed.utils import openfed_class_fmt, tablist

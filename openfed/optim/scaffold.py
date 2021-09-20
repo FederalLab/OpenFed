@@ -1,7 +1,8 @@
 # Copyright (c) FederalLab. All rights reserved.
+from typing import Callable, Union
+
 import torch
 import torch.nn.functional as F
-from typing import Callable, Union
 
 from openfed.federated import collaborator
 from .fed_optim import FederatedOptimizer
@@ -22,8 +23,7 @@ class ScaffoldOptimizer(FederatedOptimizer):
         self.init_c_para_flag = False
 
     def init_c_para(self):
-        '''Call this function after glue operation.
-        '''
+        """Call this function after glue operation."""
         for group in self.param_groups:
             for p in group['params']:
                 if p.requires_grad:
@@ -79,14 +79,14 @@ class ScaffoldOptimizer(FederatedOptimizer):
                     state['init_p_g_cnt'] += 1
 
     def _collaborator_step(self, closure=None):
-        '''Performs a single optimization step.
+        """Performs a single optimization step.
 
         Args:
 
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
             acg: accumulate gradient.
-        '''
+        """
         loss = None
         if closure is not None:
             with torch.enable_grad():
@@ -118,12 +118,12 @@ class ScaffoldOptimizer(FederatedOptimizer):
         return loss
 
     def _aggregator_step(self, closure=None):
-        '''Performs a single optimization step.
+        """Performs a single optimization step.
 
         Args:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
-        '''
+        """
         loss = None
         if closure is not None:
             with torch.enable_grad():
@@ -151,9 +151,10 @@ class ScaffoldOptimizer(FederatedOptimizer):
         return loss
 
     def _collaborator_round(self):
-        '''Scaffold do a special round operation.
+        """Scaffold do a special round operation.
+
         Do not forget to call this when the round is finished.
-        '''
+        """
 
         for group in self.param_groups:
             for p in group['params']:
@@ -178,9 +179,10 @@ class ScaffoldOptimizer(FederatedOptimizer):
                     state['c_para'].copy_(c_para_i - state['c_para'])
 
     def _aggregator_round(self):
-        '''Scaffold do a special round operation.
+        """Scaffold do a special round operation.
+
         Do not forget to call this when the round is finished.
-        '''
+        """
 
         for group in self.param_groups:
             for p in group['params']:

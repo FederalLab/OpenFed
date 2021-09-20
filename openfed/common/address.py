@@ -94,8 +94,8 @@ class Address(object):
         data = [self.backend, self.init_method, self.world_size, self.rank]
         description = tablist(head, data, force_in_one_row=True)
 
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__, description=description)
 
 
 default_tcp_address = Address(

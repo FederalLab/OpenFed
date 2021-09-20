@@ -12,10 +12,11 @@ from .partitioner import Partitioner
 
 
 class FederatedDataset(Dataset):
-    '''Federated Dataset is the common used dataset in OpenFed.
-    Each federated dataset has an unique part id. This is useful
-    while doing simulation experiments.
-    '''
+    """Federated Dataset is the common used dataset in OpenFed.
+
+    Each federated dataset has an unique part id. This is useful while doing
+    simulation experiments.
+    """
     part_id: int = 0
     total_parts: int = 1
 
@@ -37,15 +38,15 @@ class FederatedDataset(Dataset):
 
 
 class PartitionerDataset(FederatedDataset):
-    '''PartitionerDataset can make a non-federated dataset as a
-    federated dataset via specify different partition methods.
-    It is useful while exploring the influence of non-iid experiments.
+    """PartitionerDataset can make a non-federated dataset as a federated
+    dataset via specify different partition methods. It is useful while
+    exploring the influence of non-iid experiments.
 
     Args:
         dataset: Any torch kind dataset.
         total_parts: How many parts the dataset participated into.
         partitioner: The way to participate the dataset.
-    '''
+    """
     dataset: Dataset
     parts_index_list: List
     partitioner: Partitioner
@@ -60,9 +61,10 @@ class PartitionerDataset(FederatedDataset):
                                                  self.data_index_list())
 
     def data_index_list(self) -> List:
-        '''Rewrite for your dataset.
+        """Rewrite for your dataset.
+
         If dataset.classes is not existed, you should rewrite this method.
-        '''
+        """
         if not hasattr(self.dataset, 'classes') and not hasattr(
                 self.dataset, 'targets'):
             raise RuntimeError(

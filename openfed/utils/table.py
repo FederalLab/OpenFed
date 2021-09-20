@@ -45,10 +45,10 @@ def tablist(head: List[Any],
             data: List[Any],
             items_per_row: int = 8,
             force_in_one_row: bool = False) -> str:
-    '''
-        If len(head) > items_per_row, we will split into multi-tables.
-        If force_in_one_row is True, items_per_row will be ignored.
-    '''
+    """If len(head) > items_per_row, we will split into multi-tables.
+
+    If force_in_one_row is True, items_per_row will be ignored.
+    """
     table_list = []
     if force_in_one_row:
         i = 0

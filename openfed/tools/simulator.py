@@ -20,20 +20,21 @@ node_local_rank_stderr_filename = 'openfed_node_{}_local_rank_{}_stderr'
 
 
 def parse_args():
-    '''
-    Helper function parsing the command line options
+    """Helper function parsing the command line options.
+
     @retval ArgumentParser
-    '''
+    """
     parser = ArgumentParser(
         description=f'{openfed_title} federated simulation training launch '
         'helper utility that will spawn up '
         'multiple federated processes.')
 
     # Optional arguments for the launch helper
-    parser.add_argument('--topology',
-                        type=str,
-                        required=True,
-                        help='The topology file to use for training.')
+    parser.add_argument(
+        '--topology',
+        type=str,
+        required=True,
+        help='The topology file to use for training.')
     parser.add_argument(
         '-m',
         '--module',
@@ -62,12 +63,13 @@ def parse_args():
     )
 
     # positional
-    parser.add_argument('training_script',
-                        type=str,
-                        help='The full path to the single GPU training '
-                        'program/script to be launched in parallel, '
-                        'followed by all the arguments for the '
-                        'training script')
+    parser.add_argument(
+        'training_script',
+        type=str,
+        help='The full path to the single GPU training '
+        'program/script to be launched in parallel, '
+        'followed by all the arguments for the '
+        'training script')
 
     # rest from the training program
     parser.add_argument('training_script_args', nargs=REMAINDER)
@@ -101,8 +103,8 @@ def main():
             except Exception:
                 pass
         if last_return_code is not None and last_return_code != signal.SIGTERM:
-            raise subprocess.CalledProcessError(returncode=last_return_code,
-                                                cmd=cmd)
+            raise subprocess.CalledProcessError(
+                returncode=last_return_code, cmd=cmd)
         if signum in sig_names:
             print(f'Main process received {sig_names[signum]}, exiting')
         sys.exit(1)
@@ -165,10 +167,11 @@ def main():
             else subprocess_file_handles[local_rank][0]
         stderr_handle = None if not subprocess_file_handles\
             else subprocess_file_handles[local_rank][1]
-        process = subprocess.Popen(cmd,
-                                   env=os.environ.copy(),
-                                   stdout=stdout_handle,
-                                   stderr=stderr_handle)
+        process = subprocess.Popen(
+            cmd,
+            env=os.environ.copy(),
+            stdout=stdout_handle,
+            stderr=stderr_handle)
         processes.append(process)
 
     try:

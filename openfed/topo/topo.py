@@ -1,8 +1,8 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
+from typing import List, Union, overload
 
 import torch
-from typing import List, Union, overload
 
 from openfed.common import Address
 from openfed.federated import (FederatedProperties, is_aggregator,
@@ -27,9 +27,8 @@ class Node(object):
 
 
 class Edge(object):
-    '''Edge, start node will be regarded as collaborator,
-    end node will be regarded as aggregator.
-    '''
+    """Edge, start node will be regarded as collaborator, end node will be
+    regarded as aggregator."""
 
     def __init__(
         self,
@@ -72,8 +71,7 @@ class FederatedGroup(object):
         return is_collaborator(self.role)
 
     def add_to_group(self, edge: Edge) -> bool:
-        '''Add an edge to federated group.
-        '''
+        """Add an edge to federated group."""
         if self.aggregator and edge.end == self.node:
             # belong to this group
             # add the collaborator to this group
@@ -95,8 +93,8 @@ class FederatedGroup(object):
 
     @property
     def federated_properties(self) -> FederatedProperties:
-        '''The address in FederatedProperties needs be rectified in `Topology`.
-        '''
+        """The address in FederatedProperties needs be rectified in
+        `Topology`."""
         role = self.role
         nick_name = self.node.nick_name
 
@@ -119,13 +117,11 @@ class Topology(object):
 
     @overload
     def add_node(self, node: Node):
-        '''Add a node to topology.
-        '''
+        """Add a node to topology."""
 
     @overload
     def add_node(self, nick_name, address):
-        '''Build a node and add it to topology
-        '''
+        """Build a node and add it to topology."""
 
     def add_node(self, *args):
         if len(args) == 1:
@@ -141,15 +137,17 @@ class Topology(object):
 
     @overload
     def add_edge(self, edge: Edge):
-        '''Add a new edge to topology.
+        """Add a new edge to topology.
+
         If start and end node is not existing, we will add them first.
-        '''
+        """
 
     @overload
     def add_edge(self, start: Node, end: Node):
-        '''Build and then add a new edge to topology.
+        """Build and then add a new edge to topology.
+
         If start and end node is not existing, we will add them first.
-        '''
+        """
 
     def add_edge(self, *args):
         if len(args) == 1:

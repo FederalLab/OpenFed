@@ -28,6 +28,7 @@ class API(Thread):
         >>> # 2. run it on main process.
         >>> api.run()
     '''
+
     def __init__(self,
                  maintainer: Maintainer,
                  fed_optim: FederatedOptimizer,
@@ -61,10 +62,11 @@ class API(Thread):
                 maintainer.package(fed_optim)
                 maintainer.step()
                 fed_optim.zero_grad()
-                agg_func(data_list=maintainer.data_list,
-                         meta_list=maintainer.meta_list,
-                         optim_list=fed_optim,
-                         **agg_func_kwargs)
+                agg_func(
+                    data_list=maintainer.data_list,
+                    meta_list=maintainer.meta_list,
+                    optim_list=fed_optim,
+                    **agg_func_kwargs)
                 fed_optim.step()
                 fed_optim.round()
 

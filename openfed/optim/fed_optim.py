@@ -6,6 +6,7 @@ from openfed.utils import openfed_class_fmt
 
 
 class FederatedOptimizer(object):
+
     def __init__(self,
                  optimizer,
                  role: str = collaborator,
@@ -78,8 +79,8 @@ class FederatedOptimizer(object):
 
     def __repr__(self):
         description = repr(self.optimizer)
-        return openfed_class_fmt.format(class_name=self.__class__.__name__,
-                                        description=description)
+        return openfed_class_fmt.format(
+            class_name=self.__class__.__name__, description=description)
 
     def zero_grad(self, *args, **kwargs):
         return self.optimizer.zero_grad(*args, **kwargs)

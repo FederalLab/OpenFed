@@ -191,11 +191,9 @@ class TopoBuilder(cmd.Cmd):
                 else:
                     print('Invalid backend.')
             while True:
-                init_method = input(
-                    'Init method i.e., '
-                    'tcp://localhost:1994, '
-                    'file:///tmp/openfed.sharedfile)\n'
-                )
+                init_method = input('Init method i.e., '
+                                    'tcp://localhost:1994, '
+                                    'file:///tmp/openfed.sharedfile)\n')
                 try:
                     address = Address(backend, init_method)
                     break

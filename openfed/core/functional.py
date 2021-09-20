@@ -12,7 +12,9 @@ def fed_context(func):
         This decorator intends to be used only for class which
         contains :attr:``pipe``.
     '''
+
     def _fed_context(self, *args, **kwargs):
+
         def safe_call(*args, **kwargs):
             try:
                 return func(*args, **kwargs)

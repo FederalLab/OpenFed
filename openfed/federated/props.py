@@ -1,7 +1,8 @@
 # Copyright (c) FederalLab. All rights reserved.
-import torch.distributed.distributed_c10d as distributed_c10d
 from threading import Lock
 from typing import Any, Dict, Optional, Tuple
+
+import torch.distributed.distributed_c10d as distributed_c10d
 
 from openfed.common import Address
 from openfed.utils import openfed_class_fmt, tablist

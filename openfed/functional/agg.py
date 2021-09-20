@@ -24,10 +24,8 @@ def load_param_states(optim: Optimizer, param_states: Dict[Tensor, Any]):
             else:
                 fail += 1
     if fail > 0:
-        warnings.warn(
-            f'Load param state for {success} params, '
-            f'{fail} params are ignored.'
-        )
+        warnings.warn(f'Load param state for {success} params, '
+                      f'{fail} params are ignored.')
 
 
 def average_aggregation(data_list: List[Dict[Tensor, Any]],

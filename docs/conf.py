@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # OpenFed documentation build configuration file, created by
 # sphinx-quickstart on Thu Jun 24 22:29:01 2021.
@@ -18,9 +17,9 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
+import sys
 
 import pytorch_sphinx_theme  # type: ignore
-import sys
 from m2r import MdInclude
 from recommonmark.transform import AutoStructify
 from sphinx.builders.html import StandaloneHTMLBuilder

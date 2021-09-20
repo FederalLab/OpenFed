@@ -32,7 +32,7 @@ tools
 -------
 .. automodule:: openfed.tools
     :members:
-    
+
 topo
 -------
 .. automodule:: openfed.topo
