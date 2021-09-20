@@ -65,8 +65,8 @@ class Address(object):
 
         if backend == 'nccl':
             # `nccl` backend can largely speed up the directly communication
-            # between two GPUs. Currently, OpenFed is based on `gather_object()`
-            # function to transfer any tensor between two nodes.
+            # between two GPUs. Currently, OpenFed is based on
+            # `gather_object()` to transfer any tensor between two nodes.
             # The gather_object() function will first cast object to cpu tensor
             # and then move it to the original GPU directly.
             # This will cause device mis-alignment when two nodes
