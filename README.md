@@ -47,7 +47,7 @@ PyTorch >= 1.5.1, python>=3.6
 
 If you find this project useful in your research, please consider cite:
 
-```
+```cite
 @misc{OpenFed,
 Author = {Chen Dengsheng},
 Title = {OpenFed: An Open-Source Security and Privacy Guaranteed Federated Learning Framework},
