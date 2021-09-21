@@ -63,8 +63,8 @@ def test_topology():
 
     print(topology)
 
-    topology.save('tests/data/topo')
-    topology.load('tests/data/topo')
+    topology.save('/tmp/topo')
+    topology.load('/tmp/topo')
 
 
 def test_analysis():
