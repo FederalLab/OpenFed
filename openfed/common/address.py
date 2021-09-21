@@ -97,6 +97,10 @@ class Address(object):
         return openfed_class_fmt.format(
             class_name=self.__class__.__name__, description=description)
 
+    def __eq__(self, other):
+        return self.backend == other.backend \
+            and self.init_method == other.init_method
+
 
 default_tcp_address = Address(
     backend='gloo',
