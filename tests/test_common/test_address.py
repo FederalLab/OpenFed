@@ -3,7 +3,6 @@ from openfed import (Address, default_file_address, default_tcp_address,
 
 
 def test_backend():
-    Address('nccl', 'null')
     Address('gloo', 'null')
     Address('mpi', 'null')
     Address('null', 'null')

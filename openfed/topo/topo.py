@@ -11,6 +11,12 @@ from openfed.utils import openfed_class_fmt, tablist
 
 
 class Node(object):
+    r"""Node.
+
+    Args:
+        nick_name: An unique string to identify the node.
+        address: The address of node.
+    """
 
     def __init__(self, nick_name: str, address: Address):
         self.nick_name = nick_name
@@ -27,8 +33,12 @@ class Node(object):
 
 
 class Edge(object):
-    """Edge, start node will be regarded as collaborator, end node will be
-    regarded as aggregator."""
+    r"""Edge.
+
+    Args:
+        start: namely collaborator.
+        end: namely aggregator.
+    """
 
     def __init__(
         self,
@@ -40,7 +50,15 @@ class Edge(object):
         self.end = end
 
     def in_edge(self, node: Node) -> bool:
-        return self.start == node or self.end == node
+        r"""Returns `True` if given node is start or end node.
+        """
+        return self.is_start(node) and self.is_end(node)
+
+    def is_start(self, node: Node) -> bool:
+        return self.start == node
+
+    def is_end(self, node: Node) -> bool:
+        return self.end == node
 
     def __eq__(self, other):
         return self.start == other.start and self.end == other.end
@@ -52,6 +70,12 @@ class Edge(object):
 
 
 class FederatedGroup(object):
+    r"""Federated Group gathers all surrounding nodes around the given one.
+
+    Args:
+        role: The role played. `aggregator` or `collaborator`.
+        node: The given node.
+    """
     role: str
     node: Node
     others: List[Node]
@@ -94,7 +118,8 @@ class FederatedGroup(object):
     @property
     def federated_properties(self) -> FederatedProperties:
         """The address in FederatedProperties needs be rectified in
-        `Topology`."""
+        :func:`openfed.topo.analysis`.
+        """
         role = self.role
         nick_name = self.node.nick_name
 
@@ -106,6 +131,9 @@ class FederatedGroup(object):
 
 
 class Topology(object):
+    r"""Topology manages massive nodes and edges.
+    """
+
     nodes: List[Node]
     edges: List[Edge]
 
@@ -117,11 +145,20 @@ class Topology(object):
 
     @overload
     def add_node(self, node: Node):
-        """Add a node to topology."""
+        r"""Add a node to topology.
+
+        Args:
+            node: The node to be added.
+        """
 
     @overload
     def add_node(self, nick_name, address):
-        """Build a node and add it to topology."""
+        r"""Build a node and add it to topology.
+
+        Args:
+            nick_name: The name of node.
+            address: The address of node.
+        """
 
     def add_node(self, *args):
         if len(args) == 1:
@@ -137,23 +174,41 @@ class Topology(object):
 
     @overload
     def add_edge(self, edge: Edge):
-        """Add a new edge to topology.
+        r"""Add an edge to topology.
 
-        If start and end node is not existing, we will add them first.
+        .. note::
+
+            If start and end node is not contained in the topology, we will add
+            them automatically.
+
+        Args:
+            edge: The edge to be added.
+
         """
 
     @overload
-    def add_edge(self, start: Node, end: Node):
-        """Build and then add a new edge to topology.
+    def add_edge(self, start: Union[Node, str], end: Union[Node, str]):
+        """Build and then add an edge to topology.
 
-        If start and end node is not existing, we will add them first.
+        .. note::
+
+            If start and end node is not contained in the topology, we will add
+            them automatically.
+
+        Args:
+            start: The node or nick name of start.
+            end: The node or nick name of end.
         """
 
     def add_edge(self, *args):
         if len(args) == 1:
             edge = args[0]
         else:
-            edge = Edge(*args)
+            start = self.fetch_node_via_nick_name(args[0]) if isinstance(
+                args[0], str) else args[0]
+            end = self.fetch_node_via_nick_name(args[1]) if isinstance(
+                args[1], str) else args[1]
+            edge = Edge(start, end)  # type: ignore
 
         if edge.start not in self.nodes:
             self.add_node(edge.start)
@@ -170,6 +225,14 @@ class Topology(object):
         del self.edges[index]
 
     def clear_useless_nodes(self):
+        r"""Removes useless nodes.
+
+        .. note::
+
+            This function will remove all nodes which not be contained in any
+            edges.
+
+        """
         useless_idx = []
         for idx, node in enumerate(self.nodes):
             useless = True
@@ -184,6 +247,8 @@ class Topology(object):
             self.remove_node(idx)
 
     def remove_node(self, index: int):
+        r"""Removes a specified node as well as all the related edges.
+        """
         node = self.nodes[index]
         invalid_edge_idx = []
         for idx, edge in enumerate(self.edges):
@@ -197,6 +262,12 @@ class Topology(object):
         del self.nodes[index]
 
     def save(self, filename):
+        r"""Saves topology as long as a description to file.
+
+        Args:
+            filename: A binary file will be created with this filename and a
+                text file will be created at the same time.
+        """
         torch.save([self.nodes, self.edges], filename)
         with open(filename + '.txt', 'w') as f:
             f.write(str(self))
@@ -212,6 +283,14 @@ class Topology(object):
         return edge in self.edges
 
     def fetch_node_via_nick_name(self, nick_name: str) -> Union[Node, None]:
+        """Fetches node via its nick name.
+
+        Args:
+            nick_name: The nick name of node.
+
+        Returns:
+            Node if exist, else None.
+        """
         for node in self.nodes:
             if node.nick_name == nick_name:
                 return node
