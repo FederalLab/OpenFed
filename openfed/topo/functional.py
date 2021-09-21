@@ -14,7 +14,7 @@ def build_federated_group(
 
     Args:
         topo: The topology map contains related information.
-        node: The node to build the federated group.
+        node: The node to build the federated group for.
     '''
     # aggregator group
     aggregator_group = []
