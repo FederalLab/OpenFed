@@ -7,16 +7,24 @@ from openfed.federated import (FederatedProperties, aggregator,
 from .topo import FederatedGroup, Node, Topology
 
 
-def build_federated_group(
+def _build_federated_group(
         topo: Topology,
         node: Node) -> Tuple[List[FederatedGroup], List[FederatedGroup]]:
-    r'''Build the federated group for node.
+    r'''Build federated group for given node.
+
+    .. warning::
+        It is forbiden to call this function for users. The `world_size` and
+        `rank` is not guaranteed to be correct within this function. In any
+        case, you should call :func:`analysis` to get the rectified federated
+        group properties.
 
     Args:
-        topo: The topology map contains related information.
-        node: The node to build the federated group for.
+        topo: Topology graph contains massive nodes and edges.
+        node: Given node to build federated group for.
+
+    Returns:
+        Tuple[AggregatorGroup, CollaboratorGroup].
     '''
-    # aggregator group
     aggregator_group = []
     collaborator_group = []
     for edge in topo.edges:
@@ -47,19 +55,22 @@ def build_federated_group(
 
 def analysis(topo: Topology, node: Union[Node,
                                          str]) -> List[FederatedProperties]:
-    r'''Build the federated group for node.
+    r'''Build federated group for given node.
 
     Args:
         topo: The topology map contains related information.
         node: The node to build the federated group. If string is provided, we
             will use the string as the nick name of the node.
+
+    Returns:
+        List[FederatedProperties].
     '''
     if isinstance(node, str):
         node = topo.fetch_node_via_nick_name(node)  # type: ignore
         assert node, 'Invalid node.'
     assert isinstance(node, Node)
 
-    aggregator_group, collaborator_group = build_federated_group(topo, node)
+    aggregator_group, collaborator_group = _build_federated_group(topo, node)
 
     # rectify the address infomation
     aggregator_group_props = []
@@ -77,7 +88,7 @@ def analysis(topo: Topology, node: Union[Node,
     collaborator_group_props = []
     for fg in collaborator_group:
         # build the federated group for aggregator
-        lgs, _ = build_federated_group(topo, fg.others[0])
+        lgs, _ = _build_federated_group(topo, fg.others[0])
         lg = None
         for lg in lgs:
             if fg.node in lg.others:

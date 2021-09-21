@@ -1,5 +1,5 @@
 # Copyright (c) FederalLab. All rights reserved.
-from .functional import analysis, build_federated_group
+from .functional import analysis
 from .topo import Edge, FederatedGroup, Node, Topology
 
 __all__ = [
@@ -7,6 +7,5 @@ __all__ = [
     'Edge',
     'FederatedGroup',
     'Topology',
-    'build_federated_group',
     'analysis',
 ]
