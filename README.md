@@ -58,7 +58,7 @@ Eprint = {arXiv:2109.07852},
 
 ## Contributing
 
-We appreciate all contributions to improve OpenFed. Please refer to [CONTRIBUTUNG.md](CONTRIBUTING.md) for the contributing guideline.
+We appreciate all contributions to improve OpenFed. Please refer to [CONTRIBUTUNG.md](https://github.com/FederalLab/OpenFed/raw/main/CONTRIBUTING.md) for the contributing guideline.
 
 ## License
 
