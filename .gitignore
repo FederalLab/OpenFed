@@ -130,4 +130,4 @@ dmypy.json
 
 
 docs/src/
-tests/data/
+tests/data/*
