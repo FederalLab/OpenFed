@@ -89,10 +89,26 @@ class Pipe():
         return self._write(self._i_backup_info)
 
     def get(self, key):
+        r"""Get key value from self._u_key 's dictionary.
+        If key is missed, will raise error.
+        """
         return self._read(key)
 
+    def direct_get(self, key):
+        r"""Get key value directly from store.
+        If key is missed, will wait until it has been set.
+        """
+        return get_store_value(self.store, key)
+
     def set(self, key: str, value):
+        r"""Set key value to self._i_key 's dictionary.
+        """
         self._update({key: value})
+
+    def direct_set(self, key: str, value):
+        r"""Set key value directly to store.
+        """
+        set_store_value(self.store, key, value)
 
     @property
     def role(self):
@@ -140,7 +156,7 @@ class Pipe():
 
         self.read_successfully = True
 
-    def upload(self, data):
+    def upload(self, data: Any):
         self.transfer(True, data)
 
     def download(self) -> Any:

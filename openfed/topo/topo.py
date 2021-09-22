@@ -172,6 +172,15 @@ class Topology(object):
         else:
             self.nodes.append(node)
 
+    def add_node_list(self, node_list: List[Node]):
+        r"""Add a list of node to topology.
+
+        Args:
+            node_list: The list of node.
+        """
+        for node in node_list:
+            self.add_node(node)
+
     @overload
     def add_edge(self, edge: Edge):
         r"""Add an edge to topology.

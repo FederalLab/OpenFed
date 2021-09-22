@@ -1,7 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
 from .table import tablist
-from .utils import (openfed_class_fmt, openfed_title, seed_everything,
-                    time_string)
+from .utils import (COLOR_FMT, openfed_class_fmt, openfed_title,
+                    seed_everything, time_string)
 
 __all__ = [
     'tablist',
@@ -9,4 +9,5 @@ __all__ = [
     'seed_everything',
     'openfed_title',
     'openfed_class_fmt',
+    'COLOR_FMT',
 ]

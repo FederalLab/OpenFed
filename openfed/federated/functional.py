@@ -2,9 +2,10 @@
 import warnings
 from datetime import timedelta
 from threading import Lock
-from typing import List
+from typing import Any, List, Union
 
 import torch.distributed.distributed_c10d as distributed_c10d
+from torch._C._distributed_c10d import PrefixStore
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous
 
@@ -15,7 +16,7 @@ from .props import DistributedProperties, FederatedProperties
 openfed_default_pg_timeout = timedelta(seconds=100)
 
 
-def build_point2point_group(rank: int = 0) -> List:
+def build_point2point_group(rank: int = 0) -> List[Union[str, Any]]:
     r'''Builds process groups between two ranks.
 
     Args:
@@ -35,7 +36,7 @@ def build_point2point_group(rank: int = 0) -> List:
             ranks = [other, rank] if collaborator_rank == 0 else [rank, other]
             pg = distributed_c10d.new_group(ranks=ranks)
             if pg is not distributed_c10d.GroupMember.NON_GROUP_MEMBER:
-                pg_list.append(pg)
+                pg_list.append([f'from_{ranks[0]}_to_{ranks[1]}', pg])
     return pg_list
 
 
@@ -120,10 +121,12 @@ def init_federated_group(fed_props: FederatedProperties) -> List[Pipe]:
             warnings.warn(str(e))
             return []
         # build pipe
-        for sub_pg in sub_pg_list:
+        for (prefix, sub_pg) in sub_pg_list:
             store = distributed_c10d._pg_map[sub_pg][1]
+            assert store
+            prefix_store = PrefixStore(prefix, store)
             pipe = Pipe(
-                store,  # type: ignore
+                prefix_store,
                 pg=sub_pg,
                 dist_props=dist_props,
                 fed_props=fed_props)

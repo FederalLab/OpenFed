@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 import torch.distributed.distributed_c10d as distributed_c10d
 
 from openfed.common import Address
+from openfed.federated.const import is_aggregator, is_collaborator
 from openfed.utils import openfed_class_fmt, tablist
 
 
@@ -144,9 +145,21 @@ class FederatedProperties(object):
     address: Address
 
     def __init__(self, role: str, nick_name: str, address: Address):
+        r"""
+        Args:
+            role: The role plays.
+            nick_name: The nick name of current node.
+            address: The address connect to others.
+        """
         self.role = role
         self.nick_name = nick_name
         self.address = address
+
+    def aggregator(self):
+        return is_aggregator(self.role)
+
+    def collaborator(self):
+        return is_collaborator(self.role)
 
     def __repr__(self):
         head = ['role', 'nick_name']
