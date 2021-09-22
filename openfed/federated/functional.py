@@ -5,7 +5,7 @@ from threading import Lock
 from typing import Any, List, Union
 
 import torch.distributed.distributed_c10d as distributed_c10d
-from torch._C._distributed_c10d import PrefixStore
+from torch.distributed import PrefixStore  # type: ignore
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous
 
