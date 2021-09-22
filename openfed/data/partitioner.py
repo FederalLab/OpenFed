@@ -8,6 +8,8 @@ import numpy.random as np_random
 
 
 class Partitioner(object):
+    r"""Base class for partitioner.
+    """
 
     @abstractmethod
     def partition(self, total_parts: int, data_index_list: List) -> List:
@@ -18,6 +20,30 @@ class Partitioner(object):
 
 
 class PowerLawPartitioner(Partitioner):
+    r"""PowerLawPartitioner
+
+    Args:
+        min_samples:
+        min_classes:
+        mean:
+        sigma:
+
+    Examples::
+
+        >>> from torchvision.datasets import MNIST
+        >>> from torchvision.transforms import ToTensor
+        >>> from openfed.data import PartitionerDataset, samples_distribution
+        >>> from openfed.data import PowerLawPartitioner
+        >>> mnist = MNIST(r'/tmp/', True, ToTensor(), download=True)
+        >>> dataset = PartitionerDataset(
+        ...     mnist, total_parts=100, partitioner=PowerLawPartitioner())
+        >>> samples_distribution(dataset)
+        +-------+---------+--------+-----------+
+        | Parts | Samples |  Mean  |    Var    |
+        +-------+---------+--------+-----------+
+        |  100  |  33814  | 338.14 | 136232.34 |
+        +-------+---------+--------+-----------+
+    """
 
     def __init__(self,
                  min_samples: int = 10,
@@ -73,15 +99,19 @@ class PowerLawPartitioner(Partitioner):
 class DirichletPartitioner(Partitioner):
     r'''Dirichlet partitioner.
 
-    .. Examples::
+    Args:
+        alpha:
+        min_samples:
+
+    Examples::
 
         >>> from openfed.data import DirichletPartitioner, PartitionerDataset,\
         >>> samples_distribution
         >>> from torchvision.datasets import MNIST
         >>> from torchvision.transforms import ToTensor
         >>> dataset = PartitionerDataset(
-            MNIST(r'/tmp/', True, ToTensor(), download=True), total_parts=10,
-                partitioner=DirichletPartitioner())
+        ...     MNIST(r'/tmp/', True, ToTensor(), download=True),
+        ...         total_parts=10, partitioner=DirichletPartitioner())
         >>> samples_distribution(dataset, True)
         +-------+---------+---------+----------+
         | Parts | Samples |   Mean  |   Var    |
@@ -186,7 +216,6 @@ class IIDPartitioner(Partitioner):
     '''
 
     def partition(self, total_parts: int, data_index_list: List) -> List:
-
         parts_index_list = [[] for _ in range(total_parts)]
         for p in range(total_parts):
             for data_index in data_index_list:
