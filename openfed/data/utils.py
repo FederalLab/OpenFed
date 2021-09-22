@@ -7,6 +7,15 @@ from openfed.utils import tablist
 
 
 def samples_distribution(federated_dataset, verbose: bool = True) -> List:
+    r"""Generates a simple statistic information about the given dataset.
+
+    Args:
+        federated_dataset: The given dataset.
+        verbose: If ``True``, print a digest information about the dataset.
+
+    Returns:
+        List contains each part's samples.
+    """
     total_parts = federated_dataset.total_parts
     parts_list = []
     for p in range(total_parts):
