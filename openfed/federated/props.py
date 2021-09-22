@@ -15,7 +15,7 @@ class DistributedProperties(object):
     Args:
         lock: A lock used to protect distributed properties. Default: ``None``
 
-    .. Example::
+    Examples::
 
         >>> dist_props = DistributedProperties()
         >>> dist_props

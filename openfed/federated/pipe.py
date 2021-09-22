@@ -17,6 +17,8 @@ from .props import DistributedProperties, FederatedProperties
 
 
 def set_store_value(store, key, value) -> bool:
+    r"""Sets store value safely.
+    """
     json_str = json.dumps(value)
     try:
         store.set(key, json_str)
@@ -28,6 +30,8 @@ def set_store_value(store, key, value) -> bool:
 
 
 def get_store_value(store, key) -> Any:
+    r"""Gets store value safely.
+    """
     try:
         bytes = store.get(key)
     except Exception as e:
@@ -38,7 +42,14 @@ def get_store_value(store, key) -> Any:
 
 
 class Pipe():
-    r'''
+    r'''Transfers data between nodes.
+
+    Args:
+        store: A TCP/FILE store to transfer message.
+        pg: A Process Group to transfer tensor via different backend, such as
+            `gloo`, `mpi`.
+        dist_props: The distributed properties.
+        fed_props: The federated properties.
     '''
     store: Any
     pg: Any

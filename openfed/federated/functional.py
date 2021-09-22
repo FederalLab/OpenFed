@@ -20,6 +20,9 @@ def build_point2point_group(rank: int = 0) -> List:
 
     Args:
         rank: The rank of the target process group. Default: ``0``
+
+    Returns:
+        List contains :class:`ProcessGroup`.
     '''
     if distributed_c10d.get_world_size() == 2:
         return [distributed_c10d._get_default_group()]
@@ -65,6 +68,9 @@ def joint_federated_group(backend,
         rank: Rank of current node (it should be a number between 0 and
             ``world_size``-1). If `-1` is provided, rank will be specified
             during runtime. Default: -1
+
+    Returns:
+        List contains :class:`ProcessGroup`.
     '''
     # build a store
     rendezvous_iterator = rendezvous(
@@ -91,6 +97,14 @@ openfed_lock = Lock()
 
 
 def init_federated_group(fed_props: FederatedProperties) -> List[Pipe]:
+    r"""Initializes federated group.
+
+    Args:
+        fed_props: The federated properties to build.
+
+    Returns:
+        List contains :class:`Pipe`.
+    """
     dist_props = DistributedProperties(openfed_lock)
     pipe_list = []
     with dist_props:
