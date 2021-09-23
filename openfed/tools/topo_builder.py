@@ -1,5 +1,6 @@
 # Copyright (c) FederalLab. All rights reserved.
 import cmd
+import os
 
 from openfed.common import Address, empty_address
 from openfed.topo import Edge, Node, Topology
@@ -11,7 +12,7 @@ class TopoBuilder(cmd.Cmd):
 
     Example::
 
-        >>> python -m openfed.tools.topo_builder
+        (openfed)  python -m openfed.tools.topo_builder
         A script to build topology.
         <OpenFed>: help
 
@@ -22,31 +23,30 @@ class TopoBuilder(cmd.Cmd):
 
         <OpenFed>: add_node
         Nick Name
-        server
+        aggregator
         Does this node requires address? (Y/n)
-        y
+        Invalid choice.
+        Does this node requires address? (Y/n)
+        Y
         Backend (gloo, mpi, nccl)
         gloo
-        Init method i.e., 'tcp://localhost:1994',
-            file:///tmp/openfed.sharedfile)
+        Init method i.e., tcp://localhost:1994, file:///tmp/openfed.sharedfile)
         tcp://localhost:1995
-        <OpenFed> Node
-        nick name: server
+        <OpenFed> Nodenick name: aggregator
         <OpenFed> Address
         +---------+---------------------+------------+------+
         | backend |     init_method     | world_size | rank |
         +---------+---------------------+------------+------+
-        |   gloo  | tcp://localhost:... |     2      |  -1  |
+        |   gloo  | tcp://lo...ost:1995 |     2      |  -1  |
         +---------+---------------------+------------+------+
 
 
         <OpenFed>: add_node
         Nick Name
-        alpha
+        collaborator_beta
         Does this node requires address? (Y/n)
         n
-        <OpenFed> Node
-        nick name: alpha
+        <OpenFed> Nodenick name: collaborator_beta
         <OpenFed> Address
         +---------+-------------+------------+------+
         | backend | init_method | world_size | rank |
@@ -57,11 +57,10 @@ class TopoBuilder(cmd.Cmd):
 
         <OpenFed>: add_node
         Nick Name
-        beta
+        collaborator_alpha
         Does this node requires address? (Y/n)
         n
-        <OpenFed> Node
-        nick name: beta
+        <OpenFed> Nodenick name: collaborator_alpha
         <OpenFed> Address
         +---------+-------------+------------+------+
         | backend | init_method | world_size | rank |
@@ -70,96 +69,42 @@ class TopoBuilder(cmd.Cmd):
         +---------+-------------+------------+------+
 
 
-        <OpenFed>: plot
-        +--------+--------+-------+------+
-        | CO\AG  | server | alpha | beta |
-        +--------+--------+-------+------+
-        | server |   .    |   .   |  .   |
-        | alpha  |   .    |   .   |  .   |
-        |  beta  |   .    |   .   |  .   |
-        +--------+--------+-------+------+
         <OpenFed>: add_edge
         *** Unknown syntax: add_edge
-        <OpenFed>: build_edge
-        Start node's nick name
-        alpha
-        End node's nick name
-        server
-        <OpenFed> Edge
-        |alpha -> server.
+        <OpenFed>: help
+
+        Documented commands (type help <topic>):
+        ========================================
+        add_node    clear_useless_nodes  help  plot         remove_node
+        build_edge  exit                 load  remove_edge  save
 
         <OpenFed>: build_edge
-        Start node's nick name
-        beta
-        End node's nick name
-        server
-        <OpenFed> Edge
-        |beta -> server.
-
-        <OpenFed>: plot
-        +--------+--------+-------+------+
-        | CO\AG  | server | alpha | beta |
-        +--------+--------+-------+------+
-        | server |   .    |   .   |  .   |
-        | alpha  |   ^    |   .   |  .   |
-        |  beta  |   ^    |   .   |  .   |
-        +--------+--------+-------+------+
-        <OpenFed>: add_node
-        Nick Name
-        gamma
-        Does this node requires address? (Y/n)
-        Y
-        Backend (gloo, mpi, nccl)
-        mpi
-        Init method i.e., 'tcp://localhost:1994',
-            file:///tmp/openfed.sharedfile)
-        file:///tmp/gamma
-        <OpenFed> Node
-        nick name: gamma
-        <OpenFed> Address
-        +---------+-------------------+------------+------+
-        | backend |    init_method    | world_size | rank |
-        +---------+-------------------+------------+------+
-        |   mpi   | file:///tmp/gamma |     2      |  -1  |
-        +---------+-------------------+------------+------+
-
+        Start node nick name
+        collaborator_alpha
+        End node nick name
+        aggregator
+        <OpenFed> Edge|collaborator_alpha -> aggregator.
 
         <OpenFed>: build_edge
-        Start node's nick name
-        alpha
-        End node's nick name
-        beta
-        <OpenFed> Edge
-        |alpha -> beta.
-
+        Start node nick name
+        collaborator_beta
+        End node nick name
+        aggregator_beta
+        Invalid end node.
         <OpenFed>: build_edge
-        Start node's nick name
-        gamma
-        End node's nick name
-        beta
-        <OpenFed> Edge
-        |gamma -> beta.
+        Start node nick name
+        collaborator_beta
+        End node nick name
+        aggregator
+        <OpenFed> Edge|collaborator_beta -> aggregator.
 
-        <OpenFed>: plot
-        +--------+--------+-------+------+-------+
-        | CO\AG  | server | alpha | beta | gamma |
-        +--------+--------+-------+------+-------+
-        | server |   .    |   .   |  .   |   .   |
-        | alpha  |   ^    |   .   |  ^   |   .   |
-        |  beta  |   ^    |   .   |  .   |   .   |
-        | gamma  |   .    |   .   |  ^   |   .   |
-        +--------+--------+-------+------+-------+
-        <OpenFed>: save
-        Filename:
-        topology
-        +--------+--------+-------+------+-------+
-        | CO\AG  | server | alpha | beta | gamma |
-        +--------+--------+-------+------+-------+
-        | server |   .    |   .   |  .   |   .   |
-        | alpha  |   ^    |   .   |  ^   |   .   |
-        |  beta  |   ^    |   .   |  .   |   .   |
-        | gamma  |   .    |   .   |  ^   |   .   |
-        +--------+--------+-------+------+-------+
+        <OpenFed>: help
+
+        Documented commands (type help <topic>):
+        ========================================
+        add_node    clear_useless_nodes  help  plot         remove_node
+        build_edge  exit                 load  remove_edge  save
+
         <OpenFed>: exit
     '''
     intro = 'A script to build topology.'
@@ -245,6 +190,9 @@ class TopoBuilder(cmd.Cmd):
         r'''Load topology from disk.
         '''
         filename = input('Filename:\n')
+        if not os.path.exists(filename):
+            print(f'File does not exist: {filename}')
+            return
         self.topology.load(filename)
         print(self.topology)
 

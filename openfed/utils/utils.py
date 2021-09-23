@@ -27,4 +27,4 @@ class COLOR_FMT:
 openfed_title = '\033[0;34m<OpenFed>\033[0m' if COLOR_FMT.flag else '<OpenFed>'
 openfed_class_fmt = openfed_title + (
     ' \033[0;35m{class_name}\033[0m\n{description}\n'
-    if COLOR_FMT.flag else ' {class_name}{description}\n')
+    if COLOR_FMT.flag else ' {class_name}\n{description}\n')

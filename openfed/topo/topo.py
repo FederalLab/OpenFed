@@ -52,7 +52,7 @@ class Edge(object):
     def in_edge(self, node: Node) -> bool:
         r"""Returns `True` if given node is start or end node.
         """
-        return self.is_start(node) and self.is_end(node)
+        return self.is_start(node) or self.is_end(node)
 
     def is_start(self, node: Node) -> bool:
         return self.start == node
