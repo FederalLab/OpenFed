@@ -1,8 +1,6 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
-from typing import List, Union, overload
-
-import torch
+from typing import Any, Dict, List, Optional, Union, overload
 
 from openfed.common import Address
 from openfed.federated import (FederatedProperties, is_aggregator,
@@ -30,6 +28,17 @@ class Node(object):
         description = 'nick name: ' + self.nick_name + '\n' + str(self.address)
         return openfed_class_fmt.format(
             class_name=self.__class__.__name__, description=description)
+
+    def serialize(self) -> Dict[str, Any]:
+        return dict(
+            nick_name=self.nick_name,
+            address=self.address.serialize(),
+        )
+
+    @classmethod
+    def unserialize(cls, data: Dict[str, Any]):
+        address = Address.unserialize(data.pop('address'))
+        return Node(**data, address=address)
 
 
 class Edge(object):
@@ -62,6 +71,18 @@ class Edge(object):
 
     def __eq__(self, other):
         return self.start == other.start and self.end == other.end
+
+    def serialize(self) -> Dict[str, Any]:
+        return dict(
+            start=self.start.serialize(),
+            end=self.end.serialize(),
+        )
+
+    @classmethod
+    def unserialize(cls, data: Dict[str, Any]):
+        start = Node.unserialize(data.pop('start'))
+        end = Node.unserialize(data.pop('end'))
+        return Edge(start, end)
 
     def __repr__(self):
         description = f'|{self.start.nick_name} -> {self.end.nick_name}.'
@@ -137,11 +158,13 @@ class Topology(object):
     nodes: List[Node]
     edges: List[Edge]
 
-    def __init__(self):
+    def __init__(self,
+                 nodes: Optional[List[Node]] = None,
+                 edges: Optional[List[Edge]] = None):
         super().__init__()
 
-        self.nodes = []
-        self.edges = []
+        self.nodes = nodes or []
+        self.edges = edges or []
 
     @overload
     def add_node(self, node: Node):
@@ -270,20 +293,17 @@ class Topology(object):
         assert 0 <= index < len(self.nodes)
         del self.nodes[index]
 
-    def save(self, filename):
-        r"""Saves topology as long as a description to file.
+    def serialize(self) -> Dict[str, Any]:
+        return dict(
+            nodes=[node.serialize() for node in self.nodes],
+            edges=[edge.serialize() for edge in self.edges],
+        )
 
-        Args:
-            filename: A binary file will be created with this filename and a
-                text file will be created at the same time.
-        """
-        torch.save([self.nodes, self.edges], filename)
-        with open(filename + '.txt', 'w') as f:
-            f.write(str(self))
-
-    def load(self, filename):
-        self.nodes, self.edges = torch.load(filename)
-        return self
+    @classmethod
+    def unserialize(cls, data: Dict[str, Any]):
+        nodes = [Node.unserialize(d) for d in data['nodes']]
+        edges = [Edge.unserialize(d) for d in data['edges']]
+        return Topology(nodes, edges)
 
     def is_edge(self, start, end):
         if start == end:

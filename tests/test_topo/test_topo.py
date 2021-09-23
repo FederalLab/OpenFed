@@ -63,8 +63,8 @@ def test_topology():
 
     print(topology)
 
-    topology.save('/tmp/topo')
-    topology.load('/tmp/topo')
+    data = topology.serialize()
+    topology.unserialize(data)
 
 
 def test_analysis():

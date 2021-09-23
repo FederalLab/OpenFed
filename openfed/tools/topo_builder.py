@@ -1,9 +1,11 @@
 # Copyright (c) FederalLab. All rights reserved.
 import cmd
+import json
 import os
+import time
 
 from openfed.common import Address, empty_address
-from openfed.topo import Edge, Node, Topology
+from openfed.topo import Edge, Node, Topology, analysis
 from openfed.utils import openfed_title
 
 
@@ -182,7 +184,13 @@ class TopoBuilder(cmd.Cmd):
         r'''Save topology to disk.
         '''
         filename = input('Filename:\n')
-        self.topology.save(filename)
+        if not filename.endswith('.json'):
+            filename = filename + '.json'
+        with open(filename, 'w') as f:
+            json.dump(self.topology.serialize(), f)
+
+        with open(filename[:-5] + '.txt', 'w') as f:
+            f.write(str(self.topology))
 
         print(self.topology)
 
@@ -190,10 +198,14 @@ class TopoBuilder(cmd.Cmd):
         r'''Load topology from disk.
         '''
         filename = input('Filename:\n')
+        if not filename.endswith('.json'):
+            filename = filename + '.json'
         if not os.path.exists(filename):
             print(f'File does not exist: {filename}')
             return
-        self.topology.load(filename)
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        self.topology = Topology.unserialize(data)
         print(self.topology)
 
     def do_plot(self, *args, **kwargs):
@@ -250,6 +262,25 @@ class TopoBuilder(cmd.Cmd):
     def do_exit(self, *args, **kwargs):
         r'''Exits this script.'''
         exit(0)
+
+    def do_analysis(self, *args, **kwargs):
+        r'''Generated federated groups properties for each nodes.
+        '''
+        folder = input('Folder to save the analysis result:\n')
+
+        os.makedirs(folder, exist_ok=True)
+
+        for node in self.topology.nodes:
+            filename = os.path.join(folder, f'{node.nick_name}_props.json')
+            props = analysis(self.topology, node)
+
+            data = [prop.serialize() for prop in props]
+            with open(filename, 'w') as f:
+                json.dump(data, f)
+
+            print(f'Processing {node.nick_name}')
+            print(data)
+            time.sleep(0.1)
 
 
 if __name__ == '__main__':

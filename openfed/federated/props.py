@@ -161,6 +161,18 @@ class FederatedProperties(object):
     def collaborator(self):
         return is_collaborator(self.role)
 
+    def serialize(self) -> Dict[str, Any]:
+        return dict(
+            role=self.role,
+            nick_name=self.nick_name,
+            address=self.address.serialize(),
+        )
+
+    @classmethod
+    def unserialize(cls, data: Dict[str, Any]):
+        address = Address.unserialize(data.pop('address'))
+        return FederatedProperties(**data, address=address)
+
     def __repr__(self):
         head = ['role', 'nick_name']
         data = [self.role, self.nick_name]

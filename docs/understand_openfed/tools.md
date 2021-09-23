@@ -46,9 +46,24 @@ nick name: green
 
 <OpenFed>: add_node
 Nick Name
+purple
+Does this node requires address? (Y/n)
+n
+<OpenFed> Node
+nick name: purple
+<OpenFed> Address
++---------+-------------+------------+------+
+| backend | init_method | world_size | rank |
++---------+-------------+------------+------+
+|   null  |     null    |     2      |  -1  |
++---------+-------------+------------+------+
+
+
+<OpenFed>: add_node
+Nick Name
 blue
 Does this node requires address? (Y/n)
-Y
+y
 Backend (gloo, mpi, nccl)
 gloo
 Init method i.e., tcp://localhost:1994, file:///tmp/openfed.sharedfile)
@@ -67,34 +82,19 @@ nick name: blue
 Nick Name
 yellow
 Does this node requires address? (Y/n)
-Y
+y
 Backend (gloo, mpi, nccl)
 mpi
 Init method i.e., tcp://localhost:1994, file:///tmp/openfed.sharedfile)
-file:///tmp/openfed.sharedfile
+file://tmp/openfed.sharedfile
 <OpenFed> Node
 nick name: yellow
 <OpenFed> Address
 +---------+---------------------+------------+------+
 | backend |     init_method     | world_size | rank |
 +---------+---------------------+------------+------+
-|   mpi   | file:///...aredfile |     2      |  -1  |
+|   mpi   | file://t...aredfile |     2      |  -1  |
 +---------+---------------------+------------+------+
-
-
-<OpenFed>: add_node
-Nick Name
-purple
-Does this node requires address? (Y/n)
-n
-<OpenFed> Node
-nick name: purple
-<OpenFed> Address
-+---------+-------------+------------+------+
-| backend | init_method | world_size | rank |
-+---------+-------------+------------+------+
-|   null  |     null    |     2      |  -1  |
-+---------+-------------+------------+------+
 
 
 <OpenFed>: build_edge
@@ -132,15 +132,28 @@ yellow
 <OpenFed>: save
 Filename:
 topology
-+--------+-----+-------+------+--------+--------+
-| CO\AG  | red | green | blue | yellow | purple |
-+--------+-----+-------+------+--------+--------+
-|  red   |  .  |   .   |  ^   |   .    |   .    |
-| green  |  .  |   .   |  ^   |   .    |   .    |
-|  blue  |  .  |   .   |  .   |   ^    |   .    |
-| yellow |  .  |   .   |  .   |   .    |   .    |
-| purple |  .  |   .   |  .   |   ^    |   .    |
-+--------+-----+-------+------+--------+--------+
++--------+-----+-------+--------+------+--------+
+| CO\AG  | red | green | purple | blue | yellow |
++--------+-----+-------+--------+------+--------+
+|  red   |  .  |   .   |   .    |  ^   |   .    |
+| green  |  .  |   .   |   .    |  ^   |   .    |
+| purple |  .  |   .   |   .    |  .   |   ^    |
+|  blue  |  .  |   .   |   .    |  .   |   ^    |
+| yellow |  .  |   .   |   .    |  .   |   .    |
++--------+-----+-------+--------+------+--------+
+<OpenFed>: analysis
+Folder to save the analysis result:
+props
+Processing red
+[{'role': 'openfed_collaborator', 'nick_name': 'red', 'address': {'backend': 'gloo', 'init_method': 'tcp://localhost:1994', 'world_size': 3, 'rank': 2}}]
+Processing green
+[{'role': 'openfed_collaborator', 'nick_name': 'green', 'address': {'backend': 'gloo', 'init_method': 'tcp://localhost:1994', 'world_size': 3, 'rank': 1}}]
+Processing purple
+[{'role': 'openfed_collaborator', 'nick_name': 'purple', 'address': {'backend': 'mpi', 'init_method': 'file://tmp/openfed.sharedfile', 'world_size': 3, 'rank': 2}}]
+Processing blue
+[{'role': 'openfed_aggregator', 'nick_name': 'blue', 'address': {'backend': 'gloo', 'init_method': 'tcp://localhost:1994', 'world_size': 3, 'rank': 0}}, {'role': 'openfed_collaborator', 'nick_name': 'blue', 'address': {'backend': 'mpi', 'init_method': 'file://tmp/openfed.sharedfile', 'world_size': 3, 'rank': 1}}]
+Processing yellow
+[{'role': 'openfed_aggregator', 'nick_name': 'yellow', 'address': {'backend': 'mpi', 'init_method': 'file://tmp/openfed.sharedfile', 'world_size': 3, 'rank': 0}}]
 <OpenFed>: exit
 ```
 

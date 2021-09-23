@@ -1,5 +1,6 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
+from typing import Any, Dict
 
 from openfed.utils import openfed_class_fmt, tablist
 
@@ -100,6 +101,18 @@ class Address(object):
     def __eq__(self, other):
         return self.backend == other.backend \
             and self.init_method == other.init_method
+
+    def serialize(self) -> Dict[str, Any]:
+        return dict(
+            backend=self.backend,
+            init_method=self.init_method,
+            world_size=self.world_size,
+            rank=self.rank,
+        )
+
+    @classmethod
+    def unserialize(cls, data: Dict[str, Any]):
+        return Address(**data)
 
 
 default_tcp_address = Address(

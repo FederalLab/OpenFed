@@ -5,7 +5,10 @@ from openfed import (Address, default_file_address, default_tcp_address,
 def test_backend():
     Address('gloo', 'null')
     Address('mpi', 'null')
-    Address('null', 'null')
+    address = Address('null', 'null')
+
+    data = address.serialize()
+    address.unserialize(data)
 
 
 def test_tcp_address():
