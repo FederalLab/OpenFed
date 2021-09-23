@@ -49,6 +49,7 @@ class API(Thread):
         self.reduce_func_kwargs = reduce_func_kwargs
 
     def run(self):
+        """A aggregator logistics."""
         maintainer = self.maintainer
         rounds = self.rounds
         fed_optim = self.fed_optim
