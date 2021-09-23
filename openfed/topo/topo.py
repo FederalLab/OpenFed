@@ -1,5 +1,6 @@
 # Copyright (c) FederalLab. All rights reserved.
 import warnings
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union, overload
 
 from openfed.common import Address
@@ -163,8 +164,8 @@ class Topology(object):
                  edges: Optional[List[Edge]] = None):
         super().__init__()
 
-        self.nodes = nodes or []
-        self.edges = edges or []
+        self.nodes = deepcopy(nodes or [])
+        self.edges = deepcopy(edges or [])
 
     @overload
     def add_node(self, node: Node):

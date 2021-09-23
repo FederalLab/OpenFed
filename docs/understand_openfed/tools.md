@@ -163,4 +163,32 @@ Processing yellow
 training processes on each of the training nodes.
 It will build a centralized topology automatically. It is very useful while simulating massive nodes to do the federated learning experience.
 
-Usage: `python -m openfed.tools.simulator ...`
+Write a piece of code, named `run.py`:
+
+```python
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--props')
+
+args = parser.parse_args()
+
+print(args.props)
+```
+
+Usage:
+
+```python
+(openfed) python -m openfed.tools.simulator --nproc 10 run.py
+/tmp/aggregator.json
+/tmp/collaborator-1.json
+/tmp/collaborator-2.json
+/tmp/collaborator-3.json
+/tmp/collaborator-4.json
+/tmp/collaborator-5.json
+/tmp/collaborator-6.json
+/tmp/collaborator-7.json
+/tmp/collaborator-8.json
+/tmp/collaborator-9.json
+```
