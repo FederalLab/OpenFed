@@ -9,4 +9,4 @@
 - `current_step`: It is used to indicate which step is running on.
 - `fed_props`: Actually, a maintainer is corresponding to a specified federated group. We record the related federated group properties in this attributions.
 
-You can use :class:`Maintainer` to conduct a flexible communication with other nodes more easily compared with :class:`Pipe`.
+You can use :class:`Maintainer` to conduct a flexible communication with other nodes more easily than :class:`Pipe`.
