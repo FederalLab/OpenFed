@@ -1,21 +1,7 @@
-## Core
+from multiprocessing import Process
 
-### Maintainer
 
-:class:`Maintainer` bridges the connection between upper(federated algorithms) and lower(communication and topology) layers. It has the following properties:
-
-- `pipe`: The currently target to communicate with. A maintainer will manage several pipes in the same time, and `pipe` will indicate what is the current target.
-- `pipes`: A list of pipes to communicate with.
-- `current_step`: It is used to indicate which step is running on.
-- `fed_props`: Actually, a maintainer is corresponding to a specified federated group. We record the related federated group properties in this attributions.
-
-You can use :class:`Maintainer` to conduct a flexible communication with other nodes more easily than :class:`Pipe`.
-
-### Examples
-
-Aggregator:
-
-```python
+def aggregator():
     # build a topology first
     import openfed
     import openfed.topo as topo
@@ -48,11 +34,9 @@ Aggregator:
         openfed.functional.count_step(2)
 
     maintainer.step()
-```
 
-Collaborator alpha:
 
-```python
+def collaborator_alpha():
     # build a topology first
     import openfed
     import openfed.topo as topo
@@ -86,11 +70,9 @@ Collaborator alpha:
     maintainer.step(upload=False)
     maintainer.package()
     maintainer.step(download=False)
-```
 
-Collaborator beta:
 
-```python
+def collaborator_beta():
     # build a topology first
     import openfed
     import openfed.topo as topo
@@ -124,4 +106,17 @@ Collaborator beta:
     maintainer.step(upload=False)
     maintainer.package()
     maintainer.step(download=False)
-```
+
+
+def test_maintainer():
+    aggregator_p = Process(target=aggregator)
+    collaborator_alpha_p = Process(target=collaborator_alpha)
+    collaborator_beta_p = Process(target=collaborator_beta)
+
+    aggregator_p.start()
+    collaborator_alpha_p.start()
+    collaborator_beta_p.start()
+
+    aggregator_p.join()
+    collaborator_alpha_p.join()
+    collaborator_beta_p.join()

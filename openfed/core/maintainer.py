@@ -41,7 +41,7 @@ class Maintainer(object):
         | openfed_collaborator |   client  |   1   |
         +------------------+-----------+-------+
         >>> with mt:
-        >>>     openfed.F.paillier(public_key)
+        >>>     ...
     '''
     pipe: Pipe
     pipes: List[Pipe]
