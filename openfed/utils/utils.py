@@ -20,6 +20,7 @@ def seed_everything(seed: int = 0):
 
 
 class COLOR_FMT:
+    r"""Sets ``True`` if you want to show a colorful output on the screen."""
     flag = False
 
 

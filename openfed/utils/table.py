@@ -1,19 +1,36 @@
 # Copyright (c) FederalLab. All rights reserved.
-from typing import Any, List
+from typing import Any, List, Union
 
 from prettytable import PrettyTable
 
 
-def _string_trim(string: str, length: int = 15):
+def string_trim(string: Union[str, Any], length: int = 15):
+    r"""Converts a string or others to a trimmed string, whose length is not longer
+    than ``length``.
+
+    Args:
+        string: A string to trim.
+        length: The length of the string.
+
+    Returns:
+        The trimmed string.
+
+    Example::
+
+        >>> from openfed.utils import string_trim
+        >>> string_trim(15, 4)
+        '15'
+        >>> string_trim('this is a message from openfed', 15)
+        'this is...openfed'
+    """
     # make sure string is string
-    if isinstance(string, int):
-        string = f'{string}'
-    elif isinstance(string, float):
+    if isinstance(string, float):
         string = f'{string:.2f}'
     else:
         string = str(string)
     if len(string) > length + 3:
-        return string[:length] + '...'
+        half = length // 2
+        return string[:half] + '...' + string[len(string) - half:]
     else:
         return string
 
@@ -23,7 +40,7 @@ def _tablist(head: List[Any],
              multi_rows: bool = False) -> str:
     columns = 80
     length = (columns - len(head) * 3 - 1) // len(head)
-    head = [_string_trim(h, length) for h in head]
+    head = [string_trim(h, length) for h in head]
     # String operation may string the head with the same result.
     # In this case, you should split then into more tables,
     # or just use a different head.
@@ -34,9 +51,9 @@ def _tablist(head: List[Any],
     table = PrettyTable(head)
     if multi_rows:
         for d in data:
-            table.add_row([_string_trim(_d, length) for _d in d])
+            table.add_row([string_trim(_d, length) for _d in d])
     else:
-        table.add_row([_string_trim(d, length) for d in data])
+        table.add_row([string_trim(d, length) for d in data])
 
     return str(table)
 
@@ -47,7 +64,45 @@ def tablist(head: List[Any],
             force_in_one_row: bool = False) -> str:
     """If len(head) > items_per_row, we will split into multi-tables.
 
-    If force_in_one_row is True, items_per_row will be ignored.
+    .. note::
+        If `force_in_one_row` is ``True``, `items_per_row` will be ignored.
+
+    Args:
+        head: Head of data.
+        data: List of data, must be the same length as the head.
+        items_per_row: Number of items per row.
+        force_in_one_row: Show all data in one row.
+
+    Examples::
+
+        >>> from openfed.utils import tablist
+        >>> head = ['a', 'b', 'c', 'd', 'e', 'f']
+        >>> data = [1, 2, 3, 4, 5, 6]
+        >>> print(tablist(head, data, 3))
+        +---+---+---+
+        | a | b | c |
+        +---+---+---+
+        | 1 | 2 | 3 |
+        +---+---+---+
+        +---+---+---+
+        | d | e | f |
+        +---+---+---+
+        | 4 | 5 | 6 |
+        +---+---+---+
+        >>> print(tablist(head, data, force_in_one_row=True))
+        +---+---+---+---+---+---+
+        | a | b | c | d | e | f |
+        +---+---+---+---+---+---+
+        | 1 | 2 | 3 | 4 | 5 | 6 |
+        +---+---+---+---+---+---+
+        >>> data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        >>> print(tablist(head, data, force_in_one_row=True))
+        +---+---+---+----+----+----+
+        | a | b | c | d  | e  | f  |
+        +---+---+---+----+----+----+
+        | 1 | 2 | 3 | 4  | 5  | 6  |
+        | 7 | 8 | 9 | 10 | 11 | 12 |
+        +---+---+---+----+----+----+
     """
     table_list = []
     if force_in_one_row:

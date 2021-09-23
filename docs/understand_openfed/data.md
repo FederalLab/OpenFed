@@ -1,11 +1,11 @@
 ## Data
 
 ### FederatedDataset
+
 In order to load the simulated federated data in a uniform way, we provide :class:`FederatedDataset`. Compared with :class:`Dataset`, it has two extra attributes:
 
 - `part_id`: Part id to load.
 - `total_parts`: The total number of parts.
-
 
 ### PartitionerDataset
 

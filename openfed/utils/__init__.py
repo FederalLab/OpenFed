@@ -1,5 +1,5 @@
 # Copyright (c) FederalLab. All rights reserved.
-from .table import tablist
+from .table import string_trim, tablist
 from .utils import (COLOR_FMT, openfed_class_fmt, openfed_title,
                     seed_everything, time_string)
 
@@ -10,4 +10,5 @@ __all__ = [
     'openfed_title',
     'openfed_class_fmt',
     'COLOR_FMT',
+    'string_trim',
 ]
