@@ -179,7 +179,7 @@ print(args.props)
 
 Usage:
 
-```python
+```shell
 (openfed) python -m openfed.tools.simulator --nproc 10 run.py
 /tmp/aggregator.json
 /tmp/collaborator-1.json
