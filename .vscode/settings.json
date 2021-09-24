@@ -70,6 +70,7 @@
         "**/.hg": true,
         "**/CVS": true,
         "**/.DS_Store": true,
+        "**/Thumbs.db": true,
         "**/openfed.egg-info": true,
         "*.egg-info": true,
         "openfed.egg-info": true,
@@ -77,7 +78,8 @@
         "**/__pycache__": true,
         "build": true,
         "dist": true,
-        "**/.pytest_cache": true
+        "**/.pytest_cache": true,
+        ".ipynb_checkpoints": true
     },
     "explorerExclude.backup": null,
     "python.testing.pytestArgs": [
