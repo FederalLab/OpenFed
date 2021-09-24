@@ -173,7 +173,7 @@ def main_function(role, rounds, part_per_round):
              part_per_round)
 
 
-def test_paillier_crypto():
+def _test_paillier_crypto():
     try:
         build_dataset()
     except ModuleNotFoundError:
