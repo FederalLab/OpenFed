@@ -6,7 +6,7 @@ import torch.distributed.distributed_c10d as distributed_c10d
 
 from openfed.common import Address
 from openfed.federated.const import is_aggregator, is_collaborator
-from openfed.utils import openfed_class_fmt, tablist
+from openfed.utils import FMT, tablist
 
 
 class DistributedProperties(object):
@@ -108,7 +108,7 @@ class DistributedProperties(object):
         self.lock.release()
 
     def __repr__(self):
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__,
             description=f'GroupCount: {self._group_count}')
 
@@ -178,6 +178,6 @@ class FederatedProperties(object):
         data = [self.role, self.nick_name]
         description = tablist(head, data, force_in_one_row=True)
         other_description = str(self.address)
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__,
             description=description + '\n' + other_description)

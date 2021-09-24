@@ -6,7 +6,7 @@ import time
 
 from openfed.common import Address, empty_address
 from openfed.topo import Edge, Node, Topology, analysis
-from openfed.utils import openfed_title
+from openfed.utils import FMT
 
 
 class TopoBuilder(cmd.Cmd):
@@ -113,7 +113,7 @@ class TopoBuilder(cmd.Cmd):
 
     @property
     def prompt(self):
-        return f'{openfed_title}: '
+        return f'{FMT.openfed_title}: '
 
     def __init__(self):
         super().__init__()

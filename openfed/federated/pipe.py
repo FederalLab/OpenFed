@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 import torch.distributed.distributed_c10d as distributed_c10d
 
 from openfed.common import Meta
-from openfed.utils import openfed_class_fmt, tablist
+from openfed.utils import FMT, tablist
 from .const import (aggregator, aggregator_rank, collaborator,
                     collaborator_rank, nick_name, offline, openfed_identity,
                     openfed_meta, openfed_status, pull, push, zombie)
@@ -298,6 +298,6 @@ class Pipe():
 
         other_description = 'dist props: \n' + str(self.dist_props) + \
             'fed props: \n ' + str(self.fed_props)
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__,
             description=description + '\n' + other_description)

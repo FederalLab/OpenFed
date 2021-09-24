@@ -16,7 +16,7 @@ from openfed.functional.const import (after_destroy, after_download,
                                       at_new_episode, at_zombie,
                                       before_destroy, before_download,
                                       before_upload)
-from openfed.utils import openfed_class_fmt, tablist
+from openfed.utils import FMT, tablist
 from .const import DefaultMaintainer
 from .functional import fed_context
 
@@ -132,7 +132,7 @@ class Maintainer(object):
             >>>     return state
             >>> maintainer.register_package_hook(nice=10, package_hook=package)
         '''
-        self._package_hooks.put((package_hook, nice))
+        self._package_hooks.put((nice, package_hook))
 
     def register_unpackage_hook(self, nice: int, unpackage_hook: Callable):
         r'''Register an unpackage hook.
@@ -156,7 +156,7 @@ class Maintainer(object):
             >>> maintainer.register_unpackage_hook(nice=10,
             >>>                                    package_hook=unpackage)
         '''
-        self._unpackage_hooks.put((unpackage_hook, nice))
+        self._unpackage_hooks.put((nice, unpackage_hook))
 
     def register_step_hook(self,
                            nice: int,
@@ -193,7 +193,7 @@ class Maintainer(object):
         step_name = step_name or step_hook.step_name
         assert step_name, 'Step name must be a valid string.'
 
-        self._step_hooks[step_name].put((step_hook, nice))
+        self._step_hooks[step_name].put((nice, step_hook))
 
     def build_connection(self):
         r'''Builds connection to the given federated group.
@@ -255,7 +255,7 @@ class Maintainer(object):
             p_data = data[n]
 
             # decode received data.
-            for hook, nice in self._unpackage_hooks.queue:
+            for nice, hook in self._unpackage_hooks.queue:
                 p_data = hook(p_data, p)
 
         self.data = data
@@ -280,7 +280,7 @@ class Maintainer(object):
             p_data = self.packaged_data[n]
 
             # apply various transformations, such as encryption here.
-            for hook, nice in self._package_hooks.queue:
+            for nice, hook in self._package_hooks.queue:
                 p_data = hook(p_data, p)
 
         self.transfer(to=True)
@@ -320,7 +320,7 @@ class Maintainer(object):
             step_hook = self._step_hooks[step_name].queue
 
             output = []
-            for hook, nice in step_hook:
+            for nice, hook in step_hook:
                 output.append(hook(self, *args, **kwargs))
 
             if False in output:
@@ -462,5 +462,5 @@ class Maintainer(object):
         head = ['role', 'nick_name', 'pipes']
         data = [self.role, self.nick_name, len(self.pipes)]
         description = tablist(head, data, force_in_one_row=True)
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__, description=description)

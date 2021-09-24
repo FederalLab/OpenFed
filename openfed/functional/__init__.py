@@ -6,7 +6,8 @@ from .const import (after_destroy, after_download, after_upload, at_failed,
                     at_zombie, before_destroy, before_download, before_upload)
 from .hooks import device_alignment, sign_gradient_clip
 from .paillier import (Ciphertext, PrivateKey, PublicKey, float_to_long,
-                       key_gen, long_to_float, paillier_dec, paillier_enc)
+                       key_gen, long_to_float, paillier_dec, paillier_enc,
+                       paillier_package)
 from .reduce import meta_reduce
 from .step import count_step, dispatch_step, period_step
 
@@ -33,7 +34,7 @@ __all__ = [
     'paillier_dec',
     'float_to_long',
     'long_to_float',
-    'paillier',
+    'paillier_package',
     'count_step',
     'period_step',
     'dispatch_step',

@@ -27,6 +27,12 @@ Welcome to OpenFed's documentation!
 
 .. toctree::
    :maxdepth: 1
+   :caption: Examples
+
+   examples/paillier_crypto/paillier_crypto.md
+
+.. toctree::
+   :maxdepth: 1
    :caption: Compatibility
 
    compatibility.md

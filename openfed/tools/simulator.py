@@ -15,7 +15,7 @@ from typing import IO, Any, List, Optional
 
 import openfed
 import openfed.topo as topo
-from openfed.utils import openfed_title
+from openfed.utils import FMT
 
 node_stdout_filename = 'openfed_node_{}_stdout'
 node_stderr_filename = 'openfed_node_{}_stderr'
@@ -24,7 +24,7 @@ node_stderr_filename = 'openfed_node_{}_stderr'
 def parse_args():
     """Helper function parsing the command line options."""
     parser = ArgumentParser(
-        description=f'{openfed_title} federated simulation training launch '
+        description=f'{FMT.openfed_title} federated simulation training launch'
         'helper utility that will spawn up '
         'multiple federated processes.')
 

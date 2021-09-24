@@ -2,7 +2,7 @@
 from typing import List, Optional
 
 from openfed.federated import collaborator, is_aggregator, is_collaborator
-from openfed.utils import openfed_class_fmt
+from openfed.utils import FMT
 
 
 class FederatedOptimizer(object):
@@ -79,7 +79,7 @@ class FederatedOptimizer(object):
 
     def __repr__(self):
         description = repr(self.optimizer)
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__, description=description)
 
     def zero_grad(self, *args, **kwargs):

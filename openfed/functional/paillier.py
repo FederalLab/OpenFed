@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from openfed.core.const import DefaultMaintainer
-from openfed.utils import openfed_class_fmt, tablist
+from openfed.utils import FMT, tablist
 
 
 class Key(object):
@@ -32,7 +32,7 @@ class Key(object):
         ]
         description = tablist(head, data, force_in_one_row=True)
 
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__, description=description)
 
     @abstractmethod
@@ -96,7 +96,7 @@ class Ciphertext(object):
 
     def __repr__(self):
         description = f'c1: {self.c1}, c2: {self.c2}'
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__, description=description)
 
     def __add__(self, other):
@@ -170,7 +170,7 @@ def long_to_float(private_key: PrivateKey, tensor: Tensor, denominator: float):
         2**private_key.bits_safe) / denominator - private_key.bound
 
 
-def paillier(public_key: Union[str, PublicKey]):
+def paillier_package(public_key: Union[str, PublicKey]):
     _default_maintainer = DefaultMaintainer._default_maintainer
 
     assert _default_maintainer, \

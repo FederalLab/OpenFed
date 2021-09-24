@@ -16,7 +16,8 @@ from .props import DistributedProperties, FederatedProperties
 openfed_default_pg_timeout = timedelta(seconds=100)
 
 
-def build_point2point_group(rank: int = 0) -> List[Union[str, Any]]:
+def build_point2point_group(
+        rank: int = 0) -> List[Union[Union[str, Any], Any]]:
     r'''Builds process groups between two ranks.
 
     Args:
@@ -26,7 +27,12 @@ def build_point2point_group(rank: int = 0) -> List[Union[str, Any]]:
         List contains :class:`ProcessGroup`.
     '''
     if distributed_c10d.get_world_size() == 2:
-        return [distributed_c10d._get_default_group()]
+        return [
+            [
+                distributed_c10d._get_default_store(),
+                distributed_c10d._get_default_group(),
+            ],
+        ]
 
     assert 0 <= rank < distributed_c10d.get_world_size()
 
@@ -122,9 +128,13 @@ def init_federated_group(fed_props: FederatedProperties) -> List[Pipe]:
             return []
         # build pipe
         for (prefix, sub_pg) in sub_pg_list:
-            store = distributed_c10d._pg_map[sub_pg][1]
-            assert store
-            prefix_store = PrefixStore(prefix, store)
+            if isinstance(prefix, str):
+                store = distributed_c10d._pg_map[sub_pg][1]
+                assert store
+                prefix_store = PrefixStore(prefix, store)
+            else:
+                prefix_store = prefix
+
             pipe = Pipe(
                 prefix_store,
                 pg=sub_pg,

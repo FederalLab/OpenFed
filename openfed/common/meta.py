@@ -2,7 +2,7 @@
 
 from addict import Dict as AttrDict
 
-from openfed.utils import openfed_class_fmt, tablist
+from openfed.utils import FMT, tablist
 
 
 class Meta(AttrDict):
@@ -57,7 +57,7 @@ class Meta(AttrDict):
         data = list(self.values())
         description = tablist(head, data, items_per_row=10)
 
-        return openfed_class_fmt.format(
+        return FMT.openfed_class_fmt.format(
             class_name=self.__class__.__name__,
             description=description,
         )
