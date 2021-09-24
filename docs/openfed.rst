@@ -30,6 +30,7 @@ Welcome to OpenFed's documentation!
    :caption: Examples
 
    examples/paillier_crypto/paillier_crypto.md
+   examples/simulator.md
 
 .. toctree::
    :maxdepth: 1

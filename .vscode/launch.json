@@ -11,5 +11,21 @@
             "program": "${file}",
             "console": "integratedTerminal"
         },
+        {
+            "name": "aggregator",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": ["--props", "/tmp/aggregator.json"]
+        },
+        {
+            "name": "collaborator",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": ["--props", "/tmp/collaborator-1.json"]
+        },
     ]
 }

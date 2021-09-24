@@ -1,6 +1,7 @@
 # Copyright (c) FederalLab. All rights reserved.
+import json
 from threading import Lock
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch.distributed.distributed_c10d as distributed_c10d
 
@@ -172,6 +173,13 @@ class FederatedProperties(object):
     def unserialize(cls, data: Dict[str, Any]):
         address = Address.unserialize(data.pop('address'))
         return FederatedProperties(**data, address=address)
+
+    @classmethod
+    def load(cls, path) -> List:
+        with open(path, 'r') as f:
+            data = json.load(f)
+
+        return [FederatedProperties.unserialize(d) for d in data]
 
     def __repr__(self):
         head = ['role', 'nick_name']
