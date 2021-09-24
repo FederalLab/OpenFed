@@ -14,12 +14,12 @@ data
     :members:
 
 federated
--------
+----------
 .. automodule:: openfed.federated
     :members:
 
 functional
--------
+-----------
 .. automodule:: openfed.functional
     :members:
 

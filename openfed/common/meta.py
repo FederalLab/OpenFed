@@ -9,7 +9,7 @@ class Meta(AttrDict):
     '''A attributed dictionary to delivery message. It contains :attr:`mode` and
     :attr:`version`.
 
-    .. Example::
+    Example::
 
         >>> meta = Meta()
         >>> meta

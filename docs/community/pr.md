@@ -1,12 +1,12 @@
-## Pull Request (PR)
+# Pull Request (PR)
 
-### What is PR
+## What is PR
 
 `PR` is the abbreviation of `Pull Request`. Here's the definition of `PR` in the [official document](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) of Github.
 
 > Pull requests let you tell others about changes you've pushed to a branch in a repository on GitHub. Once a pull request is opened, you can discuss and review the potential changes with collaborators and add follow-up commits before your changes are merged into the base branch.
 
-### Basic Workflow
+## Basic Workflow
 
 1. Get the most recent codebase
 2. Checkout a new branch from the master branch
@@ -15,7 +15,7 @@
 5. Discuss and review your code
 6. Merge your branch to the master branch
 
-### Procedures in detail
+## Procedures in detail
 
 1. Get the most recent codebase
     + When you work on your first PR
@@ -82,7 +82,7 @@ To make commit history clear, we strongly recommend you checkout the master bran
     git push origin --delete branchname # delete remote branch
     ```
 
-### PR Specs
+## PR Specs
 
 1. Use [pre-commit](https://pre-commit.com) hook to avoid issues of code style
 2. One short-time branch should be matched with only one PR

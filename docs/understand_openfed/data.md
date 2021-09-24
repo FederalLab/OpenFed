@@ -1,13 +1,13 @@
-## Data
+# Data
 
-### FederatedDataset
+## FederatedDataset
 
 In order to load the simulated federated data in a uniform way, we provide :class:`FederatedDataset`. Compared with :class:`Dataset`, it has two extra attributes:
 
 - `part_id`: Part id to load.
 - `total_parts`: The total number of parts.
 
-### PartitionerDataset
+## PartitionerDataset
 
 :class:`PartitionerDataset` will divide a custom dataset according to the partitioner you selected. It is the most convenient method to generate a simulated federated dataset for testing.
 
@@ -53,6 +53,6 @@ Done!
 [5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996, 5996]
 ```
 
-### Partitioner
+## Partitioner
 
 :class:`Partitioner` can generate a non-iid distribution datasets easily. We provide three different ways, i.e., `PowerLawPartitioner`, `DirichletPartitioner`, `IIDPartitioner`.

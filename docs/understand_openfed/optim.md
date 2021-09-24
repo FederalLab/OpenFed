@@ -1,6 +1,6 @@
-## Optim
+# Optim
 
-### FederatedOptimizer
+## FederatedOptimizer
 
 :class:`FederatedOptimizer` wrapper an :class:`torch.optim.Optimizer`, and provide some necessary functions for federated learning. The simplest way to generate an federated optimizer is to use this wrapper like:
 

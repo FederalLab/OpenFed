@@ -1,6 +1,6 @@
-## Common
+# Common
 
-### Meta
+## Meta
 
 `Meta` class is a special dictionary that used to convey messages between aggregator and collaborators. It contains two default attributions:
 
@@ -53,7 +53,7 @@
 +-------+---------+---------------------+
 ```
 
-### Address
+## Address
 
 `Address` class stores all the arguments needed to build a process group. It will automatically check the arguments you passed in. There are two kinds of address:
 

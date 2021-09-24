@@ -1,8 +1,8 @@
-## Utils
+# Utils
 
 This component provides some useful functions, such as `seed_everything`, `time_string`.
 
-### Format output as table
+## Format output as table
 
 Sometimes, we can receive a better visualization via show some data in a table.
 

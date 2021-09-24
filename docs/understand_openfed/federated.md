@@ -1,11 +1,11 @@
-## Federated
+# Federated
 
-### Pipe
+## Pipe
 
 :class:`Pipe` maintains the communication operation between two nodes, including tensor data and info message.
 It uses a store to transfer info message and process group with `gloo` or `mpi` to transfer tensor data.
 
-### DistributedProperties
+## DistributedProperties
 
 :class:`DistributedProperties` contains all distributed attributions of `torch.distributed.distributed_c10d`.
 Usually, you can use it with context environment.
@@ -15,12 +15,12 @@ with dist_props:
     ...
 ```
 
-### FederatedProperties
+## FederatedProperties
 
 :class:`FederatedProperties` contains all federated attributions, such as address, role and nick name.
 It is usually generated via :func:`openfed.topo.analysis`.
 
-### Examples
+## Examples
 
 Here, we try to communicate some information among `aggregator`, `collaborator_alpha` and `collaborator_beta`.
 You need to open three independent terminals to run the following three scripts.

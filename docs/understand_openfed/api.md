@@ -1,4 +1,4 @@
-## Api
+# Api
 
 :class:``API`` provides a simple wrapper of aggregator logistic.
 After define an :class:``API``, you can use it in the backend:

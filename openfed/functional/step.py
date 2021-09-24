@@ -14,7 +14,7 @@ def count_step(counts: Union[List[int], int]):
         counts: If the number of received models is greater than counts, stop
             the loop immediately and turn to next count.
 
-    .. Example::
+    Example::
 
         >>> count_step(15) # Stop when receive the fifteen-th models.
         >>> # Stop when receive the fifth models.
@@ -71,7 +71,7 @@ def period_step(period: float):
     Args:
         period: The period second time to stop.
 
-    .. Example::
+    Example::
 
         >>> period_step(15) # Stop the loop every 15 seconds.
     '''
@@ -121,7 +121,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
             the loop immediately and turn to next count.
         parts_list: The part list to dispatch.
 
-    .. Example::
+    Example::
 
         >>> dispatch_step(15, dict(train=list(range(100))))
         >>> dispatch_step([15, 20], dict(train=list(range(100),

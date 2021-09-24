@@ -1,6 +1,6 @@
-## Tools
+# Tools
 
-### TopoBuilder
+## TopoBuilder
 
 `TopoBuilder` provides a common line for you to build a massive topology graph more easily.
 Then you can save it to disk and load it in your code.
@@ -157,7 +157,7 @@ Processing yellow
 <OpenFed>: exit
 ```
 
-### Simulator
+## Simulator
 
 `Simulator`, which is similar with `torch.distributed.launch`, is a module that spawns up multiple federated
 training processes on each of the training nodes.

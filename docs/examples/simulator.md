@@ -84,10 +84,10 @@ else:
 
 Copy and save these piece of code as `examples/run.py`.
 
-## Simulator
+## Run
 
 
-```python
+```shell
 # Launch 6 process (1 for aggregator, 5 for collaborator) to do simulation.
 !python -m openfed.tools.simulator --nproc 6 run.py
 ```

@@ -1,6 +1,6 @@
-## Topo
+# Topo
 
-### Node
+## Node
 
 Each device is regarded as a `Node` with `nick_name` and `address`. The nick name is the identification for each node and needs to be unique. Any nodes could connect to others via the address. Only when two nodes have the same address and nick name, we will regard them as the some one.
 
@@ -32,7 +32,7 @@ nick name: beta node
 +---------+---------------------+------------+------+
 ```
 
-### Edge
+## Edge
 
 The relation between two nodes is determined via `Edge`. An `Edge` with two attributions:
 
@@ -50,7 +50,7 @@ If you want to build a connection between alpha(collaborator) and beta(aggregato
 
 In `OpenFed`, all the connection relationship should be represented as a `Topology`.
 
-### Topology
+## Topology
 
 In `OpenFed`, we use `Topology` to manage massive nodes and edges. Here, we try to build a very simple centralized topology between three nodes, alpha(aggregator), beta(collaborator), gamma(collaborator).
 
@@ -80,7 +80,7 @@ In `OpenFed`, we use `Topology` to manage massive nodes and edges. Here, we try 
 +------------+------------+-----------+------------+
 ```
 
-### FederatedGroup
+## FederatedGroup
 
 We will analysis `Topology` and build a `FederatedGroup` for each node. Whatever the topology is, we will divide it into many federated groups. In each group, the node can only be a `aggregator` or a `collaborator`. In different groups, the node can play different roles.
 

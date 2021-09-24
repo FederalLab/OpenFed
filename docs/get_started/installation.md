@@ -1,4 +1,4 @@
-## Installation
+# Installation
 
 ```shell
 pip install openfed

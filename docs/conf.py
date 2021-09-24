@@ -19,7 +19,6 @@
 import os
 import sys
 
-import pytorch_sphinx_theme  # type: ignore
 from m2r import MdInclude
 from recommonmark.transform import AutoStructify
 from sphinx.builders.html import StandaloneHTMLBuilder
@@ -105,62 +104,10 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-html_theme_options = {
-    'logo_url':
-    'https://openfed.readthedocs.io/en/latest/',
-    'menu': [
-        {
-            'name': 'GitHub',
-            'url': 'https://github.com/FederalLab/OpenFed'
-        },
-        {
-            'name':
-            'Projects',
-            'children': [
-                {
-                    'name': 'openfed-cv',
-                    'url': 'https://github.com/FederalLab/openfed-cv',
-                },
-                {
-                    'name': 'openfed-finance',
-                    'url': 'https://github.com/FederalLab/openfed-finance',
-                },
-                {
-                    'name': 'openfed-medical',
-                    'url': 'https://github.com/FederalLab/openfed-medical',
-                },
-                {
-                    'name': 'openfed-rl',
-                    'url': 'https://github.com/FederalLab/openfed-rl',
-                },
-                {
-                    'name': 'openfed-nlp',
-                    'url': 'https://github.com/FederalLab/openfed-nlp',
-                },
-                {
-                    'name': 'benchmark-lightly',
-                    'url': 'https://github.com/FederalLab/benchmark-lightly',
-                },
-            ]
-        },
-        {
-            'name':
-            'OpenFed',
-            'children': [
-                {
-                    'name': 'GitHub',
-                    'url': 'https://github.com/FederalLab'
-                },
-            ]
-        },
-    ]
-}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

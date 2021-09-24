@@ -1,6 +1,6 @@
-## Core
+# Core
 
-### Maintainer
+## Maintainer
 
 :class:`Maintainer` bridges the connection between upper(federated algorithms) and lower(communication and topology) layers. It has the following properties:
 
@@ -11,7 +11,7 @@
 
 You can use :class:`Maintainer` to conduct a flexible communication with other nodes more easily than :class:`Pipe`.
 
-### Examples
+## Examples
 
 Aggregator:
 
