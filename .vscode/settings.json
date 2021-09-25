@@ -86,5 +86,8 @@
         "tests"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "fileheader.tpl": "# @Author            : {author}\\r\\n# @Date              : {createTime}\\r\\n# @Last Modified by  : {lastModifiedBy}\\r\\n# @Last Modified time: {updateTime}\\r\\n# Copyright (c) FederalLab. All rights reserved.\\r\\n",
+    "fileheader.Author": "FederalLab",
+    "fileheader.LastModifiedBy": "Chen Dengsheng"
 }

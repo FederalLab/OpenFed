@@ -1,3 +1,9 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:54:22
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:54:22
+# Copyright (c) FederalLab. All rights reserved.
+
 from typing import List, Tuple, Union
 
 from openfed.common import Address

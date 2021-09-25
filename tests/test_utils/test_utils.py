@@ -1,3 +1,8 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:57:05
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:57:05
+# Copyright (c) FederalLab. All rights reserved.
 from openfed.utils.utils import FMT, seed_everything, time_string
 
 

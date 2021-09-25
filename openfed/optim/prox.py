@@ -1,3 +1,7 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:53:43
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:53:43
 # Copyright (c) FederalLab. All rights reserved.
 from openfed.federated import collaborator
 from .fed_optim import FederatedOptimizer

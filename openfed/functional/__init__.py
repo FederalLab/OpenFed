@@ -1,3 +1,7 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:52:46
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:52:46
 # Copyright (c) FederalLab. All rights reserved.
 from .agg import (average_aggregation, elastic_aggregation, load_param_states,
                   naive_aggregation, paillier_aggregation)

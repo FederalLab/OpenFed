@@ -1,3 +1,7 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:54:04
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:54:04
 # Copyright (c) FederalLab. All rights reserved.
 r'''
 `openfed.tools.simulator` is a module that spawns up multiple simulated

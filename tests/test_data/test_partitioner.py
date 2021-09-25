@@ -1,3 +1,8 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:56:47
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:56:47
+# Copyright (c) FederalLab. All rights reserved.
 import pytest
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor

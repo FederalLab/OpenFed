@@ -1,3 +1,8 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:57:29
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:57:29
+# Copyright (c) FederalLab. All rights reserved.
 """python setup.py sdist bdist_wheel python -m twine upload dist/*"""
 from setuptools import find_packages, setup
 

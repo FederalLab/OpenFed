@@ -1,3 +1,7 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:52:09
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:52:09
 # Copyright (c) FederalLab. All rights reserved.
 from .const import (aggregator, aggregator_rank, collaborator,
                     collaborator_rank, is_aggregator, is_collaborator,

@@ -1,3 +1,8 @@
+# @Author            : FederalLab
+# @Date              : 2021-09-25 16:57:01
+# @Last Modified by  : Chen Dengsheng
+# @Last Modified time: 2021-09-25 16:57:01
+# Copyright (c) FederalLab. All rights reserved.
 from openfed.utils.table import string_trim, tablist
 
 
