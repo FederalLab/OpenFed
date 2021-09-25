@@ -21,8 +21,10 @@ def main_function(props):
     assert len(props) == 1
     props = props[0]
 
-    network = nn.Linear(784, 10)
-    loss_fn = nn.CrossEntropyLoss()
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    network = nn.Linear(784, 10).to(device)
+    loss_fn = nn.CrossEntropyLoss().to(device)
 
     sgd = torch.optim.SGD(
         network.parameters(), lr=1.0 if props.aggregator else 0.1)
@@ -65,6 +67,7 @@ def main_function(props):
             losses = []
             for data in dataloader:
                 x, y = data
+                x, y = x.to(device), y.to(device)
                 output = network(x.view(-1, 784))
                 loss = loss_fn(output, y)
 
