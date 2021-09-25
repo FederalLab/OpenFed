@@ -86,14 +86,17 @@ def test_build_centralized_topology():
 
 @pytest.mark.run(order=3)
 def test_simulator_aggregator():
+    test_build_centralized_topology()
     main_function('/tmp/aggregator.json')
 
 
 @pytest.mark.run(order=3)
 def test_simulator_collaborator_alpha():
+    test_build_centralized_topology()
     main_function('/tmp/collaborator-1.json')
 
 
 @pytest.mark.run(order=3)
 def test_simulator_collaborator_beta():
+    test_build_centralized_topology()
     main_function('/tmp/collaborator-2.json')
