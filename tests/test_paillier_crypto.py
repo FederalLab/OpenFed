@@ -173,26 +173,9 @@ def main_function(role, rounds, part_per_round):
              part_per_round)
 
 
-def _test_paillier_crypto():
-    try:
-        build_dataset()
-    except ModuleNotFoundError:
-        return
-    from multiprocessing import Process
+def test_paillier_crypto_aggregator():
+    main_function(openfed.federated.aggregator, 2, 2)
 
-    import openfed
-    rounds = 2
-    part_per_round = 2
 
-    aggregator_pc = Process(
-        target=main_function,
-        args=(openfed.federated.aggregator, rounds, part_per_round))
-    collaborator = Process(
-        target=main_function,
-        args=(openfed.federated.collaborator, rounds, part_per_round))
-
-    aggregator_pc.start()
-    collaborator.start()
-
-    aggregator_pc.join()
-    collaborator.join()
+def test_paillier_crypto_collaborator():
+    main_function(openfed.federated.collaborator, 2, 2)

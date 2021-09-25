@@ -1,6 +1,3 @@
-from multiprocessing import Process
-
-
 def aggregator():
     # build a topology first
     import time
@@ -150,15 +147,13 @@ def collaborator_beta():
     time.sleep(1)
 
 
-def test_federated():
-    aggregator_p = Process(target=aggregator)
-    collaborator_alpha_p = Process(target=collaborator_alpha)
-    collaborator_beta_p = Process(target=collaborator_beta)
+def test_federated_aggregator():
+    aggregator()
 
-    aggregator_p.start()
-    collaborator_alpha_p.start()
-    collaborator_beta_p.start()
 
-    aggregator_p.join()
-    collaborator_alpha_p.join()
-    collaborator_beta_p.join()
+def test_federated_collaborator_alpha():
+    collaborator_alpha()
+
+
+def test_federated_collaborator_beta():
+    collaborator_beta()
