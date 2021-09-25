@@ -55,10 +55,6 @@ jobs:
         run: |
           pip install -r requirements/test.txt
           coverage run --branch --source=openfed -p -m pytest tests/ -k 'not aggregator and not collaborator'
-          coverage run --branch --source=openfed -p -m pytest -n 3 tests/test_federated/test_federated.py -k 'federated'
-          coverage run --branch --source=openfed -p -m pytest -n 3 tests/test_core/test_maintainer.py -k 'maintainer'
-          coverage run --branch --source=openfed -p -m pytest -n 3 tests/test_simulator.py -k 'simulator'
-          coverage run --branch --source=openfed -p -m pytest -n 2 tests/test_paillier_crypto.py -k 'paillier_crypto'
           coverage combine
           coverage xml
           coverage report -m
@@ -252,5 +248,7 @@ jobs:
       - name: Run unittests
         run: |
           pip install -r requirements/test.txt
-          # The timing on macos VMs is not precise, so we skip the progressbar tests
-          bash pytest.sh
+          coverage run --branch --source=openfed -p -m pytest tests/ -k 'not aggregator and not collaborator'
+          coverage combine
+          coverage xml
+          coverage report -m
