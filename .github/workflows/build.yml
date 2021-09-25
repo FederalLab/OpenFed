@@ -73,12 +73,6 @@ jobs:
         include:
           - torch: 1.9.0+cu102
             torchvision: 0.10.0+cu102
-          - python-version: 3.6
-            torch: 1.9.0+cu102
-            torchvision: 0.10.0+cu102
-          - python-version: 3.8
-            torch: 1.9.0+cu102
-            torchvision: 0.10.0+cu102
 
     steps:
       - uses: actions/checkout@v2
