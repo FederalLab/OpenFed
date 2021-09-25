@@ -1,6 +1,7 @@
 import os
 import random
 
+import pytest
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -173,9 +174,11 @@ def main_function(role, rounds, part_per_round):
              part_per_round)
 
 
+@pytest.mark.run(order=5)
 def test_paillier_crypto_aggregator():
     main_function(openfed.federated.aggregator, 2, 2)
 
 
-def test_paillier_crypto_collaborator():
+@pytest.mark.run(order=5)
+def test_paillier_crypto_collaborator_alpha():
     main_function(openfed.federated.collaborator, 2, 2)

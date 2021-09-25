@@ -1,4 +1,4 @@
-from multiprocessing import Process
+import pytest
 
 
 def aggregator():
@@ -33,6 +33,7 @@ def aggregator():
         openfed.functional.device_alignment()
         openfed.functional.count_step(2)
 
+    maintainer.package()
     maintainer.step()
 
 
@@ -108,15 +109,16 @@ def collaborator_beta():
     maintainer.step(download=False)
 
 
-def test_maintainer():
-    aggregator_p = Process(target=aggregator)
-    collaborator_alpha_p = Process(target=collaborator_alpha)
-    collaborator_beta_p = Process(target=collaborator_beta)
+@pytest.mark.run(order=9)
+def test_maintainer_aggregator():
+    aggregator()
 
-    aggregator_p.start()
-    collaborator_alpha_p.start()
-    collaborator_beta_p.start()
 
-    aggregator_p.join()
-    collaborator_alpha_p.join()
-    collaborator_beta_p.join()
+@pytest.mark.run(order=9)
+def test_maintainer_collaborator_alpha():
+    collaborator_alpha()
+
+
+@pytest.mark.run(order=9)
+def test_maintainer_collaborator_beta():
+    collaborator_beta()

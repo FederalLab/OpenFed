@@ -1,5 +1,6 @@
 import random
 
+import pytest
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -77,18 +78,22 @@ def main_function(props):
             version += 1
 
 
-def test_topo_builder():
+@pytest.mark.run(order=0)
+def test_build_centralized_topology():
     from openfed.tools.simulator import build_centralized_topology
     build_centralized_topology(3)
 
 
+@pytest.mark.run(order=3)
 def test_simulator_aggregator():
     main_function('/tmp/aggregator.json')
 
 
-def test_simulator_collaborator_1():
+@pytest.mark.run(order=3)
+def test_simulator_collaborator_alpha():
     main_function('/tmp/collaborator-1.json')
 
 
-def test_simulator_collaborator_2():
+@pytest.mark.run(order=3)
+def test_simulator_collaborator_beta():
     main_function('/tmp/collaborator-2.json')

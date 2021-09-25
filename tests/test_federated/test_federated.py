@@ -1,3 +1,6 @@
+import pytest
+
+
 def aggregator():
     # build a topology first
     import time
@@ -54,13 +57,9 @@ def aggregator():
         # download data from beta
         assert beta_pipe.download() == 2
 
-    time.sleep(1)
-
 
 def collaborator_alpha():
     # build a topology first
-    import time
-
     # transfer tensor
     import torch
 
@@ -99,12 +98,9 @@ def collaborator_alpha():
         # upload data to aggregator
         alpha_pipe.upload(data)
 
-    time.sleep(1)
-
 
 def collaborator_beta():
     # build a topology first
-    import time
 
     # transfer data
     import torch
@@ -144,16 +140,17 @@ def collaborator_beta():
         # upload data to aggregator
         beta_pipe.upload(data)
 
-    time.sleep(1)
 
-
+@pytest.mark.run(order=7)
 def test_federated_aggregator():
     aggregator()
 
 
+@pytest.mark.run(order=7)
 def test_federated_collaborator_alpha():
     collaborator_alpha()
 
 
+@pytest.mark.run(order=7)
 def test_federated_collaborator_beta():
     collaborator_beta()
