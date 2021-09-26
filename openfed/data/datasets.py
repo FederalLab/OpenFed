@@ -4,8 +4,6 @@
 # @Last Modified time: 2021-09-25 16:51:52
 # Copyright (c) FederalLab. All rights reserved.
 
-# type: ignore
-from abc import abstractmethod
 from typing import Any, List
 
 import numpy as np
@@ -30,7 +28,6 @@ class FederatedDataset(Dataset):
         self.part_id = part_id
 
     @property
-    @abstractmethod
     def total_samples(self) -> int:
         raise NotImplementedError
 
@@ -51,11 +48,11 @@ class PartitionerDataset(FederatedDataset):
         total_parts: How many parts the dataset participated into.
         partitioner: The way to participate the dataset.
     """
-    dataset: Dataset
+    dataset: Any
     parts_index_list: List
     partitioner: Partitioner
 
-    def __init__(self, dataset: Dataset, total_parts: int,
+    def __init__(self, dataset: Any, total_parts: int,
                  partitioner: Partitioner):
         self.dataset = dataset
         self.total_parts = total_parts
