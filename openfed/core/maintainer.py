@@ -260,7 +260,8 @@ class Maintainer(object):
         # clear data before download
         self.data.clear()
         data = self.transfer(to=False)
-        assert data
+        if not data:
+            return False
 
         for n, p in self.state_dict.items():
             p_data = data[n]
@@ -278,7 +279,7 @@ class Maintainer(object):
                 tensor_data[p] = data[n]
             # cache the data
             self.data_list.append(tensor_data)
-            self.meta_list.append(deepcopy(self.meta))
+            self.meta_list.append(deepcopy(self.pipe.meta))
 
         return True
 
@@ -298,13 +299,13 @@ class Maintainer(object):
 
         return True
 
-    def step(self, *args, **kwargs):
+    def step(self, *args, **kwargs) -> bool:
         if self.collaborator:
-            self._collaborator_step(*args, **kwargs)
+            return self._collaborator_step(*args, **kwargs)
         else:
-            self._aggregator_step(*args, **kwargs)
+            return self._aggregator_step(*args, **kwargs)
 
-    def _collaborator_step(self, *args, **kwargs):
+    def _collaborator_step(self, *args, **kwargs) -> bool:
         download = kwargs.pop('download', True)
         upload = kwargs.pop('upload', True)
         meta = kwargs.pop('meta', None)
@@ -312,17 +313,23 @@ class Maintainer(object):
         self.pipe.set_meta(meta or self.meta)
 
         if upload:
-            self.upload()
+            flag_upload = self.upload()
+        else:
+            flag_upload = True
 
         if download:
-            self.download()
+            flag_download = self.download()
+        else:
+            flag_download = True
 
         self.meta = self.pipe.meta
 
         if meta:
             meta.update(self.meta)
 
-    def _aggregator_step(self, *args, **kwargs):
+        return flag_upload and flag_download
+
+    def _aggregator_step(self, *args, **kwargs) -> bool:
         self.stopped = False
 
         def step(step_name: str, *args, **kwargs):
@@ -379,6 +386,8 @@ class Maintainer(object):
 
             # sleep for a while to wait all the state have been correctly set.
             time.sleep(0.01)
+
+        return True
 
     def package(self,
                 optim_list: Optional[Any] = None,
@@ -461,6 +470,12 @@ class Maintainer(object):
     def manual_stop(self):
         r'''Stop while loop in :func:`_aggregator_step`.'''
         self.stopped = True
+
+    def killed(self):
+        r"""Killed all pipes' connection.
+        """
+        for pipe in self.pipes:
+            pipe.offline()
 
     def __enter__(self):
         self._default_maintainer = DefaultMaintainer._default_maintainer

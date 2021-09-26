@@ -41,6 +41,7 @@ class API(Thread):
                  agg_func_kwargs: Dict[str, Any] = dict(),
                  reduce_func: Optional[Callable] = None,
                  reduce_func_kwargs: Dict[str, Any] = dict(),
+                 with_test_round: bool = False,
                  **kwargs):
         super(API, self).__init__(**kwargs)
 
@@ -51,6 +52,7 @@ class API(Thread):
         self.agg_func_kwargs = agg_func_kwargs
         self.reduce_func = reduce_func
         self.reduce_func_kwargs = reduce_func_kwargs
+        self.with_test_round = with_test_round
 
     def run(self):
         """A aggregator logistics."""
@@ -64,6 +66,7 @@ class API(Thread):
         if maintainer.aggregator:
             process = trange(rounds)
             for r in process:
+                # Train phase
                 maintainer.package(fed_optim)
                 maintainer.step()
                 fed_optim.zero_grad()
@@ -78,10 +81,24 @@ class API(Thread):
                 fed_optim.clear_state_dict()
 
                 if reduce_func:
-                    process.set_description(
-                        str(
-                            reduce_func(maintainer.meta_list,
-                                        **reduce_func_kwargs)))
+                    train_info = reduce_func(maintainer.meta_list,
+                                             **reduce_func_kwargs)
 
                 maintainer.update_version()
                 maintainer.clear()
+
+                # Test phase
+                if self.with_test_round:
+                    maintainer.package(fed_optim)
+                    maintainer.step()
+
+                    if reduce_func:
+                        test_info = reduce_func(maintainer.meta_list,
+                                                **reduce_func_kwargs)
+
+                    maintainer.clear()
+
+                if reduce_func:
+                    info = f'train: {train_info}' + \
+                        f' test: {test_info}' if self.with_test_round else ''
+                    process.set_description(info)

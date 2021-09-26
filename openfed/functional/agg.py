@@ -38,7 +38,7 @@ def average_aggregation(data_list: List[Dict[Tensor, Any]],
     param_states = defaultdict(dict)
 
     def aggregate(data: List[Tensor]):
-        return torch.stack(data, dim=0).mean(dim=0, keepdim=False)
+        return torch.stack(data, dim=0).float().mean(dim=0, keepdim=False)
 
     # get all params
     params = set()
@@ -237,7 +237,7 @@ def paillier_aggregation(data_list: List[Dict[Tensor, Any]],
     param_states = defaultdict(dict)
 
     def aggregate(data: List[Tensor]):
-        return torch.stack(data, dim=0).mean(dim=0, keepdim=False)
+        return torch.stack(data, dim=0).float().mean(dim=0, keepdim=False)
 
     # get all params
     params = set()

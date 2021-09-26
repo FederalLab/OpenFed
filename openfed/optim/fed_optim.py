@@ -88,3 +88,6 @@ class FederatedOptimizer(object):
 
     def zero_grad(self, *args, **kwargs):
         return self.optimizer.zero_grad(*args, **kwargs)
+
+    def load_state_dict(self, *args, **kwargs):
+        return self.optimizer.load_state_dict(*args, **kwargs)

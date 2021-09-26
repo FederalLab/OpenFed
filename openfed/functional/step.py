@@ -44,6 +44,7 @@ def count_step(counts: Union[List[int], int]):
                 return False
             else:
                 maintainer.meta['version'] = maintainer.version
+                maintainer.pipe.set_meta(maintainer.meta)
                 return True
 
         _default_maintainer.register_step_hook(
@@ -93,6 +94,7 @@ def period_step(period: float):
                 return False
             else:
                 maintainer.meta['version'] = maintainer.version
+                maintainer.pipe.set_meta(maintainer.meta)
                 return True
 
         _default_maintainer.register_step_hook(
@@ -156,6 +158,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
                 maintainer.meta['version'] = maintainer.version
                 maintainer.meta['part_id'] = part_id
                 maintainer.meta['mode'] = parts_list_key[idx]
+                maintainer.pipe.set_meta(maintainer.meta)
                 return True
 
             if len(maintainer.meta_list) < counts[idx]:  # type: ignore
