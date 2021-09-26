@@ -119,7 +119,7 @@ def period_step(period: float):
             nice=50, step_hook=lambda x: True, step_name=const.before_download)
 
 
-def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
+def dispatch_step(counts: List[int], parts_list: Dict[str, List]):
     r'''Dispatch a part id from part list and stop based the count.
 
     Args:
@@ -161,7 +161,7 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
                 maintainer.pipe.set_meta(maintainer.meta)
                 return True
 
-            if len(maintainer.meta_list) < counts[idx]:  # type: ignore
+            if len(maintainer.meta_list) < counts[idx]:
                 # wait an unfinished task
                 return False
 
@@ -176,15 +176,13 @@ def dispatch_step(counts: Union[List[int], int], parts_list: Dict[str, List]):
 
         def at_last_hook(maintainer):
             nonlocal idx
-            if len(maintainer.meta_list) == counts[idx]:  # type: ignore
+            if len(maintainer.meta_list) == counts[idx]:
                 maintainer.manual_stop()
-                idx = idx + 1
-                idx = len(counts) % idx  # type: ignore
+                idx = (idx + 1) % len(counts)
 
                 nonlocal pending_queue
-                pending_queue = random.sample(
-                    parts_list_value[idx],  # type: ignore
-                    counts[idx])  # type: ignore
+                pending_queue = random.sample(parts_list_value[idx],
+                                              counts[idx])
 
         _default_maintainer.register_step_hook(
             nice=50, step_hook=at_last_hook, step_name=const.at_last)

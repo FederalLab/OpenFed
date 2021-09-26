@@ -84,7 +84,6 @@ class API(Thread):
                     train_info = reduce_func(maintainer.meta_list,
                                              **reduce_func_kwargs)
 
-                maintainer.update_version()
                 maintainer.clear()
 
                 # Test phase
@@ -98,6 +97,7 @@ class API(Thread):
 
                     maintainer.clear()
 
+                maintainer.update_version()
                 if reduce_func:
                     info = f'train: {train_info}' + \
                         f' test: {test_info}' if self.with_test_round else ''
