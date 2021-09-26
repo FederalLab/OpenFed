@@ -115,6 +115,13 @@ class Maintainer(object):
         assert self.pipe
         return self.pipe.nick_name
 
+    @property
+    def is_offline(self) -> bool:
+        r'''Returns `True` if current pipe is offline, `False` otherwise.
+        '''
+        assert self.pipe
+        return self.pipe.is_offline
+
     def register_package_hook(self, nice: int, package_hook: Callable):
         r'''Register a package hook.
 

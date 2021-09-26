@@ -5,15 +5,13 @@
 # Copyright (c) FederalLab. All rights reserved.
 import json
 from threading import Lock
-from typing import Any, Dict, List, Optional, Tuple, TypeVar
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch.distributed.distributed_c10d as distributed_c10d
 
 from openfed.common import Address
 from openfed.federated.const import is_aggregator, is_collaborator
 from openfed.utils import FMT, tablist
-
-T = TypeVar('T', bound='FederatedProperties')
 
 
 class DistributedProperties(object):
@@ -176,12 +174,12 @@ class FederatedProperties(object):
         )
 
     @classmethod
-    def unserialize(cls, data: Dict[str, Any]) -> T:
+    def unserialize(cls, data: Dict[str, Any]):
         address = Address.unserialize(data.pop('address'))
         return FederatedProperties(**data, address=address)
 
     @classmethod
-    def load(cls, path: str) -> List[T]:
+    def load(cls, path: str) -> List:
         with open(path, 'r') as f:
             data = json.load(f)
 
