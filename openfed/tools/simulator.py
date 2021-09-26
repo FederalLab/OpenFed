@@ -101,8 +101,8 @@ def build_centralized_topology(nproc):
 
 def main():
     args = parse_args()
-    if os.path.isfile('/tmp//tmp/openfed.sharedfile'):
-        os.remove('/tmp//tmp/openfed.sharedfile')
+    if os.path.isfile('/tmp/openfed.sharedfile'):
+        os.remove('/tmp/openfed.sharedfile')
     build_centralized_topology(args.nproc)
 
     processes: List[Any] = []
