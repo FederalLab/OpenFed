@@ -16,7 +16,7 @@ def device_alignment():
 
     def package(state, p):
         for k, v in state.items():
-            if v is not None:
+            if v is not None and isinstance(v, torch.Tensor):
                 state[k] = v.to(p)
         return state
 
@@ -24,7 +24,7 @@ def device_alignment():
 
     def unpackage(state, p):
         for k, v in state.items():
-            if v is not None:
+            if v is not None and isinstance(v, torch.Tensor):
                 state[k] = v.to(p)
         return state
 
