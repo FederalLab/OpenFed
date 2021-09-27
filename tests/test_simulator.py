@@ -55,9 +55,7 @@ def main_function(props):
             num_workers=0,
             drop_last=False)
 
-        version = 0
-        for outter in range(rounds):
-            maintainer.update_version(version)
+        for _ in range(rounds):
             maintainer.step(upload=False)
 
             part_id = random.randint(0, 9)
@@ -79,17 +77,16 @@ def main_function(props):
 
             fed_sgd.round()
 
-            maintainer.update_version(version + 1)
+            maintainer.update_version()
             maintainer.package(fed_sgd)
             maintainer.step(download=False)
             fed_sgd.clear_state_dict()
-            version += 1
 
 
 @pytest.mark.run(order=0)
 def test_build_centralized_topology():
     from openfed.tools.simulator import build_centralized_topology
-    build_centralized_topology(3)
+    build_centralized_topology(3, tcp=True)
 
 
 @pytest.mark.run(order=3)

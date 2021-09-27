@@ -69,11 +69,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_centralized_topology(nproc):
+def build_centralized_topology(nproc, tcp: bool = False):
     assert nproc >= 2, 'nproc must be greater than 2'
 
     # build node
-    aggregator = topo.Node('aggregator', openfed.default_file_address)
+    aggregator = topo.Node(
+        'aggregator',
+        openfed.default_tcp_address if tcp else openfed.default_file_address)
     collaborators = [
         topo.Node(f'collaborator-{i}', openfed.empty_address)
         for i in range(1, nproc)
