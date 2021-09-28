@@ -7,24 +7,12 @@
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/FederalLab/OpenFed) [![Documentation Status](https://readthedocs.org/projects/openfed/badge/?version=latest)](https://openfed.readthedocs.io) [![PyPI](https://img.shields.io/pypi/v/OpenFed)](https://pypi.org/project/OpenFed) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OpenFed)](https://pypi.org/project/OpenFed) [![badge](https://github.com/FederalLab/OpenFed/workflows/build/badge.svg)](https://github.com/FederalLab/OpenFed/actions) [![codecov](https://codecov.io/gh/FederalLab/OpenFed/branch/main/graph/badge.svg)](https://codecov.io/gh/FederalLab/OpenFed) [![license](https://img.shields.io/github/license/FederalLab/OpenFed.svg)](https://github.com/FederalLab/OpenFed/blob/master/LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2109.07852-red.svg)](https://arxiv.org/abs/2109.07852)
 
-**NOTE**: Current version is unstable, and we will release the first stable version very soon.
-
 ## Introduction
 
 OpenFed is a foundational library for federated learning research and supports many research projects as below:
 
 - [benchmark-lightly](https://github.com/FederalLab/benchmark-lightly): FederalLab's simulation benchmark.
-- [openfed-cv](https://github.com/FederalLab/openfed-cv): FederalLab's toolkit and benchmark for computer vision in federated learning. This toolkit is based on [mmcv](https://github.com/open-mmlab/mmcv/), and provides the federated learning for following tasks:
-  - [MMClassification](https://github.com/open-mmlab/mmclassification): OpenMMLab image classification toolbox and benchmark.
-  - [MMDetection](https://github.com/open-mmlab/mmdetection): OpenMMLab detection toolbox and benchmark.
-  - [MMDetection3D](https://github.com/open-mmlab/mmdetection3d): OpenMMLab's next-generation platform for general 3D object detection.
-  - [MMSegmentation](https://github.com/open-mmlab/mmsegmentation): OpenMMLab semantic segmentation toolbox and benchmark.
-  - [MMAction2](https://github.com/open-mmlab/mmaction2): OpenMMLab's next-generation action understanding toolbox and benchmark.
-  - [MMTracking](https://github.com/open-mmlab/mmtracking): OpenMMLab video perception toolbox and benchmark.
-  - [MMPose](https://github.com/open-mmlab/mmpose): OpenMMLab pose estimation toolbox and benchmark.
-  - [MMEditing](https://github.com/open-mmlab/mmediting): OpenMMLab image and video editing toolbox.
-  - [MMOCR](https://github.com/open-mmlab/mmocr): OpenMMLab text detection, recognition and understanding toolbox.
-  - [MMGeneration](https://github.com/open-mmlab/mmgeneration): OpenMMLab image and video generative models toolbox.
+- [openfed-cv](https://github.com/FederalLab/openfed-cv): FederalLab's toolkit and benchmark for computer vision in federated learning. It is based on [mmcv](https://github.com/open-mmlab/mmcv/).
 - [openfed-finance](https://github.com/FederalLab/openfed-finance): FederalLab's toolbox and benchmark for finance data analysis in federated learning.
 - [openfed-medical](https://github.com/FederalLab/openfed-medical): FederalLab's toolbox and benchmark for medical data analysis in federated learning. It is based on [MONAI](https://github.com/Project-MONAI/MONAI).
 - [openfed-nlp](https://github.com/FederalLab/openfed-nlp): FederalLab's toolbox and benchmark for natural language processing in federated learning. It is based on [transformers](https://github.com/huggingface/transformers).
