@@ -15,6 +15,12 @@ from .paillier import Ciphertext, PrivateKey, long_to_float, paillier_dec
 
 
 def load_param_states(optim: Optimizer, param_states: Dict[Tensor, Any]):
+    r"""Loads the state of parameters in optim.
+
+    Args:
+        optim: The optimizer.
+        param_states: The dictionary contains state of parameters.
+    """
     success = 0
     fail = 0
     for group in optim.param_groups:
