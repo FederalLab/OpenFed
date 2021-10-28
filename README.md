@@ -146,11 +146,13 @@ This command will launch 6 processes (1 for aggregator, 5 for collaborators).
 If you find this project useful in your research, please consider cite:
 
 ```bash
-@misc{OpenFed,
-Author = {Chen Dengsheng},
-Title = {OpenFed: An Open-Source Security and Privacy Guaranteed Federated Learning Framework},
-Year = {2021},
-Eprint = {arXiv:2109.07852},
+@misc{chen2021openfed,
+      title={OpenFed: A Comprehensive and Versatile Open-Source Federated Learning Framework},
+      author={Dengsheng Chen and Vince Tan and Zhilin Lu and Jie Hu},
+      year={2021},
+      eprint={2109.07852},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR}
 }
 ```
 
