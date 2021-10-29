@@ -9,19 +9,7 @@
 
 ## Introduction
 
-OpenFed is a foundational library for federated learning research and supports many research projects as below:
-
-- [benchmark-lightly](https://github.com/FederalLab/benchmark-lightly): FederalLab's simulation benchmark.
-- [openfed-cv](https://github.com/FederalLab/openfed-cv): FederalLab's toolkit and benchmark for computer vision in federated learning. It is based on [mmcv](https://github.com/open-mmlab/mmcv/).
-- [openfed-finance](https://github.com/FederalLab/openfed-finance): FederalLab's toolbox and benchmark for finance data analysis in federated learning.
-- [openfed-medical](https://github.com/FederalLab/openfed-medical): FederalLab's toolbox and benchmark for medical data analysis in federated learning. It is based on [MONAI](https://github.com/Project-MONAI/MONAI).
-- [openfed-nlp](https://github.com/FederalLab/openfed-nlp): FederalLab's toolbox and benchmark for natural language processing in federated learning. It is based on [transformers](https://github.com/huggingface/transformers).
-- [openfed-rl](https://github.com/FederalLab/openfed-rl): FederalLab's toolbox and benchmark for reinforcement learning in federated learning. It is based on [stable-baselines3](https://github.com/DLR-RM/stable-baselines3)
-
-In addition, we also provide a toolkit for better compatibility with following libraries, so that you can use OpenFed with those libraries without obstacles and more easily:
-
-- [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning): The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.
-- [mmcv](https://github.com/open-mmlab/mmcv): MMCV is a foundational library for computer vision research and supports many research projects.
+OpenFed is a foundational library for federated learning research and supports many research projects. It reduces the barrier to entry for both researchers and downstream users of Federated Learning by the targeted removal of existing pain points. For researchers, OpenFed provides a framework wherein new methods can be easily implemented and fairly evaluated against an extensive suite of benchmarks. For downstream users, OpenFed allows Federated Learning to be plug and play within different subject-matter contexts, removing the need for deep expertise in Federated Learning.
 
 ## Install
 
@@ -31,7 +19,7 @@ PyTorch >= 1.5.1, python>=3.6
 
 **Latest version**: `pip install -e git+https://github.com/FederalLab/OpenFed.git`
 
-## Start Federated Learning In An Unprecedented Simple Way
+## Start Federated Learning in an Unprecedented Simple Way
 
 ```python
 import argparse
@@ -132,11 +120,11 @@ else:
         fed_sgd.clear_state_dict()
 ```
 
-Now, save the piece of code as `run.py`, and you can use the provided script to start a simulator by:
+Now, save this piece of code as `run.py`, and start a simulator by:
 
 ```shell
 (openfed) python -m openfed.tools.simulator --nproc 6 run.py
-100%|█████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:01<00:00,  7.21it/s]
+100%|█████████████████████████████████████████| 10/10 [00:01<00:00,  7.21it/s]
 ```
 
 This command will launch 6 processes (1 for aggregator, 5 for collaborators).
@@ -158,7 +146,8 @@ If you find this project useful in your research, please consider cite:
 
 ## Contributing
 
-We appreciate all contributions to improve OpenFed. Please refer to [CONTRIBUTUNG.md](https://github.com/FederalLab/OpenFed/raw/main/CONTRIBUTING.md) for the contributing guideline.
+We appreciate all contributions to improve OpenFed.
+Please refer to [CONTRIBUTING.md](https://github.com/FederalLab/OpenFed/raw/main/CONTRIBUTING.md) for the contributing guideline.
 
 ## License
 
