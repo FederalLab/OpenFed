@@ -15,9 +15,15 @@ OpenFed is a foundational library for federated learning research and supports m
 
 PyTorch >= 1.5.1, python>=3.6
 
-**Stable version**: `pip install openfed`
+**Build latest version from source**:
 
-**Latest version**: `pip install -e git+https://github.com/FederalLab/OpenFed.git`
+```shell
+git clone https://github.com/FederalLab/OpenFed.git
+cd OpenFed
+pip install -e .
+```
+
+**Stable version**: `pip install openfed`
 
 ## Start Federated Learning in an Unprecedented Simple Way
 
