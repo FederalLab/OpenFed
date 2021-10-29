@@ -1,9 +1,8 @@
 # Simulator
 
-This script provides a most simplest way to do federated learning with simultor.
+This script provides a most simplest way to do federated learning with simulator.
 
 ## Script
-
 
 ```python
 import argparse
@@ -86,22 +85,8 @@ Copy and save these piece of code as `examples/run.py`.
 
 ## Run
 
-
 ```shell
 # Launch 6 process (1 for aggregator, 5 for collaborator) to do simulation.
 !python -m openfed.tools.simulator --nproc 6 run.py
-```
-
-    [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-    [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-    [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-    [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-    [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-    [W ProcessGroupGloo.cpp:559] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
-    100%|███████████████████████████████████████████| 10/10 [00:01<00:00,  5.90it/s]
-
-
-
-```python
-
+100%|███████████████████████████████████████████| 10/10 [00:01<00:00,  5.90it/s]
 ```

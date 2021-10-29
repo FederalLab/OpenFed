@@ -17,64 +17,83 @@ from openfed.data import IIDPartitioner, PartitionerDataset
 
 parser = argparse.ArgumentParser(description='Simulator')
 parser.add_argument('--props', type=str, default='/tmp/aggregator.json')
+parser.add_argument(
+    '--download_data',
+    action='store_true',
+    default=False,
+    help='Download data, then exit.')
 args = parser.parse_args()
 
-props = openfed.federated.FederatedProperties.load(args.props)
-assert len(props) == 1
-props = props[0]
 
-network = nn.Linear(784, 10)
-loss_fn = nn.CrossEntropyLoss()
+def simulate():
+    props = openfed.federated.FederatedProperties.load(args.props)
+    assert len(props) == 1
+    props = props[0]
 
-sgd = torch.optim.SGD(
-    network.parameters(), lr=1.0 if props.aggregator else 0.1)
-fed_sgd = openfed.optim.FederatedOptimizer(sgd, props.role)
+    network = nn.Linear(784, 10)
+    loss_fn = nn.CrossEntropyLoss()
 
-maintainer = openfed.core.Maintainer(props, network.state_dict(keep_vars=True))
+    sgd = torch.optim.SGD(
+        network.parameters(), lr=1.0 if props.aggregator else 0.1)
+    fed_sgd = openfed.optim.FederatedOptimizer(sgd, props.role)
 
-with maintainer:
-    openfed.functional.device_alignment()
-    if props.aggregator:
-        openfed.functional.count_step(props.address.world_size - 1)
+    maintainer = openfed.core.Maintainer(props,
+                                         network.state_dict(keep_vars=True))
 
-rounds = 10
-if maintainer.aggregator:
-    api = openfed.API(maintainer, fed_sgd, rounds,
-                      openfed.functional.average_aggregation)
-    api.run()
-else:
-    mnist = MNIST(r'/tmp/', True, ToTensor(), download=True)
-    fed_mnist = PartitionerDataset(
-        mnist, total_parts=100, partitioner=IIDPartitioner())
+    with maintainer:
+        openfed.functional.device_alignment()
+        if props.aggregator:
+            openfed.functional.count_step(props.address.world_size - 1)
 
-    dataloader = DataLoader(
-        fed_mnist, batch_size=10, shuffle=True, num_workers=0, drop_last=False)
+    rounds = 10
+    if maintainer.aggregator:
+        api = openfed.API(maintainer, fed_sgd, rounds,
+                          openfed.functional.average_aggregation)
+        api.run()
+    else:
+        mnist = MNIST(r'/tmp/', True, ToTensor(), download=True)
+        fed_mnist = PartitionerDataset(
+            mnist, total_parts=100, partitioner=IIDPartitioner())
 
-    version = 0
-    for outter in range(rounds):
-        maintainer.update_version(version)
-        maintainer.step(upload=False)
+        dataloader = DataLoader(
+            fed_mnist,
+            batch_size=10,
+            shuffle=True,
+            num_workers=0,
+            drop_last=False)
 
-        part_id = random.randint(0, 9)
-        fed_mnist.set_part_id(part_id)
+        version = 0
+        for outter in range(rounds):
+            maintainer.update_version(version)
+            maintainer.step(upload=False)
 
-        network.train()
-        losses = []
-        for data in dataloader:
-            x, y = data
-            output = network(x.view(-1, 784))
-            loss = loss_fn(output, y)
+            part_id = random.randint(0, 9)
+            fed_mnist.set_part_id(part_id)
 
-            fed_sgd.zero_grad()
-            loss.backward()
-            fed_sgd.step()
-            losses.append(loss.item())
-        loss = sum(losses) / len(losses)
+            network.train()
+            losses = []
+            for data in dataloader:
+                x, y = data
+                output = network(x.view(-1, 784))
+                loss = loss_fn(output, y)
 
-        fed_sgd.round()
+                fed_sgd.zero_grad()
+                loss.backward()
+                fed_sgd.step()
+                losses.append(loss.item())
+            loss = sum(losses) / len(losses)
 
-        maintainer.update_version(version + 1)
-        maintainer.package(fed_sgd)
-        maintainer.step(download=False)
-        fed_sgd.clear_state_dict()
-        version += 1
+            fed_sgd.round()
+
+            maintainer.update_version(version + 1)
+            maintainer.package(fed_sgd)
+            maintainer.step(download=False)
+            fed_sgd.clear_state_dict()
+            version += 1
+
+
+if __name__ == '__main__':
+    if args.download_data:
+        MNIST(r'/tmp/', True, ToTensor(), download=True)
+    else:
+        simulate()
