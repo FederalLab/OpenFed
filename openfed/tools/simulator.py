@@ -40,6 +40,11 @@ def parse_args():
         'for GPU training, this is recommended to be set '
         'to the number of GPUs in your system so that '
         'each process can be bound to a single GPU.')
+    parser.add_argument(
+        '--tcp',
+        action='store_true',
+        default=False,
+        help='Use default TCP address or not.')
 
     # Optional arguments for the launch helper
     parser.add_argument(
@@ -105,7 +110,7 @@ def main():
     args = parse_args()
     if os.path.isfile('/tmp/openfed.sharedfile'):
         os.remove('/tmp/openfed.sharedfile')
-    build_centralized_topology(args.nproc)
+    build_centralized_topology(args.nproc, args.tcp)
 
     processes: List[Any] = []
 
