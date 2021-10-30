@@ -15,9 +15,11 @@ OpenFed is a foundational library for federated learning research and supports m
 
 PyTorch >= 1.5.1, python>=3.6
 
-**Build latest version from source**:
+**Build latest version from source with conda**:
 
 ```shell
+conda create -n openfed python=3.7 -y
+conda activate openfed
 git clone https://github.com/FederalLab/OpenFed.git
 cd OpenFed
 pip install -e .
@@ -27,7 +29,24 @@ pip install -e .
 
 ## Start Federated Learning in an Unprecedented Simple Way
 
-Refer to [here](examples/simulator.ipynb).
+1. Install extra package:
+
+```shell
+pip install torchvision numpy
+```
+
+2. Download MNIST dataset:
+
+```shell
+python examples/run.py --download
+```
+
+3. Start a simulation (`nproc` means the total number of federated nodes):
+
+```shell
+python -m openfed.tools.simulator --nproc 6 examples/run.py
+100%|██████████████████████████████████████████| 10/10 [00:01<00:00,  6.49it/s]
+```
 
 ## Citation
 

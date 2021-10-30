@@ -18,7 +18,7 @@ from openfed.data import IIDPartitioner, PartitionerDataset
 parser = argparse.ArgumentParser(description='Simulator')
 parser.add_argument('--props', type=str, default='/tmp/aggregator.json')
 parser.add_argument(
-    '--download_data',
+    '--download',
     action='store_true',
     default=False,
     help='Download data, then exit.')
@@ -93,7 +93,7 @@ def simulate():
 
 
 if __name__ == '__main__':
-    if args.download_data:
+    if args.download:
         MNIST(r'/tmp/', True, ToTensor(), download=True)
     else:
         simulate()
