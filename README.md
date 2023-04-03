@@ -7,6 +7,10 @@
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/FederalLab/OpenFed) [![Documentation Status](https://readthedocs.org/projects/openfed/badge/?version=latest)](https://openfed.readthedocs.io) [![PyPI](https://img.shields.io/pypi/v/OpenFed)](https://pypi.org/project/OpenFed) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OpenFed)](https://pypi.org/project/OpenFed) [![badge](https://github.com/FederalLab/OpenFed/workflows/build/badge.svg)](https://github.com/FederalLab/OpenFed/actions) [![codecov](https://codecov.io/gh/FederalLab/OpenFed/branch/main/graph/badge.svg)](https://codecov.io/gh/FederalLab/OpenFed) [![license](https://img.shields.io/github/license/FederalLab/OpenFed.svg)](https://github.com/FederalLab/OpenFed/blob/master/LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2109.07852-red.svg)](https://arxiv.org/abs/2109.07852)
 
+## News
+
+OpenFed has been accepted to CVPRW23! (The Second Workshop on Federated Learning for Computer Vision)
+
 ## Introduction
 
 OpenFed is a foundational library for federated learning research and supports many research projects. It reduces the barrier to entry for both researchers and downstream users of Federated Learning by the targeted removal of existing pain points. For researchers, OpenFed provides a framework wherein new methods can be easily implemented and fairly evaluated against an extensive suite of benchmarks. For downstream users, OpenFed allows Federated Learning to be plug and play within different subject-matter contexts, removing the need for deep expertise in Federated Learning.
